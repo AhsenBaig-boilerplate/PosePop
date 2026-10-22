@@ -10,6 +10,7 @@ Photos never leave the device: detection, cut-out and rendering all run locally.
 
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): how it works, the build, and refactor notes
 - [docs/ROADMAP.md](docs/ROADMAP.md): to-dos by priority
+- [docs/DEVICE-TEST.md](docs/DEVICE-TEST.md): real-device and StickerPix test-print script (uses `?debug=1`)
 - [SECURITY.md](SECURITY.md): reporting and accepted risks
 
 ## Develop

@@ -14,7 +14,7 @@ scripts/
   verify.mjs          release gate for dist/
   serve.mjs           local preview with production-like caching
 .github/workflows/pages.yml   CI: build + verify on PRs, deploy on main
-docs/                 this file, ROADMAP.md
+docs/                 this file, ROADMAP.md, DEVICE-TEST.md (real-device and test-print script)
 ```
 
 ## Runtime pipeline
@@ -41,6 +41,7 @@ photo ──► decodeFile ──► findPeople ──► segment ──► work
 | Worlds | `makeWorld`, `buildScene`, `renderScene` | Seeded voxel worlds; instanced meshes per block type; columns culled to the camera's view; renders cached by size |
 | Print | `frameSize`, `layoutFor`, `sizeForCount`, `renderSheet` | 300 dpi, StickerPix sheet 3.94 × 7.68 in, PNG tagged with pHYs |
 | Update | `checkForUpdate` | See "Caching" in the README |
+| Diagnostics | `mark`, `timed`, `drawDiag` | Stages record timings and facts with `mark(section, key, value)`; the panel only renders with `?debug=1`. No CSP change: the panel is plain DOM built with `textContent`, styled by the hashed inline `<style>`. Nothing is sent anywhere, and the copied report leaves out file names |
 
 State lives in one object, `S`. Undo/redo snapshots `S.fixes`, `S.place`, `S.gplace`, `S.edges` and `S.sel` as JSON. `S.moveMode` (`group` by default, `each`, `boxes`) decides what move, resize, pinch, scroll and the Size slider act on, through `cur()`.
 
