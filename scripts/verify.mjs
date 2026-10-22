@@ -66,11 +66,12 @@ if (!csp) fail("Content-Security-Policy meta tag missing");
 for (const bad of ["'unsafe-inline'", "'unsafe-eval'", "*", "http:", "https:"]) if (csp.split(/[\s;]+/).includes(bad)) fail(`CSP allows ${bad}`);
 for (const [re, kind] of [[/<script>([\s\S]*?)<\/script>/g, "script"], [/<style>([\s\S]*?)<\/style>/g, "style"]])
   for (const m of html.matchAll(re)) if (!csp.includes(`'sha256-${digest("sha256", m[1])}'`)) fail(`inline ${kind} hash not in CSP`);
-// blob: and data: URLs can carry code: only images may use them.
+// blob: and data: URLs can carry code: only images may use blob: (the photo decode fallback), and nothing uses data:.
 for (const directive of csp.split(";")) {
   const [name, ...sources] = directive.trim().split(/\s+/);
   if (["script-src", "worker-src", "style-src", "connect-src", "default-src"].includes(name))
     for (const bad of ["blob:", "data:"]) if (sources.includes(bad)) fail(`CSP ${name} allows ${bad}`);
+  if (name === "img-src" && sources.includes("data:")) fail("CSP img-src allows data:");
 }
 if (/\sstyle="/.test(html)) fail("inline style attribute found (blocked by CSP)");
 if (/\son[a-z]+="/.test(html)) fail("inline event handler attribute found (blocked by CSP)");
