@@ -1,6 +1,6 @@
 # Device and test-print script
 
-Run this before the first event, and again on any new phone or tablet. It covers three roadmap P0 items: real-device testing, the StickerPix test print, and the Design Space workflow. Allow about 90 minutes, most of it printing.
+Run this before the first event, and again on any new phone or tablet. It covers three roadmap P0 items: real-device testing, the StickerPix test print, and the Design Space workflow, plus touch checks for group move and box edges. Allow about 100 minutes, most of it printing.
 
 Use the live Pages URL, not a local build. Add `?debug=1` to show the diagnostics panel:
 
@@ -46,7 +46,7 @@ The panel sits in the top-right corner. **Diagnostics** collapses it to one butt
 4. **Choose image** → Group of 6.
    *Expect:* 6 people found. If not, record the **detections** line (raw → merged → after crowd filter), which shows the stage where people were lost.
 5. **Choose image** → Seated. Record the people found and how good the cut-out looks, rated 1–5. This photo is the baseline for the P1 item on seated people.
-6. Edit: drag a person, resize one by its corner handle and by pinching, erase a patch, then undo and redo.
+6. Edit: drag the group, resize it by a corner handle and by pinching, erase a patch, then undo and redo. Part F covers moving people one by one and adjusting boxes.
    *Expect:* the page stays responsive between photos. While detection runs, the page will freeze for a few seconds; that is known (refactor note 3). Record how long it lasts.
 7. Save a sticker PNG, then a full sheet.
    *Expect:* the files land in Downloads with names starting `posepop-`.
@@ -121,6 +121,35 @@ Square 4-up and 8-up come out almost the same size, because both use two columns
 2. Switch to **4 × 6 photo**, choose a world, save, and print on a photo sheet.
    *Expect:* the image fills the sheet with no white edges, and the people aren't cropped.
 
+## Part F: group move and box edges (touch)
+
+Run this on each phone and the tablet with the Group of 6 photo and the **Plains** world. Use fingers only, no stylus. These touch gestures have only been tested with a mouse so far.
+
+1. Under **Edit the picture**, check that **Move** and **Move group** are selected.
+   *Expect:* the dashed frame wraps all six people, and the Size label reads "Size of group".
+2. Drag anyone with one finger.
+   *Expect:* all six move together, and nobody is left behind or drifts apart.
+3. Pinch with two fingers on the picture, then drag a corner handle.
+   *Expect:* the group grows and shrinks around its bottom centre, so feet stay on the ground line. The page itself doesn't zoom.
+4. Tap **Move each**, then drag the person at the left end.
+   *Expect:* only that person moves, and the frame wraps only them. Look for an arm or shoulder that moves with the wrong person; that is what step 6 fixes.
+5. Tap **Undo** twice.
+   *Expect:* everyone is back where they started.
+6. Tap **Adjust boxes**.
+   *Expect:* everyone returns to where they stood in the photo, each tinted in a different colour, with numbered boxes.
+   - Tap inside a box. *Expect:* it becomes the solid, selected box with four white edge handles.
+   - Drag an edge handle across a neighbour's arm. *Expect:* the arm changes to this person's colour as you drag.
+   - Drag the edge on the line itself, not the handle. *Expect:* it's still easy to grab without hitting the neighbouring box by mistake. Record if it isn't.
+   - Drag a top edge down into the background above someone's head. *Expect:* stray blocks above the line disappear (cropped).
+7. Tap **Move each** and drag the person whose box you changed.
+   *Expect:* the arm now moves with its owner.
+8. Tap **Reset boxes**, then **Undo**.
+   *Expect:* Reset puts the original split back, and Undo brings your edges back.
+9. Save a sticker PNG.
+   *Expect:* the saved file has no box tint, lines or handles.
+10. Load a single-person photo.
+    *Expect:* **Move each** isn't offered, but **Move group** and **Adjust boxes** are.
+
 ## Results
 
 Copy this table for each device and fill it in. Paste each device's **Copy** report underneath.
@@ -136,6 +165,10 @@ Copy this table for each device and fill it in. Paste each device's **Copy** rep
 | Save works / where the file goes | | | |
 | Tensors after photo 1 → photo 10 | | | |
 | Both orientations OK | | | |
+| Group drag and pinch move everyone together (F2–F3) | | | |
+| Box edge easy to grab with a finger (F6) | | | |
+| Arm follows its owner after a box edit (F7) | | | |
+| Saved PNG free of box overlay (F9) | | | |
 
 | Sheet | Piece (app) | Imported at | Fitted on one sheet | Measured size | Min margin | Min gap | Cut offset |
 |---|---|---|---|---|---|---|---|
