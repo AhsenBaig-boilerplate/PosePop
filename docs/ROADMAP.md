@@ -13,7 +13,6 @@ Status: `[ ]` open · `[~]` in progress · `[x]` done. Priority: **P0** blocks e
 ## P1: quality and reliability
 
 - [ ] **Offline support for events with flaky Wi-Fi.** Add a service worker that caches the hashed assets for the current build and is versioned by build id, so updates still flow. Must stay within the current CSP.
-- [ ] **Store model weights as binary** (refactor note 2). Faster first load on phones.
 - [ ] **Run detection in a Web Worker** (refactor note 3). No UI freeze while finding people.
 - [ ] **Kiosk mode:** full screen, large buttons, auto-reset after saving, optional countdown timer for the camera, and a lock so guests can't open settings.
 - [ ] **Improve cut-outs for seated or partly hidden people** (as in the car photo). Evaluate MediaPipe's multiclass selfie segmenter (Apache-2.0); it needs `'wasm-unsafe-eval'`, so weigh that against keeping the CSP strict.
@@ -42,6 +41,7 @@ Status: `[ ]` open · `[~]` in progress · `[x]` done. Priority: **P0** blocks e
 
 ## Done
 
+- [x] Binary model weights loaded with `tf.loadGraphModel`, hashed and SRI-checked (refactor note 2)
 - [x] Move the whole group by default, or each person on their own; Adjust boxes mode to fix who owns which blocks and crop leftovers by dragging each person's box edges
 - [x] Diagnostics panel (`?debug=1`): build, detection status and timings, photo size, device memory, WebGL renderer, tf.js memory, errors; copyable report. Device and test-print script in [DEVICE-TEST.md](DEVICE-TEST.md)
 - [x] Cut people out of real photos (MoveNet MultiPose + MediaPipe Selfie Segmentation), including groups and people at the edges
