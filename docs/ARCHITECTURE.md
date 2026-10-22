@@ -8,7 +8,7 @@ PosePop is a static, client-only web app. There is no server and no API: GitHub 
 src/
   index.html          the whole app: markup, styles, and one inline script
   favicon.svg
-  models/             TF.js graph models (JSON topology + base64 weights)
+  models/             TF.js graph models (JSON topology + binary .bin weights)
 scripts/
   build.mjs           src/ + node_modules → dist/ (hashed names, SRI, CSP, build id)
   verify.mjs          release gate for dist/
@@ -50,13 +50,14 @@ State lives in one object, `S`. Undo/redo snapshots `S.fixes`, `S.place`, `S.gpl
 - `__ASSET:<path>__` and `__SRI:<path>__` placeholders in `src/index.html` are replaced with content-hashed file names and SHA-384 hashes.
 - The build id is `<commit>-<content hash>`; it only changes when shipped content changes.
 - CSP hashes are computed from the final inline `<script>` and `<style>`, so any edit to them is automatically reflected and verified.
+- Models: each `.bin` is hashed first, then its JSON is rewritten to name the hashed `.bin`, so the JSON's hash also pins its weights. The page loads them with `tf.loadGraphModel(url)` and a `fetchFunc` that attaches each file's SRI hash from `MODEL_SRI`; a file without a known hash, or one that doesn't match, is refused. `verify.mjs` checks the JSON → `.bin` link and that both have SRI entries.
 
 ## Refactor notes
 
 These are the known structural debts, roughly in the order they should be paid down. Each has a matching item in [ROADMAP.md](ROADMAP.md).
 
 1. **Split `src/index.html` into ES modules.** It's about 1,300 lines in a single inline script. Suggested modules: `textures`, `worlds`, `render3d`, `detect`, `segment`, `blocks`, `compose`, `edit`, `print`, `update`, `ui`. Serve them as hashed `type="module"` files; the CSP already permits `'self'` scripts, so no CSP loosening is needed. Keep it build-step-light (native modules plus the existing hashing), or adopt Vite if the team prefers. In both cases `verify.mjs` stays the gate.
-2. **Store model weights as binary.** The `*-weights.txt` files are base64. That was only needed when the app was hosted as a Claude artifact. On Pages, ship the original `.bin` shards and use `tf.loadGraphModel(url)`. That's about 25 % less to download and no `atob` pass on the main thread.
+2. ~~**Store model weights as binary.**~~ Done. Measured: model files 13.2 MB → 9.97 MB on disk, but over the wire only 9.50 MB → 9.00 MB gzipped (Pages already gzipped the base64), so the expected 25 % download saving didn't materialise. Load is faster with no base64 decode (people model 1,134 → 1,001 ms, cut-out model 482 → 320 ms at 6× CPU throttle), the page no longer builds a 12.6 MB string, and model files are now integrity-checked.
 3. **Move detection and segmentation into a Web Worker.** TF.js on the main thread freezes the UI for a few seconds on phones. Use `OffscreenCanvas` and the WebGL backend in the worker, which needs `worker-src 'self'` (already allowed).
 4. **Generate world thumbnails at build time.** They're currently base64 JPEGs pasted into the HTML (about 90 KB). Render them in CI with Playwright from the same world code and emit hashed `.jpg` files.
 5. **Remove Claude-artifact code paths.** `window.claude.use("downloads")` in the save code is dead on Pages. Remove it so saving has a single path: the standard download.

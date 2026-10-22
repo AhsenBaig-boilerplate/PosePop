@@ -747,10 +747,12 @@ const mb=n=>(n/1048576).toFixed(1)+" MB";
 
 // ================= Person detection (MediaPipe Selfie Segmentation, Apache-2.0, via TensorFlow.js) =================
 let segModel=null,poseModel=null;
-async function loadModel(json,weights){
-  const[mj,wt]=await Promise.all([fetch(json).then(r=>{if(!r.ok)throw new Error("model");return r.json()}),fetch(weights).then(r=>{if(!r.ok)throw new Error("weights");return r.text()})]);
-  const str=atob(wt.trim()),bin=new Uint8Array(str.length);for(let i=0;i<str.length;i++)bin[i]=str.charCodeAt(i);
-  return tf.loadGraphModel(tf.io.fromMemory({modelTopology:mj.modelTopology,weightSpecs:mj.weightsManifest.flatMap(g=>g.weights),weightData:bin.buffer,format:mj.format,generatedBy:mj.generatedBy,convertedBy:mj.convertedBy,signature:mj.signature}));
+// Every model file tf.js fetches must match its Subresource Integrity hash; anything else is refused.
+const MODEL_SRI={"__ASSET:models/selfie.json__":"__SRI:models/selfie.json__","__ASSET:models/selfie.bin__":"__SRI:models/selfie.bin__",
+  "__ASSET:models/people.json__":"__SRI:models/people.json__","__ASSET:models/people.bin__":"__SRI:models/people.bin__"};
+function loadModel(json){
+  return tf.loadGraphModel(json,{fetchFunc:(url,init)=>{const key=new URL(url,location.href).pathname.split("/").slice(-2).join("/"),integrity=MODEL_SRI[key];
+    return integrity?fetch(url,{...init,integrity}):Promise.reject(new Error("no integrity hash for "+key))}});
 }
 function setSeg(state,text){S.segMode=state;const el=$("segStatus");el.dataset.s=state;el.querySelector("span").textContent=text;mark("Detection","status",state)}
 function loadScript(src,integrity){return new Promise((res,rej)=>{const s=document.createElement("script");s.src=src;if(integrity)s.integrity=integrity;s.onload=res;s.onerror=()=>rej(new Error("script"));document.head.append(s)})}
@@ -762,8 +764,8 @@ const segReady=(async()=>{
     await timed("Detection","tf.js script",loadScript("__ASSET:vendor/tf.min.js__","__SRI:vendor/tf.min.js__"));
     await timed("Detection","backend start",(async()=>{try{await tf.setBackend("webgl")}catch(e){}await tf.ready()})());
     mark("Detection","backend",tf.getBackend()==="webgl"?"webgl "+tf.env().getNumber("WEBGL_VERSION"):tf.getBackend()+" (WebGL unavailable to tf.js: detection will be slow)");
-    [segModel,poseModel]=await Promise.all([timed("Detection","cut-out model",loadModel("__ASSET:models/selfie.json__","__ASSET:models/selfie-weights.txt__")),
-      timed("Detection","people model",loadModel("__ASSET:models/people.json__","__ASSET:models/people-weights.txt__")).catch(e=>{mark("Errors","people model",e.message||e);return null})]);
+    [segModel,poseModel]=await Promise.all([timed("Detection","cut-out model",loadModel("__ASSET:models/selfie.json__")),
+      timed("Detection","people model",loadModel("__ASSET:models/people.json__")).catch(e=>{mark("Errors","people model",e.message||e);return null})]);
     // transferSize is 0 when a file came from the browser cache
     const res=performance.getEntriesByType("resource").filter(r=>/\/(models|vendor)\//.test(r.name)),got=res.reduce((a,r)=>a+(r.transferSize||0),0);
     mark("Detection","downloaded",mb(got)+" of "+mb(res.reduce((a,r)=>a+(r.decodedBodySize||0),0))+(got?"":" (cached)"));

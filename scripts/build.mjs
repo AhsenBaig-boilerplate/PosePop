@@ -13,14 +13,26 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const out = join(root, "dist");
 const font = (pkg, file) => [`node_modules/@fontsource/${pkg}/files/${file}`, `fonts/${file}`];
 
-// [source path, logical path used in src/index.html]
+// TF.js graph models: the binary weights first, then the JSON rewritten to point at the weights'
+// hashed names, so the JSON's own hash (and SRI) also covers which weights it loads.
+const model = (name) => [
+  [`src/models/${name}.bin`, `models/${name}.bin`],
+  [`src/models/${name}.json`, `models/${name}.json`, (buf) => {
+    const json = JSON.parse(buf);
+    if (json.weightsManifest.length !== 1 || json.weightsManifest[0].paths.length !== 1)
+      throw new Error(`src/models/${name}.json has several weight shards; give each shard its own ASSETS entry`);
+    const bin = manifest[`models/${name}.bin`].file.split("/").pop();
+    for (const group of json.weightsManifest) group.paths = [bin];
+    return Buffer.from(JSON.stringify(json));
+  }],
+];
+
+// [source path, logical path used in src/index.html, optional transform]
 const ASSETS = [
   ["node_modules/three/build/three.min.js", "vendor/three.min.js"],
   ["node_modules/@tensorflow/tfjs/dist/tf.min.js", "vendor/tf.min.js"],
-  ["src/models/selfie.json", "models/selfie.json"],
-  ["src/models/selfie-weights.txt", "models/selfie-weights.txt"],
-  ["src/models/people.json", "models/people.json"],
-  ["src/models/people-weights.txt", "models/people-weights.txt"],
+  ...model("selfie"),
+  ...model("people"),
   ["src/favicon.svg", "favicon.svg"],
   font("pixelify-sans", "pixelify-sans-latin-500-normal.woff2"),
   font("pixelify-sans", "pixelify-sans-latin-700-normal.woff2"),
@@ -38,8 +50,8 @@ rmSync(out, { recursive: true, force: true });
 mkdirSync(out, { recursive: true });
 
 const manifest = {};
-for (const [src, logical] of ASSETS) {
-  const buf = readFileSync(join(root, src));
+for (const [src, logical, transform] of ASSETS) {
+  const raw = readFileSync(join(root, src)), buf = transform ? transform(raw) : raw;
   const file = hashedName(logical, digest("sha256", buf, "hex").slice(0, 12));
   mkdirSync(dirname(join(out, file)), { recursive: true });
   writeFileSync(join(out, file), buf);

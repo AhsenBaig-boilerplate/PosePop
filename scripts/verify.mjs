@@ -29,6 +29,18 @@ for (const [logical, { file, sri }] of Object.entries(assets)) {
   if (!html.includes(file)) fail(`${file} is built but never referenced`);
 }
 
+// 3b. Each model's JSON points at built, hashed weights next to it, and the page has an SRI hash for both.
+const built = new Set(Object.values(assets).map((a) => a.file));
+for (const [logical, { file }] of Object.entries(assets)) {
+  if (!/^models\/.*\.json$/.test(logical)) continue;
+  const dir = file.slice(0, file.lastIndexOf("/") + 1);
+  for (const path of JSON.parse(readFileSync(join(dist, file), "utf8")).weightsManifest.flatMap((g) => g.paths)) {
+    if (!built.has(dir + path)) fail(`${file} loads weights ${path}, which is not a built asset`);
+    else if (!html.includes(`"${dir + path}":"${assets[Object.keys(assets).find((k) => assets[k].file === dir + path)].sri}"`)) fail(`no SRI entry for ${dir + path} in index.html`);
+  }
+  if (!html.includes(`"${file}":"${assets[logical].sri}"`)) fail(`no SRI entry for ${file} in index.html`);
+}
+
 // 4. Every <script src> carries SRI, and nothing loads from another origin.
 for (const [tag] of html.matchAll(/<script\b[^>]*\bsrc=[^>]*>/g)) if (!/\bintegrity="sha384-/.test(tag)) fail(`script without integrity: ${tag}`);
 for (const m of html.matchAll(/\b(?:src|href)="(https?:)?\/\//g)) fail(`external resource reference: ${m[0]}`);
