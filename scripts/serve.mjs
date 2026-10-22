@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 const dist = fileURLToPath(new URL("../dist/", import.meta.url));
 const port = Number(process.env.PORT || 8080);
 const types = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".json": "application/json", ".txt": "text/plain",
-  ".svg": "image/svg+xml", ".woff2": "font/woff2" };
+  ".svg": "image/svg+xml", ".jpg": "image/jpeg", ".woff2": "font/woff2" };
 
 createServer(async (req, res) => {
   let path;
