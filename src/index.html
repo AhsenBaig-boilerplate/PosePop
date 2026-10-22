@@ -3,15 +3,22 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font-size:14px}img{max-width:100%}[hidden]{display:none!important}</style>
-</head>
-<body>
+<meta http-equiv="Content-Security-Policy" content="__CSP__">
+<meta name="referrer" content="no-referrer">
+<meta name="build" content="__BUILD_ID__">
+<meta name="description" content="Strike a pose, pop into a block world, and take home a sticker or photo print.">
 <title>PosePop</title>
-<meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="icon" href="__ASSET:favicon.svg__" type="image/svg+xml">
+<link rel="preload" href="__ASSET:vendor/three.min.js__" as="script" integrity="__SRI:vendor/three.min.js__">
 <style>
+@font-face{font-family:"Pixelify Sans";font-style:normal;font-weight:500;font-display:swap;src:url("__ASSET:fonts/pixelify-sans-latin-500-normal.woff2__") format("woff2")}
+@font-face{font-family:"Pixelify Sans";font-style:normal;font-weight:700;font-display:swap;src:url("__ASSET:fonts/pixelify-sans-latin-700-normal.woff2__") format("woff2")}
+@font-face{font-family:"IBM Plex Sans";font-style:normal;font-weight:400;font-display:swap;src:url("__ASSET:fonts/ibm-plex-sans-latin-400-normal.woff2__") format("woff2")}
+@font-face{font-family:"IBM Plex Sans";font-style:normal;font-weight:500;font-display:swap;src:url("__ASSET:fonts/ibm-plex-sans-latin-500-normal.woff2__") format("woff2")}
+@font-face{font-family:"IBM Plex Sans";font-style:normal;font-weight:600;font-display:swap;src:url("__ASSET:fonts/ibm-plex-sans-latin-600-normal.woff2__") format("woff2")}
+@font-face{font-family:"IBM Plex Mono";font-style:normal;font-weight:400;font-display:swap;src:url("__ASSET:fonts/ibm-plex-mono-latin-400-normal.woff2__") format("woff2")}
+@font-face{font-family:"IBM Plex Mono";font-style:normal;font-weight:500;font-display:swap;src:url("__ASSET:fonts/ibm-plex-mono-latin-500-normal.woff2__") format("woff2")}
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font-size:14px}img{max-width:100%}
 /* Layout: control rail on the left (photo, world, person, print), the composed sticker as the stage with a to-scale sheet beside it, inventory-slot materials list underneath. */
 :root{
   --bg:#e4e7e0; --surface:#f3f5f0; --fg:#1b2019; --muted:#5b6457; --line:#c9cfc3;
@@ -119,8 +126,13 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .item .st{font-family:var(--f-mono);font-size:.76rem;color:var(--muted);font-variant-numeric:tabular-nums}
 .item div{min-width:0}
 .note{font-size:.82rem;color:var(--muted)}
+.gap-lg{gap:14px}.readout-block{margin:0;white-space:pre-line}.self-start{align-self:flex-start}
+.update{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap;
+  background:var(--surface);color:var(--fg);border-top:1px solid var(--line);box-shadow:0 -4px 16px rgba(0,0,0,.12);
+  padding-block:10px calc(10px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 </style>
-
+</head>
+<body>
 <div class="wrap">
   <div class="top">
     <h1>Pose<span>Pop</span></h1>
@@ -199,7 +211,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
             <button data-v="photo" aria-pressed="false">4 × 6 photo</button>
           </div>
         </div>
-        <div id="stickerOpts" class="group" style="gap:14px">
+        <div id="stickerOpts" class="group gap-lg">
           <div class="group">
             <span class="label">Stickers per sheet</span>
             <div class="chips" id="counts"></div>
@@ -219,7 +231,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
           </div>
         </div>
         <div class="group">
-          <p class="readout" id="printRead" style="margin:0;white-space:pre-line"></p>
+          <p class="readout readout-block" id="printRead"></p>
           <p class="warn" id="printWarn" hidden></p>
         </div>
         <div class="group">
@@ -227,7 +239,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
             <button class="btn primary" id="saveSticker">Save sticker PNG</button>
             <button class="btn" id="saveSheet">Save full sheet</button>
           </div>
-          <button class="btn small" id="saveCsv" style="align-self:flex-start">Save block list (CSV)</button>
+          <button class="btn small self-start" id="saveCsv">Save block list (CSV)</button>
           <p class="hint" id="saveMsg"></p>
         </div>
       </section>
@@ -271,7 +283,11 @@ input[type=range]{width:100%;accent-color:var(--accent)}
   <p class="note">Open-source parts: three.js (MIT), TensorFlow.js (Apache-2.0), MediaPipe Selfie Segmentation and MoveNet MultiPose models (Apache-2.0), Pixelify Sans and IBM Plex fonts (SIL OFL). Block textures are drawn in code for this page. Not an official Minecraft product; not approved by or associated with Mojang or Microsoft.</p>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<div class="update" id="update" role="status" hidden>
+  <span id="updateText">A new version of PosePop is ready.</span>
+  <button class="btn primary small" id="updateBtn">Reload now</button>
+</div>
+<script src="__ASSET:vendor/three.min.js__" integrity="__SRI:vendor/three.min.js__"></script>
 <script>
 (() => {
 "use strict";
@@ -697,13 +713,16 @@ async function loadModel(json,weights){
   return tf.loadGraphModel(tf.io.fromMemory({modelTopology:mj.modelTopology,weightSpecs:mj.weightsManifest.flatMap(g=>g.weights),weightData:bin.buffer,format:mj.format,generatedBy:mj.generatedBy,convertedBy:mj.convertedBy,signature:mj.signature}));
 }
 function setSeg(state,text){S.segMode=state;const el=$("segStatus");el.dataset.s=state;el.querySelector("span").textContent=text}
-function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement("script");s.src=src;s.onload=res;s.onerror=()=>rej(new Error("script"));document.head.append(s)})}
+function loadScript(src,integrity){return new Promise((res,rej)=>{const s=document.createElement("script");s.src=src;if(integrity)s.integrity=integrity;s.onload=res;s.onerror=()=>rej(new Error("script"));document.head.append(s)})}
 const segReady=(async()=>{
   try{
-    await loadScript("https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js");
+    // TF.js bundles regenerator-runtime, which falls back to eval when this global is missing.
+    // Declaring it keeps the page working under a CSP without 'unsafe-eval'.
+    if(!("regeneratorRuntime" in window))window.regeneratorRuntime=undefined;
+    await loadScript("__ASSET:vendor/tf.min.js__","__SRI:vendor/tf.min.js__");
     try{await tf.setBackend("webgl")}catch(e){}
     await tf.ready();
-    [segModel,poseModel]=await Promise.all([loadModel("selfie.json","selfie-weights.txt"),loadModel("people.json","people-weights.txt").catch(()=>null)]);
+    [segModel,poseModel]=await Promise.all([loadModel("__ASSET:models/selfie.json__","__ASSET:models/selfie-weights.txt__"),loadModel("__ASSET:models/people.json__","__ASSET:models/people-weights.txt__").catch(()=>null)]);
     setSeg("ready","Person detection ready. People are cut out automatically.");
     return true;
   }catch(e){
@@ -1058,7 +1077,7 @@ async function loadFile(file,label){
     const heic=/hei[cf]/i.test(file.type||"")||/\.hei[cf]$/i.test(file.name||"");
     note(heic?"This phone saved the photo as HEIC, which this browser can't open. In Camera settings choose Most Compatible (JPEG), or share the photo as a JPEG.":"That file couldn't be opened as a picture. Try a JPG or PNG.");return}
   if(job!==loading)return;
-  S.src=img;resetEdits();S.alpha=null;S.focus=null;S.boxes=[];S.boxesFull=[];note(name);
+  S.src=img;userWork=true;resetEdits();S.alpha=null;S.focus=null;S.boxes=[];S.boxesFull=[];note(name);
   $("busy").textContent=S.segMode==="loading"?"Loading person detection…":"Finding people…";
   const ok=await timeout(segReady,30000);
   if(job!==loading)return;
@@ -1229,6 +1248,29 @@ function sample(){
   person(410,280,.92,"#9a6644","#16110d","#c9473a");
   S.src=c;S.alpha=m;S.focus=null;S.boxesFull=[{x:.13,y:.2,w:.42,h:.8},{x:.5,y:.26,w:.4,h:.74}];
 }
+
+// ================= Updates =================
+// Every deploy gets a new build id. Hashed asset names make libraries, fonts and models
+// immutable; only index.html and version.json can go stale, so we ask the server which
+// build is current (bypassing every cache) and move to it with a versioned URL.
+const BUILD="__BUILD_ID__";
+let userWork=false,updateTo=null;
+function goToBuild(b){const u=new URL(location.href);u.searchParams.set("v",b);location.replace(u.toString())}
+async function checkForUpdate(){
+  if(BUILD.startsWith("__")||!navigator.onLine)return;
+  try{const r=await fetch("version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;const v=await r.json();
+    if(!v||!v.build||v.build===BUILD)return;updateTo=v.build;
+    // nothing to lose yet: switch straight away, but only once, so a stale CDN edge can't cause a reload loop
+    if(!userWork&&new URL(location.href).searchParams.get("v")!==v.build){goToBuild(v.build);return}
+    $("update").hidden=false; // someone is mid-edit: let them choose when
+  }catch(e){}
+}
+$("updateBtn").addEventListener("click",()=>{if(updateTo)goToBuild(updateTo)});
+// tidy the address bar after a versioned reload
+try{const u=new URL(location.href);if(u.searchParams.get("v")===BUILD){u.searchParams.delete("v");history.replaceState(null,"",u.pathname+u.search+u.hash)}}catch(e){}
+setTimeout(checkForUpdate,4000);setInterval(checkForUpdate,5*60*1000);
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")checkForUpdate()});
+window.addEventListener("online",checkForUpdate);
 
 // ================= Boot =================
 buildPalette();sample();run();

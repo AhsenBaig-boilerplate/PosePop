@@ -1,0 +1,19 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    # three.js and TensorFlow.js are pinned on purpose: newer majors change APIs the app uses.
+    ignore:
+      - dependency-name: three
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "@tensorflow/tfjs"
+        update-types: ["version-update:semver-major"]
