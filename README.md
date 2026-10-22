@@ -6,6 +6,12 @@ Strike a pose, pop into a world. PosePop finds the people in a photo, rebuilds t
 
 Photos never leave the device: detection, cut-out and rendering all run locally.
 
+## Docs
+
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): how it works, the build, and refactor notes
+- [docs/ROADMAP.md](docs/ROADMAP.md): to-dos by priority
+- [SECURITY.md](SECURITY.md): reporting and accepted risks
+
 ## Develop
 
 ```sh
