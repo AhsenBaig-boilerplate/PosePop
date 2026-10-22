@@ -48,7 +48,9 @@ State lives in one object, `S`. Undo/redo snapshots `S.fixes`, `S.place`, `S.gpl
 ## Build and delivery
 
 - `__ASSET:<path>__` and `__SRI:<path>__` placeholders in `src/index.html` are replaced with content-hashed file names and SHA-384 hashes.
-- The build id is `<commit>-<content hash>`; it only changes when shipped content changes.
+- The build id is `<commit>-<content hash>`. The hash part changes only when shipped content changes, but the commit part changes on every commit to `main`, docs-only ones included, so every merge counts as an update for open pages. The build time (`__BUILT_AT__`) is filled in after hashing and also goes into `version.json`; `verify.mjs` checks that both agree.
+- The footer shows the version (commit), build time and the result of the last update check (up to date, update ready, offline, or couldn't check). The full build id is in its tooltip and in the `?debug=1` panel.
+- Loading order: three.js and tf.js are preloaded from `<head>`, and the model files start downloading as soon as the script runs (`earlyModels`), with SRI. tf.js picks those responses up instead of fetching again, so the 9 MB of weights overlap tf.js loading and starting up. First load is now limited by download size.
 - CSP hashes are computed from the final inline `<script>` and `<style>`, so any edit to them is automatically reflected and verified.
 - Models: each `.bin` is hashed first, then its JSON is rewritten to name the hashed `.bin`, so the JSON's hash also pins its weights. The page loads them with `tf.loadGraphModel(url)` and a `fetchFunc` that attaches each file's SRI hash from `MODEL_SRI`; a file without a known hash, or one that doesn't match, is refused. `verify.mjs` checks the JSON → `.bin` link and that both have SRI entries.
 

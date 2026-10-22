@@ -14,12 +14,13 @@ const version = JSON.parse(readFileSync(join(dist, "version.json"), "utf8"));
 const { assets } = JSON.parse(readFileSync(join(dist, "asset-manifest.json"), "utf8"));
 
 // 1. No placeholders left behind.
-for (const token of ["__ASSET:", "__SRI:", "__BUILD_ID__", "__CSP__"]) if (html.includes(token)) fail(`placeholder ${token} left in index.html`);
+for (const token of ["__ASSET:", "__SRI:", "__BUILD_ID__", "__BUILT_AT__", "__CSP__"]) if (html.includes(token)) fail(`placeholder ${token} left in index.html`);
 
 // 2. Build ids agree.
 const meta = html.match(/<meta name="build" content="([^"]+)">/)?.[1];
 if (meta !== version.build) fail(`index.html build ${meta} != version.json build ${version.build}`);
 if (!html.includes(`const BUILD="${version.build}"`)) fail("inline BUILD constant does not match version.json");
+if (!html.includes(`BUILT_AT="${version.builtAt}"`)) fail("inline BUILT_AT constant does not match version.json");
 
 // 3. Every asset exists and still matches its integrity hash.
 for (const [logical, { file, sri }] of Object.entries(assets)) {

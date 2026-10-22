@@ -10,6 +10,7 @@
 <title>PosePop</title>
 <link rel="icon" href="__ASSET:favicon.svg__" type="image/svg+xml">
 <link rel="preload" href="__ASSET:vendor/three.min.js__" as="script" integrity="__SRI:vendor/three.min.js__">
+<link rel="preload" href="__ASSET:vendor/tf.min.js__" as="script" integrity="__SRI:vendor/tf.min.js__">
 <style>
 @font-face{font-family:"Pixelify Sans";font-style:normal;font-weight:500;font-display:swap;src:url("__ASSET:fonts/pixelify-sans-latin-500-normal.woff2__") format("woff2")}
 @font-face{font-family:"Pixelify Sans";font-style:normal;font-weight:700;font-display:swap;src:url("__ASSET:fonts/pixelify-sans-latin-700-normal.woff2__") format("woff2")}
@@ -298,6 +299,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
     </div>
     <div class="inv" id="inv"></div>
   </section>
+  <p class="note" id="version">PosePop</p>
   <p class="note">Open-source parts: three.js (MIT), TensorFlow.js (Apache-2.0), MediaPipe Selfie Segmentation and MoveNet MultiPose models (Apache-2.0), Pixelify Sans and IBM Plex fonts (SIL OFL). Block textures are drawn in code for this page. Not an official Minecraft product; not approved by or associated with Mojang or Microsoft.</p>
 </div>
 
@@ -750,8 +752,12 @@ let segModel=null,poseModel=null;
 // Every model file tf.js fetches must match its Subresource Integrity hash; anything else is refused.
 const MODEL_SRI={"__ASSET:models/selfie.json__":"__SRI:models/selfie.json__","__ASSET:models/selfie.bin__":"__SRI:models/selfie.bin__",
   "__ASSET:models/people.json__":"__SRI:models/people.json__","__ASSET:models/people.bin__":"__SRI:models/people.bin__"};
+// Start downloading the models right away, so the 9 MB overlaps tf.js loading and starting up
+// instead of waiting for it. tf.js picks these responses up when it asks for the same files.
+const earlyModels=new Map(Object.entries(MODEL_SRI).map(([url,integrity])=>{const p=fetch(url,{integrity});p.catch(()=>{});return[url,p]}));
 function loadModel(json){
   return tf.loadGraphModel(json,{fetchFunc:(url,init)=>{const key=new URL(url,location.href).pathname.split("/").slice(-2).join("/"),integrity=MODEL_SRI[key];
+    const early=earlyModels.get(key);if(early){earlyModels.delete(key);return early}
     return integrity?fetch(url,{...init,integrity}):Promise.reject(new Error("no integrity hash for "+key))}});
 }
 function setSeg(state,text){S.segMode=state;const el=$("segStatus");el.dataset.s=state;el.querySelector("span").textContent=text;mark("Detection","status",state)}
@@ -1375,18 +1381,26 @@ function sample(){
 // Every deploy gets a new build id. Hashed asset names make libraries, fonts and models
 // immutable; only index.html and version.json can go stale, so we ask the server which
 // build is current (bypassing every cache) and move to it with a versioned URL.
-const BUILD="__BUILD_ID__";
+const BUILD="__BUILD_ID__",BUILT_AT="__BUILT_AT__";
 let userWork=false,updateTo=null;
+// footer line: which build this is, when it was built, and what the last update check found
+function showVersion(state){
+  const at=BUILT_AT.startsWith("__")?"":new Date(BUILT_AT).toLocaleString(undefined,{dateStyle:"medium",timeStyle:"short"});
+  $("version").textContent="PosePop "+(BUILD.startsWith("__")?"(unbuilt source)":"version "+BUILD.split("-")[0]+(at?" · built "+at:""))+(state?" · "+state:"");
+  $("version").title="Build "+BUILD}
+showVersion("checking for updates…");
 function goToBuild(b){const u=new URL(location.href);u.searchParams.set("v",b);location.replace(u.toString())}
 async function checkForUpdate(){
-  if(BUILD.startsWith("__")||!navigator.onLine)return;
-  try{const r=await fetch("version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;const v=await r.json();
+  if(BUILD.startsWith("__"))return;
+  if(!navigator.onLine){showVersion("offline");return}
+  try{const r=await fetch("version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok){showVersion("couldn't check for updates");return}const v=await r.json();
     mark("Build","server build",(v&&v.build)+" · checked "+new Date().toLocaleTimeString());
-    if(!v||!v.build||v.build===BUILD)return;updateTo=v.build;
+    if(!v||!v.build||v.build===BUILD){showVersion("up to date, checked "+new Date().toLocaleTimeString(undefined,{timeStyle:"short"}));return}
+    updateTo=v.build;showVersion("update ready: version "+v.build.split("-")[0]);
     // nothing to lose yet: switch straight away, but only once, so a stale CDN edge can't cause a reload loop
     if(!userWork&&new URL(location.href).searchParams.get("v")!==v.build){goToBuild(v.build);return}
     $("update").hidden=false; // someone is mid-edit: let them choose when
-  }catch(e){}
+  }catch(e){showVersion("couldn't check for updates")}
 }
 $("updateBtn").addEventListener("click",()=>{if(updateTo)goToBuild(updateTo)});
 // tidy the address bar after a versioned reload

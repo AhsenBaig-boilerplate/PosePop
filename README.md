@@ -31,6 +31,8 @@ Pushes to `main` run `.github/workflows/pages.yml`: install from the lockfile, a
 
 Nobody ever needs a hard refresh.
 
+The footer shows which version is running, when it was built, and whether it's up to date, so you can confirm a deploy reached a device.
+
 - Every library, font and model file is published under a content-hashed name (`tf.min.300dfae273d2.js`), so it can be cached indefinitely and a new version is a new URL.
 - Only `index.html` and `version.json` can go stale. Each build stamps a build id into both.
 - The page checks `version.json` (with `cache: "no-store"` and a timestamp query) a few seconds after load, every 5 minutes, when the tab becomes visible again, and when the device comes back online.
