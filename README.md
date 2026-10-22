@@ -2,7 +2,7 @@
 
 Strike a pose, pop into a world. PosePop finds the people in a photo, rebuilds them in blocks, drops them into a 3D block world, and sizes the result as stickers or a 4 × 6 photo for the Cricut StickerPix Print + Cut. It works on phones, tablets and PCs, and is built for events and home use.
 
-**Live:** https://ahsenbaig-boilerplate.github.io/posepop/
+**Live:** https://ahsenbaig-boilerplate.github.io/PosePop/
 
 ## Run it
 It's a static site with no build step. Host this folder on any static web host, for example GitHub Pages: push the folder to a repo, then go to Settings → Pages and deploy from the branch.
