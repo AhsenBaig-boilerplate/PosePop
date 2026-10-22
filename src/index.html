@@ -130,6 +130,18 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .update{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap;
   background:var(--surface);color:var(--fg);border-top:1px solid var(--line);box-shadow:0 -4px 16px rgba(0,0,0,.12);
   padding-block:10px calc(10px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+/* ?debug=1 diagnostics: floats top-right, collapses to a single button so it never blocks the app */
+.diag{position:fixed;z-index:30;top:max(8px,env(safe-area-inset-top,0px));right:max(8px,env(safe-area-inset-right,0px));
+  width:min(380px,calc(100vw - 16px));max-height:70vh;overflow:auto;background:var(--surface);color:var(--fg);
+  border:1px solid var(--line);border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.18);padding:8px 10px;font:.76rem/1.4 var(--f-mono)}
+.diag.closed{width:auto;overflow:visible}
+.diag-head{display:flex;gap:6px;justify-content:space-between}
+.diag.closed #diagCopy{display:none}
+.diag h4{margin:8px 0 2px;font:600 .68rem var(--f-body);text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
+.diag dl{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:1px 10px;margin:0}
+.diag dt{color:var(--muted)}
+.diag dd{margin:0;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.diag .hint{margin-top:6px}
 </style>
 </head>
 <body>
@@ -287,6 +299,16 @@ input[type=range]{width:100%;accent-color:var(--accent)}
   <span id="updateText">A new version of PosePop is ready.</span>
   <button class="btn primary small" id="updateBtn">Reload now</button>
 </div>
+<aside class="diag" id="diag" aria-label="Diagnostics" hidden>
+  <div class="diag-head">
+    <button class="btn small" id="diagToggle" aria-expanded="true" aria-controls="diagBody">Diagnostics</button>
+    <button class="btn small" id="diagCopy">Copy</button>
+  </div>
+  <div id="diagBody">
+    <div id="diagList"></div>
+    <p class="hint" id="diagMsg" role="status"></p>
+  </div>
+</aside>
 <script src="__ASSET:vendor/three.min.js__" integrity="__SRI:vendor/three.min.js__"></script>
 <script>
 (() => {
@@ -705,6 +727,17 @@ function nearest(r,g,b){r=r<0?0:r>255?255:r;g=g<0?0:g>255?255:g;b=b<0?0:b>255?25
   for(const i of palette){const q=BLOCKS[i].lab,a=L[0]-q[0],c=L[1]-q[1],e=L[2]-q[2],dd=a*a+c*c+e*e;if(dd<bd){bd=dd;best=i}}
   cache[k]=best;return best}
 
+// ================= Diagnostics (?debug=1) =================
+// Build, timings and device facts for checking real phones at events. Values are collected
+// always (a few object writes) but only shown with ?debug=1, and never leave the page.
+const DEBUG=new URLSearchParams(location.search).get("debug")==="1";
+const DIAG=new Map(["Build","Device","Detection","Photo","Print","Memory","Errors"].map(s=>[s,new Map()]));
+let diagQueued=0;
+function mark(sec,key,val){DIAG.get(sec).set(key,String(val));if(DEBUG&&!diagQueued)diagQueued=requestAnimationFrame(()=>{diagQueued=0;drawDiag()})}
+const since=t=>Math.round(performance.now()-t)+" ms";
+async function timed(sec,key,p){const t=performance.now();try{return await p}finally{mark(sec,key,since(t))}}
+const mb=n=>(n/1048576).toFixed(1)+" MB";
+
 // ================= Person detection (MediaPipe Selfie Segmentation, Apache-2.0, via TensorFlow.js) =================
 let segModel=null,poseModel=null;
 async function loadModel(json,weights){
@@ -712,20 +745,27 @@ async function loadModel(json,weights){
   const str=atob(wt.trim()),bin=new Uint8Array(str.length);for(let i=0;i<str.length;i++)bin[i]=str.charCodeAt(i);
   return tf.loadGraphModel(tf.io.fromMemory({modelTopology:mj.modelTopology,weightSpecs:mj.weightsManifest.flatMap(g=>g.weights),weightData:bin.buffer,format:mj.format,generatedBy:mj.generatedBy,convertedBy:mj.convertedBy,signature:mj.signature}));
 }
-function setSeg(state,text){S.segMode=state;const el=$("segStatus");el.dataset.s=state;el.querySelector("span").textContent=text}
+function setSeg(state,text){S.segMode=state;const el=$("segStatus");el.dataset.s=state;el.querySelector("span").textContent=text;mark("Detection","status",state)}
 function loadScript(src,integrity){return new Promise((res,rej)=>{const s=document.createElement("script");s.src=src;if(integrity)s.integrity=integrity;s.onload=res;s.onerror=()=>rej(new Error("script"));document.head.append(s)})}
 const segReady=(async()=>{
   try{
     // TF.js bundles regenerator-runtime, which falls back to eval when this global is missing.
     // Declaring it keeps the page working under a CSP without 'unsafe-eval'.
     if(!("regeneratorRuntime" in window))window.regeneratorRuntime=undefined;
-    await loadScript("__ASSET:vendor/tf.min.js__","__SRI:vendor/tf.min.js__");
-    try{await tf.setBackend("webgl")}catch(e){}
-    await tf.ready();
-    [segModel,poseModel]=await Promise.all([loadModel("__ASSET:models/selfie.json__","__ASSET:models/selfie-weights.txt__"),loadModel("__ASSET:models/people.json__","__ASSET:models/people-weights.txt__").catch(()=>null)]);
+    await timed("Detection","tf.js script",loadScript("__ASSET:vendor/tf.min.js__","__SRI:vendor/tf.min.js__"));
+    await timed("Detection","backend start",(async()=>{try{await tf.setBackend("webgl")}catch(e){}await tf.ready()})());
+    mark("Detection","backend",tf.getBackend()==="webgl"?"webgl "+tf.env().getNumber("WEBGL_VERSION"):tf.getBackend()+" (WebGL unavailable to tf.js: detection will be slow)");
+    [segModel,poseModel]=await Promise.all([timed("Detection","cut-out model",loadModel("__ASSET:models/selfie.json__","__ASSET:models/selfie-weights.txt__")),
+      timed("Detection","people model",loadModel("__ASSET:models/people.json__","__ASSET:models/people-weights.txt__")).catch(e=>{mark("Errors","people model",e.message||e);return null})]);
+    // transferSize is 0 when a file came from the browser cache
+    const res=performance.getEntriesByType("resource").filter(r=>/\/(models|vendor)\//.test(r.name)),got=res.reduce((a,r)=>a+(r.transferSize||0),0);
+    mark("Detection","downloaded",mb(got)+" of "+mb(res.reduce((a,r)=>a+(r.decodedBodySize||0),0))+(got?"":" (cached)"));
+    mark("Detection","ready after",Math.round(performance.now())+" ms from page start");
     setSeg("ready","Person detection ready. People are cut out automatically.");
+    if(!poseModel)mark("Detection","status","ready without people model: cut-out by tiles only");
     return true;
   }catch(e){
+    mark("Errors","detection load",e.message||e);
     setSeg("fallback","Person detection couldn't load here, so the cut-out uses color. Fix stray areas with Erase and Restore.");
     return false;
   }
@@ -734,8 +774,9 @@ function workCanvas(img,maxSide){
   const iw=img.naturalWidth||img.width,ih=img.naturalHeight||img.height,sc=Math.min(1,maxSide/Math.max(iw,ih));
   const c=document.createElement("canvas");c.width=Math.round(iw*sc);c.height=Math.round(ih*sc);const x=c.getContext("2d");x.imageSmoothingQuality="high";x.drawImage(img,0,0,c.width,c.height);return c;
 }
+let detectPasses=0;
 async function detectIn(c,rx,ry,rw,rh){ // MoveNet MultiPose on one region; up to 6 people
-  rx=Math.max(0,Math.round(rx));ry=Math.max(0,Math.round(ry));rw=Math.min(Math.round(rw),c.width-rx);rh=Math.min(Math.round(rh),c.height-ry);
+  detectPasses++;rx=Math.max(0,Math.round(rx));ry=Math.max(0,Math.round(ry));rw=Math.min(Math.round(rw),c.width-rx);rh=Math.min(Math.round(rh),c.height-ry);
   const sc=512/Math.max(rw,rh),iw=Math.max(32,Math.round(rw*sc/32)*32),ih=Math.max(32,Math.round(rh*sc/32)*32);
   const out=tf.tidy(()=>{const img=tf.browser.fromPixels(c).slice([ry,rx,0],[rh,rw,3]);
     return poseModel.execute(tf.image.resizeBilinear(img,[ih,iw]).toInt().expandDims(0))});
@@ -769,10 +810,11 @@ async function findPeople(c){
     return{x:pts.reduce((a,q)=>a+q.x,0)/pts.length,y:pts.reduce((a,q)=>a+q.y,0)/pts.length,sw}};
   const same=(a,b)=>{const ca=core(a),cb=core(b);if(ca&&cb)return Math.hypot(ca.x-cb.x,ca.y-cb.y)<Math.min(ca.sw,cb.sw)*.55;return iou(a,b)>.6};
   for(const p of all)if(!kept.some(k=>same(k,p)))kept.push(p);
-  if(!kept.length)return kept;
+  if(!kept.length){mark("Photo","detections",all.length+" raw → 0");return kept}
   // drop tiny people far behind the main subjects (crowds)
-  const big=Math.max(...kept.map(p=>p.y1-p.y0));
-  return kept.filter(p=>(p.y1-p.y0)>=big*.35).map(p=>{const bw=p.x1-p.x0,bh=p.y1-p.y0,head=Math.max(bw*.35,bh*.16);
+  const big=Math.max(...kept.map(p=>p.y1-p.y0)),front=kept.filter(p=>(p.y1-p.y0)>=big*.35);
+  mark("Photo","detections",all.length+" raw → "+kept.length+" merged → "+front.length+" after crowd filter");
+  return front.map(p=>{const bw=p.x1-p.x0,bh=p.y1-p.y0,head=Math.max(bw*.35,bh*.16);
     return{x0:Math.max(0,p.x0-bw*.22-head*.3),x1:Math.min(W,p.x1+bw*.22+head*.3),y0:Math.max(0,p.y0-head*.95),y1:Math.min(H,p.y1+bh*.08),score:p.score,kp:p.kp}});
 }
 async function selfieMask(c,sx,sy,side){ // returns 256×256 mask canvas for a square region
@@ -787,7 +829,9 @@ async function selfieMask(c,sx,sy,side){ // returns 256×256 mask canvas for a s
 async function segment(img){
   const c=workCanvas(img,1600),W=c.width,H=c.height;
   const ac=document.createElement("canvas");ac.width=W;ac.height=H;const ax=ac.getContext("2d");ax.fillStyle="#000";ax.fillRect(0,0,W,H);
+  detectPasses=0;let t0=performance.now();
   const people=await findPeople(c);
+  mark("Photo","find people",since(t0)+" · "+detectPasses+" passes on "+W+" × "+H);t0=performance.now();
   if(people.length){
     ax.globalCompositeOperation="lighten";ax.imageSmoothingQuality="high";
     for(const p of people){
@@ -812,6 +856,7 @@ async function segment(img){
     for(let t=0;t<n;t++){const ox=W>H?t*step:0,oy=W>H?0:t*step;ax.drawImage(await selfieMask(c,ox,oy,side),ox,oy,side,side)}
     ax.globalCompositeOperation="source-over";
   }
+  mark("Photo","cut out",since(t0)+(people.length?" · "+people.length+(people.length===1?" person":" people"):" · tiles, nobody found"));
   const focus=people.length?(()=>{let x0=Math.min(...people.map(p=>p.x0)),x1=Math.max(...people.map(p=>p.x1)),y0=Math.min(...people.map(p=>p.y0)),y1=Math.max(...people.map(p=>p.y1));
     const mw=(x1-x0)*.12,mh=(y1-y0)*.08;x0=Math.max(0,x0-mw);x1=Math.min(W,x1+mw);y0=Math.max(0,y0-mh);y1=Math.min(H,y1+mh*.5);
     return{x:x0/W,y:y0/H,w:(x1-x0)/W,h:(y1-y0)/H}})():null;
@@ -1047,10 +1092,14 @@ function redraw(){
   $("sheetRead").textContent=P.media==="sticker"?n+(n===1?" sticker":" stickers")+" per sheet":"1 photo";
   $("saveSticker").textContent=P.media==="sticker"?"Save sticker PNG":"Save 4 × 6 photo PNG";$("saveSheet").hidden=P.media!=="sticker";
   renderSteps(P);syncScale();
+  mark("Print","piece",P.media+" "+P.win.toFixed(2)+" × "+P.hin.toFixed(2)+" in · "+Math.round(P.win*DPI)+" × "+Math.round(P.hin*DPI)+" px");
+  if(P.media==="sticker")mark("Print","sheet",n+" up · "+P.layout.cols+" × "+P.layout.rows+(P.layout.rot?" rotated":"")+" · margin "+SHEET.margin+" in, gap "+SHEET.gap+" in");
+  else DIAG.get("Print").delete("sheet");
 }
 let pending=0;
 function run(){if(!S.src)return;$("busy").hidden=false;cancelAnimationFrame(pending);
-  pending=requestAnimationFrame(()=>setTimeout(()=>{convert();redraw();$("busy").hidden=true},0))}
+  pending=requestAnimationFrame(()=>setTimeout(()=>{const t=performance.now();convert();redraw();$("busy").hidden=true;
+    mark("Photo","blocks",S.result.w+" × "+S.result.h+" · "+since(t))},0))}
 function restyle(){if(!S.result)return;$("busy").textContent=S.scene!=="none"&&!meshes[S.scene]?"Building world…":"Placing blocks…";$("busy").hidden=false;cancelAnimationFrame(pending);pending=requestAnimationFrame(()=>setTimeout(()=>{redraw();$("busy").hidden=true},0))}
 
 // ================= Inputs =================
@@ -1063,6 +1112,7 @@ async function decodeFile(file){
   const iw=im.naturalWidth||im.width,ih=im.naturalHeight||im.height;if(!iw||!ih)throw new Error("empty");
   // phones take 12+ MP photos; shrink right away to stay inside mobile memory limits
   const sc=Math.min(1,2200/Math.max(iw,ih)),c=document.createElement("canvas");c.width=Math.round(iw*sc);c.height=Math.round(ih*sc);
+  mark("Photo","size",iw+" × "+ih+(sc<1?" → "+c.width+" × "+c.height:""));
   const x=c.getContext("2d");x.imageSmoothingQuality="high";x.drawImage(im,0,0,c.width,c.height);if(im.close)im.close();return c;
 }
 const timeout=(p,ms)=>Promise.race([p,new Promise(r=>setTimeout(()=>r(false),ms))]);
@@ -1071,9 +1121,9 @@ async function loadFile(file,label){
   if(!file){note("No photo came through. Try again, or use Choose image.");return}
   const job=++loading,name=label+": "+(file.name||"photo");
   note("Reading "+(file.name||"the photo")+"…");$("busy").hidden=false;$("busy").textContent="Reading photo…";
-  let img;
-  try{img=await decodeFile(file)}catch(e){
-    $("busy").hidden=true;
+  let img;DIAG.get("Photo").clear();mark("Photo","file",(file.type||"unknown type")+" · "+mb(file.size||0)+" · "+label);
+  try{img=await timed("Photo","decode",decodeFile(file))}catch(e){
+    mark("Errors","decode",e.message||e);$("busy").hidden=true;
     const heic=/hei[cf]/i.test(file.type||"")||/\.hei[cf]$/i.test(file.name||"");
     note(heic?"This phone saved the photo as HEIC, which this browser can't open. In Camera settings choose Most Compatible (JPEG), or share the photo as a JPEG.":"That file couldn't be opened as a picture. Try a JPG or PNG.");return}
   if(job!==loading)return;
@@ -1083,8 +1133,8 @@ async function loadFile(file,label){
   if(job!==loading)return;
   if(ok){$("busy").textContent="Finding people…";
     try{const r=await segment(img);S.alpha=r.alpha;S.focus=r.focus;S.boxesFull=r.boxes;note(name+" · "+(r.people?r.people+(r.people===1?" person":" people")+" found":"no people found, cut-out by shape"))}
-    catch(e){S.alpha=null;setSeg("fallback","Person detection failed on this photo, so the cut-out uses color. Fix stray areas with Erase and Restore.")}}
-  else if(S.segMode==="loading")note(name+" · person detection is still loading, so this cut-out uses color. Choose the photo again in a moment for a better cut-out.");
+    catch(e){S.alpha=null;mark("Errors","detection",e.message||e);setSeg("fallback","Person detection failed on this photo, so the cut-out uses color. Fix stray areas with Erase and Restore.")}}
+  else if(S.segMode==="loading"){mark("Photo","cut out","by color: detection still loading after 30 s");note(name+" · person detection is still loading, so this cut-out uses color. Choose the photo again in a moment for a better cut-out.")}
   if(job!==loading)return;
   $("busy").textContent="Placing blocks…";run();
 }
@@ -1259,6 +1309,7 @@ function goToBuild(b){const u=new URL(location.href);u.searchParams.set("v",b);l
 async function checkForUpdate(){
   if(BUILD.startsWith("__")||!navigator.onLine)return;
   try{const r=await fetch("version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;const v=await r.json();
+    mark("Build","server build",(v&&v.build)+" · checked "+new Date().toLocaleTimeString());
     if(!v||!v.build||v.build===BUILD)return;updateTo=v.build;
     // nothing to lose yet: switch straight away, but only once, so a stale CDN edge can't cause a reload loop
     if(!userWork&&new URL(location.href).searchParams.get("v")!==v.build){goToBuild(v.build);return}
@@ -1271,6 +1322,43 @@ try{const u=new URL(location.href);if(u.searchParams.get("v")===BUILD){u.searchP
 setTimeout(checkForUpdate,4000);setInterval(checkForUpdate,5*60*1000);
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")checkForUpdate()});
 window.addEventListener("online",checkForUpdate);
+
+// ================= Diagnostics panel =================
+function gpuInfo(){ // a throwaway context, released straight away, so the 3D world's renderer is untouched
+  try{const gl=document.createElement("canvas").getContext("webgl2")||document.createElement("canvas").getContext("webgl");if(!gl)return"no WebGL";
+    const ext=gl.getExtension("WEBGL_debug_renderer_info"),name=gl.getParameter(ext?ext.UNMASKED_RENDERER_WEBGL:gl.RENDERER);
+    const out=name+" · "+(typeof WebGL2RenderingContext!=="undefined"&&gl instanceof WebGL2RenderingContext?"WebGL 2":"WebGL 1")+" · max texture "+gl.getParameter(gl.MAX_TEXTURE_SIZE);
+    gl.getExtension("WEBGL_lose_context")?.loseContext();return out}catch(e){return"unavailable"}}
+function sampleMemory(){
+  if(window.tf&&tf.memory){const m=tf.memory();mark("Memory","tf.js",m.numTensors+" tensors · "+mb(m.numBytes))}
+  if(performance.memory)mark("Memory","JS heap",mb(performance.memory.usedJSHeapSize)+" of "+mb(performance.memory.jsHeapSizeLimit));
+  else mark("Memory","JS heap","not reported by this browser");
+}
+function diagText(){const lines=["PosePop diagnostics · "+new Date().toISOString()];
+  for(const[sec,rows]of DIAG)if(rows.size){lines.push(sec);for(const[k,v]of rows)lines.push("  "+k+": "+v)}
+  return lines.join("\n")}
+function drawDiag(){if(!DEBUG||$("diagBody").hidden)return;const box=$("diagList");box.textContent="";
+  for(const[sec,rows]of DIAG){if(!rows.size)continue;
+    const h=document.createElement("h4");h.textContent=sec;const dl=document.createElement("dl");
+    for(const[k,v]of rows){const dt=document.createElement("dt"),dd=document.createElement("dd");dt.textContent=k;dd.textContent=v;dl.append(dt,dd)}
+    box.append(h,dl)}}
+if(DEBUG){
+  mark("Build","build",BUILD);mark("Build","page",location.pathname+location.search);
+  mark("Device","browser",navigator.userAgent);
+  mark("Device","screen",screen.width+" × "+screen.height+" @"+devicePixelRatio+"x · viewport "+innerWidth+" × "+innerHeight);
+  mark("Device","memory",navigator.deviceMemory?navigator.deviceMemory+" GB (rounded by browser)":"not reported by this browser");
+  mark("Device","CPU cores",navigator.hardwareConcurrency||"not reported");
+  mark("Device","WebGL",gpuInfo());
+  addEventListener("error",e=>mark("Errors","last error",e.message||"script error"));
+  addEventListener("unhandledrejection",e=>mark("Errors","last rejection",(e.reason&&e.reason.message)||e.reason));
+  addEventListener("resize",()=>mark("Device","screen",screen.width+" × "+screen.height+" @"+devicePixelRatio+"x · viewport "+innerWidth+" × "+innerHeight));
+  $("diag").hidden=false;sampleMemory();setInterval(()=>{if(!$("diagBody").hidden)sampleMemory()},2000);
+  $("diagToggle").addEventListener("click",()=>{const open=$("diagBody").hidden;$("diagBody").hidden=!open;
+    $("diagToggle").setAttribute("aria-expanded",String(open));$("diag").classList.toggle("closed",!open);if(open){sampleMemory();drawDiag()}});
+  $("diagCopy").addEventListener("click",async()=>{sampleMemory();
+    try{await navigator.clipboard.writeText(diagText());$("diagMsg").textContent="Copied. Photos and file names are not included."}
+    catch(e){$("diagMsg").textContent="Copy isn't available here. Take a screenshot instead."}});
+}
 
 // ================= Boot =================
 buildPalette();sample();run();

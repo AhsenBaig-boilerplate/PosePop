@@ -22,7 +22,7 @@ Read `docs/ARCHITECTURE.md` and `docs/ROADMAP.md` before changing code.
 
 ## Code map (all in `src/index.html` until the module split)
 
-Textures `tex()` · worlds `makeWorld/buildScene/renderScene` · detection `findPeople/detectIn` · cut-out `segment/selfieMask` · blocks `convert` · mask and edits `personMask` · layout `buildView/compose` · editing (move, resize, erase, undo) · print `frameSize/sizeForCount/renderSheet` · updates `checkForUpdate`.
+Textures `tex()` · worlds `makeWorld/buildScene/renderScene` · detection `findPeople/detectIn` · cut-out `segment/selfieMask` · blocks `convert` · mask and edits `personMask` · layout `buildView/compose` · editing (move, resize, erase, undo) · print `frameSize/sizeForCount/renderSheet` · updates `checkForUpdate` · diagnostics `mark/timed/drawDiag` (shown with `?debug=1`; record new timings with `mark`).
 
 ## Product constraints
 
