@@ -70,10 +70,12 @@ let commit = process.env.GITHUB_SHA || "";
 if (!commit) {
   try { commit = execSync("git rev-parse HEAD", { cwd: root }).toString().trim(); } catch { commit = "local"; }
 }
-// The build id changes whenever the shipped page or any asset changes, and not otherwise.
+// Build id: the commit, then a hash that changes only when the shipped page or an asset changes.
+// The build time is filled in after hashing, so it never changes the id.
 const contentHash = digest("sha256", html + JSON.stringify(manifest), "hex").slice(0, 12);
 const build = `${commit.slice(0, 7)}-${contentHash}`;
-html = html.replaceAll("__BUILD_ID__", build);
+const builtAt = new Date().toISOString();
+html = html.replaceAll("__BUILD_ID__", build).replaceAll("__BUILT_AT__", builtAt);
 
 // CSP: no third-party origins, no eval, no inline code except the exact blocks we ship.
 const inline = (re) => [...html.matchAll(re)].map((m) => `'sha256-${digest("sha256", m[1], "base64")}'`);
@@ -95,7 +97,7 @@ const csp = [
 html = html.replace("__CSP__", csp);
 
 writeFileSync(join(out, "index.html"), html);
-writeFileSync(join(out, "version.json"), JSON.stringify({ build, commit, builtAt: new Date().toISOString() }, null, 2) + "\n");
+writeFileSync(join(out, "version.json"), JSON.stringify({ build, commit, builtAt }, null, 2) + "\n");
 writeFileSync(join(out, "asset-manifest.json"), JSON.stringify({ build, assets: manifest }, null, 2) + "\n");
 writeFileSync(join(out, ".nojekyll"), "");
 console.log(`Built ${build}: ${Object.keys(manifest).length} assets, ${scriptHashes.length} inline script, ${styleHashes.length} inline style`);
