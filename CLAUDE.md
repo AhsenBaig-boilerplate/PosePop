@@ -27,4 +27,4 @@ Textures `tex()` · worlds `makeWorld/buildScene/renderScene` · detection `find
 ## Product constraints
 
 - Printer: Cricut StickerPix Print + Cut. 300 dpi, sticker sheet 3.94 × 7.68 in, 4 × 6 photo. Designs go through Cricut Design Space.
-- Don't use "Minecraft" or Mojang assets in names, UI copy or textures. Textures are drawn in code.
+- Don't use "Minecraft" or Mojang assets in names, UI copy or textures, and likewise no other game, toy or brand names, logos or characters (for example in style names). Textures are drawn in code; third-party art such as an emoji set must be self-hosted under an open licence and listed in `THIRD_PARTY_NOTICES.md`.
