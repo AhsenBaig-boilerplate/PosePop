@@ -34,6 +34,7 @@ Status: `[ ]` open · `[~]` in progress · `[x]` done. Priority: **P0** blocks e
 
 ## Done
 
+- [x] Move the whole group by default, or each person on their own; Adjust boxes mode to fix who owns which blocks and crop leftovers by dragging each person's box edges
 - [x] Diagnostics panel (`?debug=1`): build, detection status and timings, photo size, device memory, WebGL renderer, tf.js memory, errors; copyable report. Device and test-print script in [DEVICE-TEST.md](DEVICE-TEST.md)
 - [x] Cut people out of real photos (MoveNet MultiPose + MediaPipe Selfie Segmentation), including groups and people at the edges
 - [x] 3D block worlds: Plains, Village, Mountains, Snowy taiga, Desert, Beach sunset, Nether (crimson forest, portal, lava sea), End (city, pillars, exit portal)
