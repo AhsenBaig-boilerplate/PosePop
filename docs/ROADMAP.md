@@ -12,7 +12,6 @@ Status: `[ ]` open · `[~]` in progress · `[x]` done. Priority: **P0** blocks e
 
 ## P1: quality and reliability
 
-- [ ] **Offline support for events with flaky Wi-Fi.** Add a service worker that caches the hashed assets for the current build and is versioned by build id, so updates still flow. Must stay within the current CSP.
 - [ ] **Halve the people model download** by converting MoveNet MultiPose to float16 weights (tfjs-converter `--quantize_float16`): about 9.4 MB → 4.7 MB, dequantized at load. First load is now limited by download size, so this is the biggest remaining first-load win. Compare detections on the test photos before and after before shipping.
 - [ ] **Run detection in a Web Worker** (refactor note 3). No UI freeze while finding people.
 - [ ] **Kiosk mode:** full screen, large buttons, auto-reset after saving, optional countdown timer for the camera, and a lock so guests can't open settings.
@@ -42,6 +41,7 @@ Status: `[ ]` open · `[~]` in progress · `[x]` done. Priority: **P0** blocks e
 
 ## Done
 
+- [x] Offline support: service worker with one integrity-checked cache per build, network-first page, old caches deleted on activate, "works offline" in the footer
 - [x] Version line in the footer (version, build time, update status); tf.js preloaded and models downloaded in parallel with it (time to detection ready −14 % on a 10 Mbit/s link)
 - [x] Binary model weights loaded with `tf.loadGraphModel`, hashed and SRI-checked (refactor note 2)
 - [x] Move the whole group by default, or each person on their own; Adjust boxes mode to fix who owns which blocks and crop leftovers by dragging each person's box edges

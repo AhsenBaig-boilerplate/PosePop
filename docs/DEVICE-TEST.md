@@ -150,6 +150,16 @@ Run this on each phone and the tablet with the Group of 6 photo and the **Plains
 10. Load a single-person photo.
     *Expect:* **Move each** isn't offered, but **Move group** and **Adjust boxes** are.
 
+## Part G: offline
+
+1. On Wi-Fi, open the app and wait until the footer says **works offline** (shortly after person detection is ready).
+2. Turn on airplane mode and reload.
+   *Expect:* the app opens, the footer says **offline · works offline**, and person detection becomes ready.
+3. Still offline, take a photo, then save a sticker.
+   *Expect:* people are found and the PNG saves, exactly as online.
+4. Turn airplane mode off, then reload.
+   *Expect:* the footer goes back to **up to date**.
+
 ## Results
 
 Copy this table for each device and fill it in. Paste each device's **Copy** report underneath.
@@ -169,6 +179,7 @@ Copy this table for each device and fill it in. Paste each device's **Copy** rep
 | Box edge easy to grab with a finger (F6) | | | |
 | Arm follows its owner after a box edit (F7) | | | |
 | Saved PNG free of box overlay (F9) | | | |
+| Opens and finds people in airplane mode (G2–G3) | | | |
 
 | Sheet | Piece (app) | Imported at | Fitted on one sheet | Measured size | Min margin | Min gap | Cut offset |
 |---|---|---|---|---|---|---|---|
