@@ -105,6 +105,10 @@ const csp = [
 html = html.replace("__CSP__", csp);
 
 writeFileSync(join(out, "index.html"), html);
+// The service worker keeps a fixed name (browsers check it for changes); its build id changes it every deploy.
+const precache = Object.values(manifest).map(({ file, sri }) => ({ url: file, integrity: sri }));
+writeFileSync(join(out, "sw.js"), readFileSync(join(root, "src/sw.js"), "utf8")
+  .replace("__BUILD_ID__", build).replace("__PRECACHE__", JSON.stringify(precache)));
 writeFileSync(join(out, "version.json"), JSON.stringify({ build, commit, builtAt }, null, 2) + "\n");
 writeFileSync(join(out, "asset-manifest.json"), JSON.stringify({ build, assets: manifest }, null, 2) + "\n");
 writeFileSync(join(out, ".nojekyll"), "");

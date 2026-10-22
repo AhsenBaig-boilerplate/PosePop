@@ -37,6 +37,7 @@ The footer shows which version is running, when it was built, and whether it's u
 - Only `index.html` and `version.json` can go stale. Each build stamps a build id into both.
 - The page checks `version.json` (with `cache: "no-store"` and a timestamp query) a few seconds after load, every 5 minutes, when the tab becomes visible again, and when the device comes back online.
 - If a newer build exists and nobody has loaded a photo yet, the page moves to `?v=<build>`, a URL no cache has seen, so it always gets the new HTML. If someone is mid-edit, it shows an "Update ready" bar instead and never interrupts their work. A guard prevents reload loops if a CDN edge is still serving the old page.
+- A service worker keeps the current build cached for offline use at events: the page always comes from the network when there is one, and hashed files come from the cache. The footer says "works offline" once the build is cached. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#offline-service-worker).
 
 ### Security
 

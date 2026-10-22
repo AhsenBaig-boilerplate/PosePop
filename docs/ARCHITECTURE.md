@@ -9,6 +9,7 @@ src/
   index.html          the whole app: markup, styles, and one inline script
   favicon.svg
   thumbs/             world picker thumbnails (JPEG)
+  sw.js               service worker template (offline cache per build)
   models/             TF.js graph models (JSON topology + binary .bin weights)
 scripts/
   build.mjs           src/ + node_modules → dist/ (hashed names, SRI, CSP, build id)
@@ -54,6 +55,23 @@ State lives in one object, `S`. Undo/redo snapshots `S.fixes`, `S.place`, `S.gpl
 - Loading order: three.js and tf.js are preloaded from `<head>`, and the model files start downloading as soon as the script runs (`earlyModels`), with SRI. tf.js picks those responses up instead of fetching again, so the 9 MB of weights overlap tf.js loading and starting up. First load is now limited by download size.
 - CSP hashes are computed from the final inline `<script>` and `<style>`, so any edit to them is automatically reflected and verified.
 - Models: each `.bin` is hashed first, then its JSON is rewritten to name the hashed `.bin`, so the JSON's hash also pins its weights. The page loads them with `tf.loadGraphModel(url)` and a `fetchFunc` that attaches each file's SRI hash from `MODEL_SRI`; a file without a known hash, or one that doesn't match, is refused. `verify.mjs` checks the JSON → `.bin` link and that both have SRI entries.
+
+## Offline (service worker)
+
+`src/sw.js` is filled in by the build and published as `dist/sw.js`, under a fixed name, because browsers recheck the service worker at that URL for changes. Each build's worker has a different build id, so every deploy installs a new worker.
+
+| Request | Behaviour |
+|---|---|
+| The page (`./`, `./index.html`, any query such as `?v=` or `?debug=1`) | **Network first.** The cached copy is used only when the network request fails (offline), never because it's slow, so a new deploy is never hidden behind a stale page. |
+| Hashed assets in the build manifest | **Cache first.** Their names change with their content, so a cached copy can't be stale. A miss falls through to the network. |
+| `version.json` and anything else | Not handled. The update check always reaches the server; `verify.mjs` fails the build if `sw.js` mentions `version.json`. |
+
+- **Install:** fetches this build's `index.html` (`?sw=<build>`, `no-store`) and refuses to install unless it contains this build's id. That guards against a CDN edge still serving the previous page after a deploy. It then stores every hashed asset through a request carrying its SRI hash, so only verified bytes are cached. It calls `skipWaiting()`.
+- **Activate:** deletes every other `posepop-*` cache and takes control of open pages. A page that is still open on the old build already has all its files loaded, because everything is fetched at start-up.
+- **Registration:** happens only after the models have loaded. That way install copies files from the browser's HTTP cache instead of downloading them again, and it doesn't compete with first load. In testing, registering earlier made the page's own 9 MB model download fail (`ERR_CACHE_WRITE_FAILURE`), because the HTTP cache allows one writer per file.
+- **Updates:** unchanged. The page still compares `version.json` with its own build and moves to `?v=<build>`, or shows the update bar mid-edit. With the page network-first, that navigation always gets the new HTML, and the new worker installs alongside.
+- **Status:** the footer adds "works offline" once this build's cache is complete (the people model, the largest file, is present), and `?debug=1` shows it under Build → offline.
+- **CSP:** none needed beyond the existing `worker-src 'self'`. The worker script isn't covered by the page's `<meta>` CSP (workers take their policy from response headers, which Pages can't set). It is our own code, and makes only same-origin requests.
 
 ## Refactor notes
 

@@ -42,6 +42,19 @@ for (const [logical, { file }] of Object.entries(assets)) {
   if (!html.includes(`"${file}":"${assets[logical].sri}"`)) fail(`no SRI entry for ${file} in index.html`);
 }
 
+// 3c. The service worker belongs to this build and precaches exactly this build's assets, with their SRI.
+const sw = existsSync(join(dist, "sw.js")) ? readFileSync(join(dist, "sw.js"), "utf8") : "";
+if (!sw) fail("sw.js missing");
+else {
+  if (/__BUILD_ID__|__PRECACHE__/.test(sw)) fail("placeholder left in sw.js");
+  if (!sw.includes(`const BUILD = "${version.build}";`)) fail("sw.js build does not match version.json");
+  const pre = JSON.parse(sw.match(/const PRECACHE = (\[.*?\]);/)?.[1] || "[]");
+  const want = Object.values(assets).map((a) => `${a.file} ${a.sri}`).sort().join("\n");
+  if (pre.map((f) => `${f.url} ${f.integrity}`).sort().join("\n") !== want) fail("sw.js precache list does not match the built assets");
+  if (/version\.json/.test(sw.replace(/\/\/.*$/gm, ""))) fail("sw.js must not handle version.json");
+}
+if (!html.includes('register("sw.js")')) fail("index.html does not register sw.js");
+
 // 4. Every <script src> carries SRI, and nothing loads from another origin.
 for (const [tag] of html.matchAll(/<script\b[^>]*\bsrc=[^>]*>/g)) if (!/\bintegrity="sha384-/.test(tag)) fail(`script without integrity: ${tag}`);
 for (const m of html.matchAll(/\b(?:src|href)="(https?:)?\/\//g)) fail(`external resource reference: ${m[0]}`);

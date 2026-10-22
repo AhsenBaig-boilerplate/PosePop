@@ -757,7 +757,8 @@ const MODEL_SRI={"__ASSET:models/selfie.json__":"__SRI:models/selfie.json__","__
 const earlyModels=new Map(Object.entries(MODEL_SRI).map(([url,integrity])=>{const p=fetch(url,{integrity});p.catch(()=>{});return[url,p]}));
 function loadModel(json){
   return tf.loadGraphModel(json,{fetchFunc:(url,init)=>{const key=new URL(url,location.href).pathname.split("/").slice(-2).join("/"),integrity=MODEL_SRI[key];
-    const early=earlyModels.get(key);if(early){earlyModels.delete(key);return early}
+    // the early download is retried once if it failed (flaky Wi-Fi); an integrity failure fails again
+    const early=earlyModels.get(key);if(early){earlyModels.delete(key);return early.catch(()=>fetch(url,{...init,integrity}))}
     return integrity?fetch(url,{...init,integrity}):Promise.reject(new Error("no integrity hash for "+key))}});
 }
 function setSeg(state,text){S.segMode=state;const el=$("segStatus");el.dataset.s=state;el.querySelector("span").textContent=text;mark("Detection","status",state)}
@@ -1385,9 +1386,10 @@ function sample(){
 const BUILD="__BUILD_ID__",BUILT_AT="__BUILT_AT__";
 let userWork=false,updateTo=null;
 // footer line: which build this is, when it was built, and what the last update check found
-function showVersion(state){
+let versionState="",offlineOK=false;
+function showVersion(state){if(state!==undefined)versionState=state;
   const at=BUILT_AT.startsWith("__")?"":new Date(BUILT_AT).toLocaleString(undefined,{dateStyle:"medium",timeStyle:"short"});
-  $("version").textContent="PosePop "+(BUILD.startsWith("__")?"(unbuilt source)":"version "+BUILD.split("-")[0]+(at?" · built "+at:""))+(state?" · "+state:"");
+  $("version").textContent="PosePop "+(BUILD.startsWith("__")?"(unbuilt source)":"version "+BUILD.split("-")[0]+(at?" · built "+at:""))+(versionState?" · "+versionState:"")+(offlineOK?" · works offline":"");
   $("version").title="Build "+BUILD}
 showVersion("checking for updates…");
 function goToBuild(b){const u=new URL(location.href);u.searchParams.set("v",b);location.replace(u.toString())}
@@ -1409,6 +1411,21 @@ try{const u=new URL(location.href);if(u.searchParams.get("v")===BUILD){u.searchP
 setTimeout(checkForUpdate,4000);setInterval(checkForUpdate,5*60*1000);
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")checkForUpdate()});
 window.addEventListener("online",checkForUpdate);
+
+// ================= Offline =================
+// src/sw.js caches this build so the app still opens and finds people with no network. The people
+// model is the largest file and is cached with the rest in one step, so finding it means everything is there.
+async function buildCached(){const bin=Object.keys(MODEL_SRI).find(u=>/people\.[0-9a-f]+\.bin$/.test(u));
+  try{return!!(await caches.match(new URL(bin,location.href).href,{cacheName:"posepop-"+BUILD,ignoreVary:true}))}catch(e){return false}}
+// Registered only once the models have loaded: installing copies this build's files, and doing that
+// alongside the page's own downloads makes them compete (and the HTTP cache can refuse two writers).
+// Afterwards the copy comes from the browser cache, so nothing is downloaded twice.
+if("serviceWorker" in navigator&&!BUILD.startsWith("__")){
+  segReady.then(()=>navigator.serviceWorker.register("sw.js")).then(async()=>{
+    for(let i=0;i<90&&!(offlineOK=await buildCached());i++)await new Promise(r=>setTimeout(r,2000));
+    mark("Build","offline",offlineOK?"this build is cached":"not cached yet");showVersion()
+  }).catch(e=>{mark("Errors","offline cache",e.message||e);mark("Build","offline","unavailable")});
+}else mark("Build","offline","not supported in this browser");
 
 // ================= Diagnostics panel =================
 function gpuInfo(){ // a throwaway context, released straight away, so the 3D world's renderer is untouched
