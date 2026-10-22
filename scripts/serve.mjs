@@ -11,7 +11,8 @@ const types = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", "
   ".svg": "image/svg+xml", ".woff2": "font/woff2" };
 
 createServer(async (req, res) => {
-  const path = decodeURIComponent(new URL(req.url, "http://x").pathname);
+  let path;
+  try { path = decodeURIComponent(new URL(req.url, "http://x").pathname); } catch { res.writeHead(400).end("Bad request"); return; }
   const file = normalize(join(dist, path.endsWith("/") ? path + "index.html" : path));
   if (!file.startsWith(dist)) { res.writeHead(403).end(); return; }
   try {
