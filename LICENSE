@@ -1,0 +1,3 @@
+Apache License 2.0 applies to the bundled MediaPipe Selfie Segmentation and MoveNet MultiPose models
+(https://www.apache.org/licenses/LICENSE-2.0). three.js (MIT) and TensorFlow.js (Apache-2.0) are
+loaded from public CDNs under their own licences. Fonts are SIL Open Font License.
