@@ -184,7 +184,12 @@ input[type=range]{width:100%;accent-color:var(--accent)}
             <button data-v="area" aria-pressed="false">Erase area</button>
             <button data-v="keep" aria-pressed="false">Restore</button>
           </div>
-          <p class="hint" id="toolHint">Drag a person to move them. Drag a corner handle, pinch, scroll, or use Size to resize.</p>
+          <div class="seg" id="moveMode" hidden>
+            <button data-v="group" aria-pressed="true">Move group</button>
+            <button data-v="each" aria-pressed="false">Move each</button>
+            <button data-v="boxes" aria-pressed="false">Adjust boxes</button>
+          </div>
+          <p class="hint" id="toolHint">Drag to move everyone together. Drag a corner handle, pinch, scroll, or use Size to resize the group.</p>
           <div class="group" id="brushGroup" hidden>
             <div class="row between"><span class="label">Brush</span><span class="readout" id="brushRead">2 blocks</span></div>
             <input id="brushSize" type="range" min="1" max="10" step="1" value="2" aria-label="Brush size in blocks">
@@ -198,6 +203,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
             <button class="btn small" id="redo" disabled>Redo</button>
             <button class="btn small" id="resetLayout">Reset positions</button>
             <button class="btn small" id="resetFix">Clear erasing</button>
+            <button class="btn small" id="resetBoxes" hidden>Reset boxes</button>
           </div>
         </div>
       </section>
@@ -696,6 +702,7 @@ BLOCKS.forEach(makeTexture);
 // ================= State =================
 const S={width:64,sets:new Set(Object.keys(SETS)),dither:true,bevel:true,shadow:true,grid:false,
   scene:"plains",media:"sticker",inches:3,count:2,zoom:true,focus:null,border:1,tool:"move",brushSize:2,fixes:[],place:[],sel:0,boxes:[],boxesFull:[],
+  moveMode:"group",gplace:{dx:0,dy:0,s:1},edges:[],boxSel:0,
   src:null,alpha:null,segMode:"loading",result:null,view:null,layout:null};
 let palette=[],cache=null;
 function buildPalette(){palette=BLOCKS.map((b,i)=>i).filter(i=>S.sets.has(BLOCKS[i].set));cache=new Int16Array(262144).fill(-1)}
@@ -859,6 +866,7 @@ function convert(){
   S.result={w,h,grid,lab,alpha,hasAlpha:!!Wk.alpha};drawOrig();
 }
 
+const effBoxes=()=>(S.boxes||[]).map((b,k)=>S.edges[k]||b); // detector boxes with the user's edge adjustments
 const N4=(i,w,h)=>{const x=i%w,y=(i/w)|0;return[x>0?i-1:-1,x<w-1?i+1:-1,y>0?i-w:-1,y<h-1?i+w:-1]};
 function personMask(){
   const{w,h,lab,alpha,hasAlpha}=S.result,keep=new Uint8Array(w*h);
@@ -881,9 +889,15 @@ function personMask(){
   for(let i=0;i<w*h;i++)if(!keep[i]&&!outside[i])keep[i]=1;
   // one layer per person: detector boxes when we have them, otherwise connected shapes
   const layer=new Int8Array(w*h).fill(-1);
-  const boxes=(S.boxes||[]).map(b=>({cx:(b.x+b.w/2)*w,cy:(b.y+b.h/2)*h,bw:b.w*w,bh:b.h*h}));
-  if(boxes.length>1){for(let i=0;i<w*h;i++)if(keep[i]){const x=i%w+.5,y=(i/w|0)+.5;let best=0,bd=1e9;
-    boxes.forEach((b,k)=>{const d=Math.abs(x-b.cx)/b.bw+Math.abs(y-b.cy)/b.bh*.35;if(d<bd){bd=d;best=k}});layer[i]=best}}
+  const boxes=effBoxes().map((b,k)=>({cx:(b.x+b.w/2)*w,cy:(b.y+b.h/2)*h,bw:b.w*w,bh:b.h*h,x0:b.x*w,y0:b.y*h,x1:(b.x+b.w)*w,y1:(b.y+b.h)*h,set:!!S.edges[k]}));
+  const dist=(b,x,y)=>Math.abs(x-b.cx)/b.bw+Math.abs(y-b.cy)/b.bh*.35;
+  if(S.edges.some(Boolean)){
+    // once a box is adjusted the boxes are claims: an adjusted box owns everything inside it, untouched
+    // boxes share the rest (within a block of their edge), and blocks outside every box are cropped away
+    const best=(x,y,set,tol)=>{let k=-1,bd=1e9;boxes.forEach((b,j)=>{if(b.set===set&&x>=b.x0-tol&&x<=b.x1+tol&&y>=b.y0-tol&&y<=b.y1+tol){const d=dist(b,x,y);if(d<bd){bd=d;k=j}}});return k};
+    for(let i=0;i<w*h;i++)if(keep[i]){const x=i%w+.5,y=(i/w|0)+.5;let k=best(x,y,true,0);if(k<0)k=best(x,y,false,1);if(k<0)keep[i]=0;layer[i]=k}}
+  else if(boxes.length>1){for(let i=0;i<w*h;i++)if(keep[i]){const x=i%w+.5,y=(i/w|0)+.5;let best=0,bd=1e9;
+    boxes.forEach((b,k)=>{const d=dist(b,x,y);if(d<bd){bd=d;best=k}});layer[i]=best}}
   else if(boxes.length===1){for(let i=0;i<w*h;i++)if(keep[i])layer[i]=0}
   else{const comp2=new Int32Array(w*h).fill(-1),sz=[];
     for(let s0=0;s0<w*h;s0++){if(!keep[s0]||comp2[s0]>=0)continue;const id=sz.length;let n=0;const st2=[s0];comp2[s0]=id;
@@ -957,7 +971,13 @@ function compose(canvas,Wpx,Hpx,preview){
   if(hasScene){try{ctx.drawImage(renderScene(S.scene,Wpx,Hpx),0,0)}catch(e){THREE_OK=false;worldFail()}}
   else if(S.media==="photo"){ctx.fillStyle="#ffffff";ctx.fillRect(0,0,Wpx,Hpx)}
   const cell=Math.min(Wpx/w,Hpx/h)*(hasScene?.86:1),ox=(Wpx-cell*w)/2,oy=Hpx-cell*h,{lay,layers}=S.view,movable=canMove();
-  const pl=L=>movable&&S.place[L]?S.place[L]:{dx:0,dy:0,s:1};
+  // while adjusting boxes everyone stands where they were in the photo, so boxes line up with the blocks
+  const boxing=preview&&S.tool==="move"&&S.moveMode==="boxes",ID={dx:0,dy:0,s:1},G=S.gplace,byL=new Map(layers.map(l=>[l.L,l]));
+  // the group scales around the bottom centre of everyone together
+  const GAx=layers.length?(Math.min(...layers.map(l=>l.e.x0))+Math.max(...layers.map(l=>l.e.x1))+1)/2:0,GAy=layers.length?Math.max(...layers.map(l=>l.e.y1))+1:0;
+  // each person's own placement, then the group's, folded into one {dx,dy,s} so every caller stays the same
+  const pl=L=>{if(!movable||boxing)return ID;const P=S.place[L]||ID,Lr=byL.get(L);if(!Lr||(G.s===1&&!G.dx&&!G.dy))return P;
+    return{s:P.s*G.s,dx:G.s*P.dx+G.dx+(1-G.s)*(GAx-Lr.ax)*cell/Wpx,dy:G.s*P.dy+G.dy+(1-G.s)*(GAy-Lr.ay)*cell/Hpx}};
   const order=layers.slice().sort((a,b)=>(a.ay+pl(a.L).dy*h)-(b.ay+pl(b.L).dy*h));
   S.layout={ox,oy,cell,w,h,Wpx,Hpx,order,pl};
   const rect=(x,y,Lr)=>{const P=pl(Lr.L),c=cell*P.s,X0=ox+(Lr.ax+(x-Lr.ax)*P.s)*cell+P.dx*Wpx,Y0=oy+(Lr.ay+(y-Lr.ay)*P.s)*cell+P.dy*Hpx;
@@ -974,12 +994,17 @@ function compose(canvas,Wpx,Hpx,preview){
   for(const Lr of order){const P=pl(Lr.L),c=cell*P.s,bevel=S.bevel&&c>=4,t=Math.max(1,Math.round(c/11));
     for(const i of byLayer.get(Lr.L)){const[x0,y0,bw,bh]=rect(i%w,i/w|0,Lr);
       ctx.drawImage(BLOCKS[cells[i]].canvas,0,0,16,16,x0,y0,bw,bh);
+      if(boxing){ctx.fillStyle=BOXC[Lr.L%BOXC.length]+"55";ctx.fillRect(x0,y0,bw,bh);continue}
       if(bevel){ctx.fillStyle="rgba(255,255,255,.2)";ctx.fillRect(x0,y0,bw,t);ctx.fillRect(x0,y0+t,t,bh-t);
         ctx.fillStyle="rgba(0,0,0,.26)";ctx.fillRect(x0+t,y0+bh-t,bw-t,t);ctx.fillRect(x0+bw-t,y0+t,t,bh-2*t)}
       if(preview&&S.grid&&c>=6){ctx.fillStyle="rgba(0,0,0,.3)";ctx.fillRect(x0,y0,1,bh);ctx.fillRect(x0,y0,bw,1)}}}
-  S.layout.sel=null;
-  if(preview&&movable&&layers.length&&S.tool==="move"){const Lr=layers.find(l=>l.L===S.sel)||layers[0];if(Lr){S.sel=Lr.L;
-    const a=rect(Lr.e.x0,Lr.e.y0,Lr),b2=rect(Lr.e.x1,Lr.e.y1,Lr),bx=[a[0]-3,a[1]-3,b2[0]+b2[2]-a[0]+6,b2[1]+b2[3]-a[1]+6],P=pl(Lr.L);
+  S.layout.sel=null;S.layout.boxes=null;
+  if(boxing)drawBoxes(ctx,ox,oy,cell,Wpx,Hpx);
+  else if(preview&&movable&&layers.length&&S.tool==="move"){const Lr=layers.find(l=>l.L===S.sel)||layers[0];if(Lr){S.sel=Lr.L;
+    // the selection frames everyone in group mode, otherwise the selected person
+    const group=S.moveMode==="group";let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+    for(const l of group?layers:[Lr]){const a=rect(l.e.x0,l.e.y0,l),b2=rect(l.e.x1,l.e.y1,l);x0=Math.min(x0,a[0]);y0=Math.min(y0,a[1]);x1=Math.max(x1,b2[0]+b2[2]);y1=Math.max(y1,b2[1]+b2[3])}
+    const bx=[x0-3,y0-3,x1-x0+6,y1-y0+6],P=pl(Lr.L);
     ctx.save();ctx.setLineDash([8,6]);ctx.lineWidth=2;ctx.strokeStyle="rgba(255,255,255,.95)";
     ctx.strokeRect(...bx);ctx.strokeStyle="rgba(0,0,0,.6)";ctx.lineDashOffset=7;ctx.strokeRect(...bx);ctx.setLineDash([]);
     // corner handles for resizing
@@ -987,9 +1012,26 @@ function compose(canvas,Wpx,Hpx,preview){
     const corners=[[bx[0],bx[1]],[bx[0]+bx[2],bx[1]],[bx[0],bx[1]+bx[3]],[bx[0]+bx[2],bx[1]+bx[3]]].map(([x,y])=>[cxl(x),cyl(y)]);
     for(const[cx,cy]of corners){ctx.fillStyle="#ffffff";ctx.fillRect(cx-hs/2,cy-hs/2,hs,hs);ctx.lineWidth=2;ctx.strokeStyle="rgba(0,0,0,.75)";ctx.strokeRect(cx-hs/2,cy-hs/2,hs,hs)}
     ctx.restore();
-    S.layout.sel={L:Lr.L,corners,hs,anchor:[ox+Lr.ax*cell+P.dx*Wpx,oy+Lr.ay*cell+P.dy*Hpx]}}}
+    S.layout.sel={L:Lr.L,corners,hs,anchor:group?[ox+GAx*cell+G.dx*Wpx,oy+GAy*cell+G.dy*Hpx]:[ox+Lr.ax*cell+P.dx*Wpx,oy+Lr.ay*cell+P.dy*Hpx]}}}
   if(hasScene&&S.media==="sticker"&&S.border){ // white frame around the scene sticker
     const bw=Math.round(Math.min(Wpx,Hpx)*(S.border===1?.025:.05));ctx.strokeStyle="#ffffff";ctx.lineWidth=bw*2;ctx.strokeRect(0,0,Wpx,Hpx)}
+}
+const BOXC=["#ff4d4d","#2f9bff","#ffc61a","#3ccf4e","#b86bff","#ff8a1f"];
+function drawBoxes(ctx,ox,oy,cell,Wpx,Hpx){ // each person's box in their color; the selected one has edge handles
+  const C=S.crop,p=S.view.pad,R=S.result,tx=g=>ox+(g-C.x0+p)*cell,ty=g=>oy+(g-C.y0+p)*cell;
+  const hs=Math.max(14,Math.round(Wpx/55)),cl=(v,m)=>Math.max(2,Math.min(m-2,v));
+  // kept on the canvas, so an edge beyond the picture can still be grabbed
+  const rects=S.layout.boxes=effBoxes().map(b=>[cl(tx(b.x*R.w),Wpx),cl(ty(b.y*R.h),Hpx),cl(tx((b.x+b.w)*R.w),Wpx),cl(ty((b.y+b.h)*R.h),Hpx)]);
+  ctx.save();ctx.font="600 "+hs+"px "+getComputedStyle(document.body).fontFamily;ctx.textBaseline="top";
+  rects.forEach((r,k)=>{if(k===S.boxSel)return;drawBox(ctx,r,k,false)});
+  if(rects[S.boxSel])drawBox(ctx,rects[S.boxSel],S.boxSel,true);
+  ctx.restore();
+  function drawBox(ctx,[x0,y0,x1,y1],k,sel){const c=BOXC[k%BOXC.length],X0=cl(x0,Wpx),Y0=cl(y0,Hpx),X1=cl(x1,Wpx),Y1=cl(y1,Hpx);
+    ctx.setLineDash(sel?[]:[8,6]);ctx.lineWidth=sel?4:2;ctx.strokeStyle="rgba(0,0,0,.6)";ctx.strokeRect(X0+1,Y0+1,X1-X0,Y1-Y0);
+    ctx.strokeStyle=c;ctx.strokeRect(X0,Y0,X1-X0,Y1-Y0);ctx.setLineDash([]);
+    const lw=hs*1.5;ctx.fillStyle=c;ctx.fillRect(X0,Y0,lw,lw);ctx.fillStyle="#000";ctx.fillText(String(k+1),X0+hs*.42,Y0+hs*.2);
+    if(sel)for(const[cx,cy]of[[X0,(Y0+Y1)/2],[X1,(Y0+Y1)/2],[(X0+X1)/2,Y0],[(X0+X1)/2,Y1]]){
+      ctx.fillStyle="#ffffff";ctx.fillRect(cx-hs/2,cy-hs/2,hs,hs);ctx.lineWidth=2;ctx.strokeStyle="rgba(0,0,0,.75)";ctx.strokeRect(cx-hs/2,cy-hs/2,hs,hs)}}
 }
 
 // ================= Sheet + UI =================
@@ -1130,30 +1172,41 @@ function thumbs(){
 // ================= Editing: move, scale, erase, undo =================
 const out=$("out");
 const hist=[],redoStack=[];
-const snap=()=>JSON.stringify({fixes:S.fixes,place:S.place,sel:S.sel});
+const snap=()=>JSON.stringify({fixes:S.fixes,place:S.place,sel:S.sel,gplace:S.gplace,edges:S.edges});
 function pushHist(){hist.push(snap());if(hist.length>80)hist.shift();redoStack.length=0;histUI()}
-function restoreSnap(js){const o=JSON.parse(js);S.fixes=o.fixes;S.place=o.place;S.sel=o.sel;syncScale();restyle()}
+function restoreSnap(js){const o=JSON.parse(js);S.fixes=o.fixes;S.place=o.place;S.sel=o.sel;S.gplace=o.gplace;S.edges=o.edges;syncScale();restyle()}
 function undo(){if(!hist.length)return;redoStack.push(snap());restoreSnap(hist.pop());histUI()}
 function redo(){if(!redoStack.length)return;hist.push(snap());restoreSnap(redoStack.pop());histUI()}
 function histUI(){$("undo").disabled=!hist.length;$("redo").disabled=!redoStack.length}
-function resetEdits(){hist.length=0;redoStack.length=0;S.fixes=[];S.place=[];S.sel=0;histUI();syncScale()}
+function resetEdits(){hist.length=0;redoStack.length=0;S.fixes=[];S.place=[];S.sel=0;S.gplace={dx:0,dy:0,s:1};S.edges=[];S.boxSel=0;histUI();syncScale()}
 $("undo").addEventListener("click",undo);$("redo").addEventListener("click",redo);
 document.addEventListener("keydown",e=>{if(!(e.ctrlKey||e.metaKey))return;const k=e.key.toLowerCase();
   if(k==="z"&&!e.shiftKey){e.preventDefault();undo()}else if(k==="y"||(k==="z"&&e.shiftKey)){e.preventDefault();redo()}});
-$("resetLayout").addEventListener("click",()=>{if(!S.place.length)return;pushHist();S.place=[];syncScale();restyle()});
+$("resetLayout").addEventListener("click",()=>{const G=S.gplace;if(!S.place.length&&G.s===1&&!G.dx&&!G.dy)return;pushHist();S.place=[];S.gplace={dx:0,dy:0,s:1};syncScale();restyle()});
 $("resetFix").addEventListener("click",()=>{if(!S.fixes.length)return;pushHist();S.fixes=[];restyle()});
+$("resetBoxes").addEventListener("click",()=>{if(!S.edges.length)return;pushHist();S.edges=[];restyle()});
 const place=L=>S.place[L]||(S.place[L]={dx:0,dy:0,s:1});
-function syncScale(){const p=S.place[S.sel];const v=Math.round((p?p.s:1)*100);$("scale").value=v;$("sizeRead").textContent=v+"%";
-  const n=S.view?S.view.layers.length:1;$("sizeLabel").textContent=n>1?"Size of person "+(S.sel+1):"Size"}
-function setTool(v){S.tool=v;out.classList.toggle("painting",v!=="move");out.classList.toggle("moving",v==="move");
-  $("brushGroup").hidden=!(v==="erase"||v==="keep");$("sizeGroup").hidden=v!=="move";
-  $("toolHint").textContent=v==="move"?(canMove()?"Drag a person to move them. Drag a corner handle, pinch, scroll, or use Size to resize.":"Pick a world or the 4 × 6 photo to move people around."):
+const cur=()=>S.moveMode==="group"?S.gplace:place(S.sel); // what move, resize, pinch, scroll and Size act on
+function syncScale(){const p=S.moveMode==="group"?S.gplace:S.place[S.sel];const v=Math.round((p?p.s:1)*100);$("scale").value=v;$("sizeRead").textContent=v+"%";
+  const n=S.view?S.view.layers.length:1;$("sizeLabel").textContent=n<2?"Size":S.moveMode==="group"?"Size of group":"Size of person "+(S.sel+1);syncMoveUI()}
+// "Move each" needs two or more people; "Adjust boxes" needs detected people
+function syncMoveUI(){const n=S.view?S.view.layers.length:1,nb=(S.boxes||[]).length,m=$("moveMode");
+  m.querySelector('[data-v="each"]').hidden=n<2;m.querySelector('[data-v="boxes"]').hidden=!nb;
+  if((S.moveMode==="each"&&n<2)||(S.moveMode==="boxes"&&!nb)){setMoveMode("group");return}
+  m.hidden=S.tool!=="move"||(n<2&&!nb);$("resetBoxes").hidden=S.tool!=="move"||S.moveMode!=="boxes"}
+function setMoveMode(v){S.moveMode=v;$("moveMode").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.v===v)));syncScale();setTool(S.tool)}
+function setTool(v){S.tool=v;out.classList.toggle("painting",v!=="move");out.classList.toggle("moving",v==="move");const mv=S.moveMode;
+  $("brushGroup").hidden=!(v==="erase"||v==="keep");$("sizeGroup").hidden=v!=="move"||mv==="boxes";
+  $("toolHint").textContent=v==="move"?(mv==="boxes"?"Drag a box edge to choose which blocks belong to each person. Blocks outside every box are cropped away.":
+      !canMove()?"Pick a world or the 4 × 6 photo to move people around.":
+      mv==="each"?"Drag a person to move them on their own. Drag a corner handle, pinch, scroll, or use Size to resize.":
+      "Drag to move everyone together. Drag a corner handle, pinch, scroll, or use Size to resize the group."):
     v==="erase"?"Drag over anything that isn't part of a person.":v==="area"?"Tap a leftover patch, like a car seat or a wall, to remove all of it at once.":"Drag over parts of a person that were cut away.";
-  if(S.result)quick()}
-seg("tool",setTool);
+  syncMoveUI();if(S.result)quick()}
+seg("tool",setTool);seg("moveMode",setMoveMode);
 $("brushSize").addEventListener("input",e=>{S.brushSize=+e.target.value;$("brushRead").textContent=S.brushSize+(S.brushSize===1?" block":" blocks")});
 let scaling=false;
-$("scale").addEventListener("input",e=>{if(!canMove()||!S.view)return;if(!scaling){pushHist();scaling=true}place(S.sel).s=+e.target.value/100;$("sizeRead").textContent=e.target.value+"%";quick()});
+$("scale").addEventListener("input",e=>{if(!canMove()||!S.view)return;if(!scaling){pushHist();scaling=true}cur().s=+e.target.value/100;$("sizeRead").textContent=e.target.value+"%";quick()});
 $("scale").addEventListener("change",()=>{scaling=false;restyle()});
 
 function canvasPt(e){const r=out.getBoundingClientRect();return{X:(e.clientX-r.left)/r.width*out.width,Y:(e.clientY-r.top)/r.height*out.height}}
@@ -1162,6 +1215,19 @@ function hitLayer(X,Y){const L=S.layout;if(!L||!S.view)return null;const{w,h,lay
   for(let k=L.order.length-1;k>=0;k--){const Lr=L.order[k],g=toGrid(X,Y,Lr),x=Math.floor(g.gx),y=Math.floor(g.gy);if(x>=0&&y>=0&&x<w&&y<h&&lay[y*w+x]===Lr.L)return Lr}
   return null}
 function strokePt(X,Y,Lr){const g=toGrid(X,Y,Lr),pad=S.view.pad,{w,h}=S.result;return[(g.gx-pad+S.crop.x0)/w,(g.gy-pad+S.crop.y0)/h]}
+function boxHit(X,Y,touch){ // a box edge near the pointer (the selected box wins ties), else the smallest box under it
+  const B=S.layout&&S.layout.boxes;if(!B)return null;const tol=(touch?24:12)*out.width/out.getBoundingClientRect().width;let best=null;
+  B.forEach(([x0,y0,x1,y1],k)=>{const inY=Y>=y0-tol&&Y<=y1+tol,inX=X>=x0-tol&&X<=x1+tol;
+    for(const[ed,d]of[["l",inY?Math.abs(X-x0):1e9],["r",inY?Math.abs(X-x1):1e9],["t",inX?Math.abs(Y-y0):1e9],["b",inX?Math.abs(Y-y1):1e9]]){
+      const sc=d-(k===S.boxSel?tol:0);if(d<=tol&&(!best||sc<best.sc))best={k,ed,sc}}});
+  if(best)return best;
+  let k=-1,area=1e18;B.forEach(([x0,y0,x1,y1],i)=>{const a=(x1-x0)*(y1-y0);if(X>=x0&&X<=x1&&Y>=y0&&Y<=y1&&a<area){area=a;k=i}});
+  return k<0?null:{k,ed:null}}
+function dragEdge(X,Y,k,ed){ // move one edge of box k to the pointer, keeping the box at least 2 blocks across
+  const L=S.layout,R=S.result,C=S.crop,p=S.view.pad,gx=((X-L.ox)/L.cell-p+C.x0)/R.w,gy=((Y-L.oy)/L.cell-p+C.y0)/R.h;
+  const b=effBoxes()[k],mx=2/R.w,my=2/R.h,cl=(v,a,z)=>Math.max(a,Math.min(z,v));let x0=b.x,y0=b.y,x1=b.x+b.w,y1=b.y+b.h;
+  if(ed==="l")x0=cl(gx,0,x1-mx);else if(ed==="r")x1=cl(gx,x0+mx,1);else if(ed==="t")y0=cl(gy,0,y1-my);else y1=cl(gy,y0+my,1);
+  S.edges[k]={x:x0,y:y0,w:x1-x0,h:y1-y0}}
 
 let quickPending=0;
 function quick(){cancelAnimationFrame(quickPending);quickPending=requestAnimationFrame(()=>{if(!S.view)return;const P=frameSize();compose(out,...previewSize(P),true)})}
@@ -1171,13 +1237,15 @@ const pointers=new Map();let drag=null;
 out.addEventListener("pointerdown",e=>{
   if(!S.view||!S.layout)return;try{out.setPointerCapture(e.pointerId)}catch(_){}const pt=canvasPt(e);pointers.set(e.pointerId,pt);
   if(S.tool==="move"){
+    if(S.moveMode==="boxes"){if(pointers.size>1)return;const hit=boxHit(pt.X,pt.Y,e.pointerType==="touch");drag=null;if(!hit)return;
+      S.boxSel=hit.k;if(hit.ed)drag={box:true,k:hit.k,ed:hit.ed,pushed:false};quick();return}
     if(!canMove())return;
-    if(pointers.size===2){const[a,b]=[...pointers.values()];const pushed=!!(drag&&drag.pushed);if(!pushed)pushHist();drag={pinch:true,d0:Math.hypot(a.X-b.X,a.Y-b.Y),s0:place(S.sel).s,pushed:true};return}
+    if(pointers.size===2){const[a,b]=[...pointers.values()];const pushed=!!(drag&&drag.pushed);if(!pushed)pushHist();drag={pinch:true,d0:Math.hypot(a.X-b.X,a.Y-b.Y),s0:cur().s,pushed:true};return}
     const sel=S.layout.sel,tol=sel?sel.hs*1.4:0;
     if(sel&&sel.corners.some(([cx,cy])=>Math.abs(pt.X-cx)<=tol&&Math.abs(pt.Y-cy)<=tol)){ // grab a corner to resize
-      const p=place(sel.L),d0=Math.max(10,Math.hypot(pt.X-sel.anchor[0],pt.Y-sel.anchor[1]));pushHist();drag={resize:true,anchor:sel.anchor,d0,s0:p.s,pushed:true};return}
+      const p=cur(),d0=Math.max(10,Math.hypot(pt.X-sel.anchor[0],pt.Y-sel.anchor[1]));pushHist();drag={resize:true,anchor:sel.anchor,d0,s0:p.s,pushed:true};return}
     const Lr=hitLayer(pt.X,pt.Y);if(!Lr){drag=null;return}
-    S.sel=Lr.L;syncScale();const p=place(Lr.L);drag={X:pt.X,Y:pt.Y,dx:p.dx,dy:p.dy,pushed:false};quick();return}
+    S.sel=Lr.L;syncScale();const p=cur();drag={X:pt.X,Y:pt.Y,dx:p.dx,dy:p.dy,pushed:false};quick();return}
   const Lr=hitLayer(pt.X,pt.Y)||S.layout.order.find(l=>l.L===S.sel)||S.layout.order[0];if(!Lr)return;
   pushHist();
   if(S.tool==="area"){const q=strokePt(pt.X,pt.Y,Lr);S.fixes.push({t:"area",x:q[0],y:q[1]});restyle();return}
@@ -1186,13 +1254,15 @@ out.addEventListener("pointerdown",e=>{
 out.addEventListener("pointermove",e=>{
   const pt=canvasPt(e);
   if(pointers.has(e.pointerId))pointers.set(e.pointerId,pt);
-  if(drag&&drag.pinch&&pointers.size===2){const[a,b]=[...pointers.values()];place(S.sel).s=Math.max(.25,Math.min(2.5,drag.s0*Math.hypot(a.X-b.X,a.Y-b.Y)/Math.max(10,drag.d0)));syncScale();quick();return}
-  if(drag&&drag.resize){place(S.sel).s=Math.max(.25,Math.min(2.5,drag.s0*Math.hypot(pt.X-drag.anchor[0],pt.Y-drag.anchor[1])/drag.d0));syncScale();quick();return}
+  if(drag&&drag.box){if(!drag.pushed){pushHist();drag.pushed=true}dragEdge(pt.X,pt.Y,drag.k,drag.ed);rebuildQuick();return}
+  if(drag&&drag.pinch&&pointers.size===2){const[a,b]=[...pointers.values()];cur().s=Math.max(.25,Math.min(2.5,drag.s0*Math.hypot(a.X-b.X,a.Y-b.Y)/Math.max(10,drag.d0)));syncScale();quick();return}
+  if(drag&&drag.resize){cur().s=Math.max(.25,Math.min(2.5,drag.s0*Math.hypot(pt.X-drag.anchor[0],pt.Y-drag.anchor[1])/drag.d0));syncScale();quick();return}
   if(drag&&drag.stroke){drag.stroke.pts.push(strokePt(pt.X,pt.Y,drag.Lr));rebuildQuick();return}
   if(drag&&S.tool==="move"&&pointers.size===1&&!drag.pinch&&!drag.resize){if(!drag.pushed){if(Math.hypot(pt.X-drag.X,pt.Y-drag.Y)<3)return;pushHist();drag.pushed=true}
-    const p=place(S.sel);p.dx=drag.dx+(pt.X-drag.X)/S.layout.Wpx;p.dy=drag.dy+(pt.Y-drag.Y)/S.layout.Hpx;quick();return}
+    const p=cur();p.dx=drag.dx+(pt.X-drag.X)/S.layout.Wpx;p.dy=drag.dy+(pt.Y-drag.Y)/S.layout.Hpx;quick();return}
   if(!S.view||!S.layout)return;
-  if(S.tool==="move"){const sel=S.layout.sel,tol=sel?sel.hs*1.4:0,k=sel?sel.corners.findIndex(([cx,cy])=>Math.abs(pt.X-cx)<=tol&&Math.abs(pt.Y-cy)<=tol):-1;
+  if(S.tool==="move"&&S.moveMode==="boxes"){const hit=boxHit(pt.X,pt.Y,e.pointerType==="touch");out.style.cursor=hit&&hit.ed?(hit.ed==="l"||hit.ed==="r"?"ew-resize":"ns-resize"):""}
+  else if(S.tool==="move"){const sel=S.layout.sel,tol=sel?sel.hs*1.4:0,k=sel?sel.corners.findIndex(([cx,cy])=>Math.abs(pt.X-cx)<=tol&&Math.abs(pt.Y-cy)<=tol):-1;
     out.style.cursor=k<0?"":(k===0||k===3?"nwse-resize":"nesw-resize")}
   const Lr=hitLayer(pt.X,pt.Y);
   if(!Lr){$("hover").textContent="";return}const g=toGrid(pt.X,pt.Y,Lr),v=S.view.cells[Math.floor(g.gy)*S.view.w+Math.floor(g.gx)];
@@ -1200,9 +1270,9 @@ out.addEventListener("pointermove",e=>{
 });
 function endPointer(e){pointers.delete(e.pointerId);if(pointers.size)return;if(drag){const was=drag;drag=null;if(was.pushed||was.stroke||was.pinch)restyle()}}
 ["pointerup","pointercancel"].forEach(t=>out.addEventListener(t,endPointer));
-out.addEventListener("wheel",e=>{if(S.tool!=="move"||!canMove()||!S.view)return;e.preventDefault();const pt=canvasPt(e),Lr=hitLayer(pt.X,pt.Y);if(Lr)S.sel=Lr.L;
+out.addEventListener("wheel",e=>{if(S.tool!=="move"||S.moveMode==="boxes"||!canMove()||!S.view)return;e.preventDefault();const pt=canvasPt(e),Lr=hitLayer(pt.X,pt.Y);if(Lr)S.sel=Lr.L;
   if(!scaling){pushHist();scaling=true}clearTimeout(out._wt);out._wt=setTimeout(()=>{scaling=false;restyle()},350);
-  const p=place(S.sel);p.s=Math.max(.25,Math.min(2.5,p.s*Math.exp(-e.deltaY*.0015)));syncScale();quick()},{passive:false});
+  const p=cur();p.s=Math.max(.25,Math.min(2.5,p.s*Math.exp(-e.deltaY*.0015)));syncScale();quick()},{passive:false});
 
 const peek=$("peek"),orig=$("orig");
 const show=v=>{if(!S.layout||!S.src)return;if(v){const r=out.getBoundingClientRect(),f=frame.getBoundingClientRect(),L=S.layout,p=S.view.pad,k=r.width/out.width;
