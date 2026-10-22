@@ -8,6 +8,7 @@ PosePop is a static, client-only web app. There is no server and no API: GitHub 
 src/
   index.html          the whole app: markup, styles, and one inline script
   favicon.svg
+  thumbs/             world picker thumbnails (JPEG)
   models/             TF.js graph models (JSON topology + binary .bin weights)
 scripts/
   build.mjs           src/ + node_modules → dist/ (hashed names, SRI, CSP, build id)
@@ -61,7 +62,7 @@ These are the known structural debts, roughly in the order they should be paid d
 1. **Split `src/index.html` into ES modules.** It's about 1,300 lines in a single inline script. Suggested modules: `textures`, `worlds`, `render3d`, `detect`, `segment`, `blocks`, `compose`, `edit`, `print`, `update`, `ui`. Serve them as hashed `type="module"` files; the CSP already permits `'self'` scripts, so no CSP loosening is needed. Keep it build-step-light (native modules plus the existing hashing), or adopt Vite if the team prefers. In both cases `verify.mjs` stays the gate.
 2. ~~**Store model weights as binary.**~~ Done. Measured: model files 13.2 MB → 9.97 MB on disk, but over the wire only 9.50 MB → 9.00 MB gzipped (Pages already gzipped the base64), so the expected 25 % download saving didn't materialise. Load is faster with no base64 decode (people model 1,134 → 1,001 ms, cut-out model 482 → 320 ms at 6× CPU throttle), the page no longer builds a 12.6 MB string, and model files are now integrity-checked.
 3. **Move detection and segmentation into a Web Worker.** TF.js on the main thread freezes the UI for a few seconds on phones. Use `OffscreenCanvas` and the WebGL backend in the worker, which needs `worker-src 'self'` (already allowed; `blob:` workers are not, and `verify.mjs` rejects `blob:`/`data:` outside `img-src`).
-4. **Generate world thumbnails at build time.** They're currently base64 JPEGs pasted into the HTML (about 90 KB). Render them in CI with Playwright from the same world code and emit hashed `.jpg` files.
+4. **Generate world thumbnails at build time.** Half done: the thumbnails are now hashed JPEGs in `src/thumbs/` (35 KB in total, cached between deploys) instead of base64 in the HTML, which took `index.html` from 73 KB to 42 KB gzipped and let `img-src` drop `data:`. Still open: render them in CI with Playwright from the same world code, so they can't drift from the worlds.
 5. **Remove Claude-artifact code paths.** `window.claude.use("downloads")` in the save code is dead on Pages. Remove it so saving has a single path: the standard download.
 6. **Name the magic numbers.** Thresholds (alpha 0.42, crowd 0.35, merge 0.55 × shoulder width, flood 26 ΔE), sheet geometry and timing constants should become named constants in one place, with comments on how they were tuned.
 7. **Make the style layer pluggable.** "Blocks" is currently hard-wired, from the palette and textures to `convert`. Introduce a `Style` interface (`palette`, `toCells`, `drawCell`) so future looks such as 8-bit, mosaic or comic plug in without touching detection or print.

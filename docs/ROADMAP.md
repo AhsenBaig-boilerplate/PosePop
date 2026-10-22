@@ -13,7 +13,7 @@ Status: `[ ]` open · `[~]` in progress · `[x]` done. Priority: **P0** blocks e
 ## P1: quality and reliability
 
 - [ ] **Offline support for events with flaky Wi-Fi.** Add a service worker that caches the hashed assets for the current build and is versioned by build id, so updates still flow. Must stay within the current CSP.
-- [ ] **Halve the people model download** by converting MoveNet MultiPose to float16 weights (tfjs-converter `--quantize_float16`): about 9.4 MB → 4.7 MB, dequantized at load. First load is now limited by download size, so this is the biggest remaining first-load win. Compare detections on the test photos before and after before shipping.
+- [ ] **Halve the people model download** with uint8 quantization (about 9.4 MB → 4.7 MB). The weights are already float16, so float16 conversion gains nothing. uint8 is lossier: compare detections on the single, group of 6 and seated test photos (the same ones the e2e tests need) before shipping.
 - [ ] **Run detection in a Web Worker** (refactor note 3). No UI freeze while finding people.
 - [ ] **Kiosk mode:** full screen, large buttons, auto-reset after saving, optional countdown timer for the camera, and a lock so guests can't open settings.
 - [ ] **Improve cut-outs for seated or partly hidden people** (as in the car photo). Evaluate MediaPipe's multiclass selfie segmenter (Apache-2.0); it needs `'wasm-unsafe-eval'`, so weigh that against keeping the CSP strict.
@@ -37,11 +37,12 @@ Status: `[ ]` open · `[~]` in progress · `[x]` done. Priority: **P0** blocks e
 - [ ] **Direct printing guidance** for other printers (Print Then Cut on Cricut Explore/Maker, standard 4 × 6 photo printers).
 - [ ] **Custom domain and security headers.** Front Pages with a CDN that can set HSTS, `frame-ancestors`, `Permissions-Policy: camera=(self)` and `X-Content-Type-Options`.
 - [ ] **Clean up the Claude-artifact leftovers** (refactor note 5) and **split into modules** (refactor note 1).
-- [ ] **Generate world thumbnails at build time** (refactor note 4).
+- [ ] **Generate world thumbnails in CI** from the world code (refactor note 4). They're already hashed files; this stops them drifting from the worlds.
 - [ ] **Name the tuning constants** (refactor note 6).
 
 ## Done
 
+- [x] World thumbnails as hashed JPEG files instead of base64 in the HTML (`index.html` 73 KB → 42 KB gzipped); `img-src` no longer allows `data:`
 - [x] Version line in the footer (version, build time, update status); tf.js preloaded and models downloaded in parallel with it (time to detection ready −14 % on a 10 Mbit/s link)
 - [x] Binary model weights loaded with `tf.loadGraphModel`, hashed and SRI-checked (refactor note 2)
 - [x] Move the whole group by default, or each person on their own; Adjust boxes mode to fix who owns which blocks and crop leftovers by dragging each person's box edges
