@@ -18,9 +18,9 @@ Status: `[ ]` open · `[~]` in progress · `[x]` done. Priority: **P0** blocks e
 - [ ] **Improve cut-outs for seated or partly hidden people** (as in the car photo). Evaluate MediaPipe's multiclass selfie segmenter (Apache-2.0); it needs `'wasm-unsafe-eval'`, so weigh that against keeping the CSP strict.
 - [ ] **End-to-end tests in CI:** Playwright against `dist/`, using CSP-safe polling (no `wait_for_function`). Cover the sample images (single, group of 6, seated), move/resize/erase/undo, save, and the update flow by swapping `version.json`.
 - [ ] **Unit tests** for the pure functions (refactor note 8).
-- [ ] **More styles beyond blocks**, picked next to the world picker. Needs the `Style` interface first (refactor note 7). Every style is a generic look with original art: no game, toy or brand names, logos or characters. Candidates, roughly by appeal and effort:
+- [~] **More styles beyond blocks**, picked next to the world picker. The `Style` interface (refactor note 7) and Retro pixel are done; each further style is one entry in `STYLES`. Every style is a generic look with original art: no game, toy or brand names, logos or characters. Candidates, roughly by appeal and effort:
   - **Emoji mosaic:** each cell is the emoji closest in colour. Bundle one pinned open emoji set (Twemoji graphics, CC-BY 4.0 with attribution, or Noto Emoji, OFL/Apache-2.0) so prints look the same on every device; system emoji fonts differ by platform and some can't be redistributed. Precompute each emoji's average colour at build time.
-  - **Retro pixel (8-bit / 16-bit):** a limited console-style palette, chunky pixels and an optional scanline frame.
+  - ~~**Retro pixel (8-bit / 16-bit)**~~ done: DawnBringer 16 or 4 handheld greens, with ordered dithering. Still open: an optional scanline frame.
   - **Plastic bricks:** studded brick tops with soft shading; also works as a build guide with a parts list, like the block CSV.
   - **Fuse beads:** round beads on a pegboard grid, with a bead-count list for making the real thing.
   - **Comic / pop art:** halftone dots, bold outlines and an optional speech bubble.
@@ -41,6 +41,7 @@ Status: `[ ]` open · `[~]` in progress · `[x]` done. Priority: **P0** blocks e
 
 ## Done
 
+- [x] Pluggable styles (refactor note 7): a `Style` interface (`palette`, `toCells`, `drawCell`) with Blocks unchanged and **Retro pixel** as the second style, picked above the worlds
 - [x] Offline support: service worker with one integrity-checked cache per build, network-first page, old caches deleted on activate, "works offline" in the footer
 - [x] World thumbnails as hashed JPEG files instead of base64 in the HTML (`index.html` 73 KB → 42 KB gzipped); `img-src` no longer allows `data:`
 - [x] Version line in the footer (version, build time, update status); tf.js preloaded and models downloaded in parallel with it (time to detection ready −14 % on a 10 Mbit/s link)

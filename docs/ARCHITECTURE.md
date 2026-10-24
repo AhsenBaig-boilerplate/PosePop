@@ -36,7 +36,7 @@ photo ──► decodeFile ──► findPeople ──► segment ──► work
 | Find people | `findPeople`, `detectIn` | Full frame, padded frame (edge people), overlapping windows for wide/tall photos; duplicates merged by head/shoulder position; crowd filter at 35 % of tallest person |
 | Cut out | `segment`, `selfieMask` | Square crop per person + tighter head-and-shoulders pass, clipped to the person's box; tiled fallback when nobody is found |
 | Zoom | `work` | Crops source + alpha to the union of people boxes |
-| Blocks | `convert`, `nearest` | CIELAB nearest-colour with a 64³ cache, optional Floyd–Steinberg dithering |
+| Style | `convert`, `nearest`, `STYLES` | CIELAB nearest-colour with a 64³ cache. The current style (`S.style`) supplies the palette, `toCells` (its dithering) and `drawCell`; see "Styles" below. |
 | Mask | `personMask`, `effBoxes` | Threshold, speck removal, hole fill, one layer per person, then user strokes in order. Layers come from the detector boxes (nearest box wins). Once the user adjusts a box (`S.edges`), boxes become claims: an adjusted box owns everything inside it, untouched boxes share the rest, and blocks outside every box are cropped |
 | View | `buildView` | Trims to the people, adds the white cut border for cut-out stickers |
 | Compose | `compose`, `drawBoxes` | 3D world from `renderScene`, placement, shadow, bevel, selection handles. Placement is each person's own (`S.place[L]`) followed by the group's (`S.gplace`, scaled around everyone's bottom centre), folded into one `{dx,dy,s}` by `pl(L)`. In Adjust boxes mode the preview ignores placement and tints each person in their box colour |
@@ -55,6 +55,26 @@ State lives in one object, `S`. Undo/redo snapshots `S.fixes`, `S.place`, `S.gpl
 - Loading order: three.js and tf.js are preloaded from `<head>`, and the model files start downloading as soon as the script runs (`earlyModels`), with SRI. tf.js picks those responses up instead of fetching again, so the 9 MB of weights overlap tf.js loading and starting up. First load is now limited by download size.
 - CSP hashes are computed from the final inline `<script>` and `<style>`, so any edit to them is automatically reflected and verified.
 - Models: each `.bin` is hashed first, then its JSON is rewritten to name the hashed `.bin`, so the JSON's hash also pins its weights. The page loads them with `tf.loadGraphModel(url)` and a `fetchFunc` that attaches each file's SRI hash from `MODEL_SRI`; a file without a known hash, or one that doesn't match, is refused. `verify.mjs` checks the JSON → `.bin` link and that both have SRI entries.
+
+## Styles
+
+A style decides what the people are made of. Detection, masks, editing, worlds and print never look at which style is on. They see only palette indices in `S.result.grid` and call the style to draw them. Styles live in `STYLES` in `src/index.html`:
+
+| Field | Purpose |
+|---|---|
+| `palette` | Entries `{name, avg:[r,g,b], lab, canvas, group}`. `canvas` is a 16×16 icon for the materials list. |
+| `groups`, `on` | The palette chips and which are on by default. At least one stays on. |
+| `toCells(pixels, w, h, dither, nearest)` | Photo pixels (RGBA) → `Int16Array` of palette indices. `nearest` is the shared CIELAB matcher, limited to the groups that are on. |
+| `drawCell(ctx, i, x, y, w, h, bevel, t)` | Draws one cell. |
+| `textured` | Offers "3D block edges" and the small-cell print warning. |
+| `unit`, `units`, `kinds`, `title`, `paletteLabel`, `listName`, `amount(n)`, `csv(list)` | The words and counts in the controls, the materials list and the CSV. |
+
+| Style | Palette | `toCells` | `drawCell` |
+|---|---|---|---|
+| Blocks | 83 textured blocks in 4 groups | Floyd–Steinberg error diffusion | 16×16 texture plus optional bevel |
+| Retro pixel | DawnBringer 16 (free to use), or 4 handheld greens | 4×4 ordered (Bayer) dithering, for the checkerboard look of old consoles | Flat colour |
+
+To add a style, add an entry to `STYLES`. The picker above the worlds lists every entry, and every label that names the cells follows the style. New art (for example an emoji set) must be self-hosted from a pinned package under an open licence and listed in `THIRD_PARTY_NOTICES.md`. Names stay generic: no game, toy or brand names.
 
 ## Offline (service worker)
 
@@ -83,5 +103,5 @@ These are the known structural debts, roughly in the order they should be paid d
 4. **Generate world thumbnails at build time.** Half done: the thumbnails are now hashed JPEGs in `src/thumbs/` (35 KB in total, cached between deploys) instead of base64 in the HTML, which took `index.html` from 73 KB to 42 KB gzipped and let `img-src` drop `data:`. Still open: render them in CI with Playwright from the same world code, so they can't drift from the worlds.
 5. **Remove Claude-artifact code paths.** `window.claude.use("downloads")` in the save code is dead on Pages. Remove it so saving has a single path: the standard download.
 6. **Name the magic numbers.** Thresholds (alpha 0.42, crowd 0.35, merge 0.55 × shoulder width, flood 26 ΔE), sheet geometry and timing constants should become named constants in one place, with comments on how they were tuned.
-7. **Make the style layer pluggable.** "Blocks" is currently hard-wired, from the palette and textures to `convert`. Introduce a `Style` interface (`palette`, `toCells`, `drawCell`) so future looks such as 8-bit, mosaic or comic plug in without touching detection or print.
+7. ~~**Make the style layer pluggable.**~~ Done; see "Styles" above. Blocks render pixel-for-pixel as before.
 8. **Tests around pure functions.** `sizeForCount`, `layoutFor`, `personMask` (strokes and flood), the NMS in `findPeople` and colour matching are pure or nearly so. Pull them into modules and unit-test them with `node --test`.
