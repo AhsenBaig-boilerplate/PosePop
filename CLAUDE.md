@@ -22,7 +22,7 @@ Read `docs/ARCHITECTURE.md` and `docs/ROADMAP.md` before changing code.
 
 ## Code map (all in `src/index.html` until the module split)
 
-Textures `tex()` · worlds `makeWorld/buildScene/renderScene` · detection `findPeople/detectIn` · cut-out `segment/selfieMask` · blocks `convert` · mask and edits `personMask` · layout `buildView/compose` · editing (move group/each via `cur()`, resize, erase, box edges `boxHit/dragEdge`, undo) · print `frameSize/sizeForCount/renderSheet` · updates `checkForUpdate` · diagnostics `mark/timed/drawDiag` (shown with `?debug=1`; record new timings with `mark`).
+Textures `tex()` · worlds `makeWorld/buildScene/renderScene` · detection `findPeople/detectIn` and cut-out `segment/selfieMask` in `src/detect.js` (run by `src/detect-worker.js`, or on the page as a fallback; host code `startWorker/segment` in index.html) · blocks `convert` · mask and edits `personMask` · layout `buildView/compose` · editing (move group/each via `cur()`, resize, erase, box edges `boxHit/dragEdge`, undo) · print `frameSize/sizeForCount/renderSheet` · updates `checkForUpdate` · diagnostics `mark/timed/drawDiag` (shown with `?debug=1`; record new timings with `mark`).
 
 ## Product constraints
 
