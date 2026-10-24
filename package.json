@@ -1,6 +1,6 @@
 {
   "name": "posepop",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "Strike a pose, pop into a block world, and take home a sticker or photo print.",
   "license": "SEE LICENSE IN LICENSE",
@@ -12,7 +12,8 @@
     "build": "node scripts/build.mjs",
     "verify": "node scripts/verify.mjs",
     "test": "npm run build && npm run verify",
-    "start": "npm run build && node scripts/serve.mjs"
+    "start": "npm run build && node scripts/serve.mjs",
+    "releases": "node scripts/releases.mjs"
   },
   "devDependencies": {
     "@fontsource/ibm-plex-mono": "5.3.0",

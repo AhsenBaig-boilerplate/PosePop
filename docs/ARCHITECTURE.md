@@ -108,6 +108,19 @@ A style decides what the people are made of. Detection, masks, editing, worlds a
 
 To add a style, add an entry to `STYLES`. The picker above the worlds lists every entry, and every label that names the cells follows the style. New art (for example an emoji set) must be self-hosted from a pinned package under an open licence and listed in `THIRD_PARTY_NOTICES.md`. Names stay generic: no game, toy or brand names.
 
+## Versions and releases
+
+| URL | What it is | Updates |
+|---|---|---|
+| `/PosePop/` | **Latest:** the current `main` | Itself, through `version.json` (see Caching in the README) |
+| `/PosePop/v/<version>/` | **A release:** a signed `v<version>` tag, built from its own source and lockfile | Never. Its `version.json` never changes, so it stays exactly as tested |
+
+- **Version label:** `build.mjs` stamps `package.json`'s version into the page and `version.json`. A commit that carries the matching tag shows `1.2.0`; anything else shows `1.2.0+<commit>`. Like the build time, it's filled in after hashing, so it never changes the content hash.
+- **Publishing:** `scripts/releases.mjs` runs on every deploy. It builds each `v*` tag in a temporary worktree (`npm ci`, then that tag's own `build.mjs`), copies its `dist/` to `dist/v/<version>/`, and writes `releases.json` (latest plus releases, newest first). `verify.mjs` checks that every listed release folder holds the listed build, and that nothing unlisted is in `dist/v/`. Rebuilding a tag reproduces its build id exactly; for example, `v1.0.0` rebuilds as `65c125a-e5f984fcb878`.
+- **Version picker:** the footer's **Version** select (operator view in kiosk mode) reads `releases.json` from the site root and moves to the chosen version, keeping the query (`?kiosk=1`, `?debug=1`). It stays hidden when the list can't load (offline, local builds). A release built before 1.1.0, such as 1.0.0, has no picker; open the site root to go back to Latest.
+- **Offline per version:** each folder registers its own `sw.js`, and the more specific scope wins for its pages. Since 1.1.0, cache names are `posepop|<folder>|<build>`, and a worker deletes only its own folder's old caches. Caches named in the older `posepop-<build>` form (1.0.0) are removed by Latest only when `releases.json` loads and doesn't list that build, so a pinned 1.0.0 keeps its offline copy.
+- **Deploys:** Pages only accepts deploys from `main`, so releases go out on the next deploy from `main` (`gh workflow run … --ref main`). Deploys are queued one at a time (`concurrency: pages-deploy`).
+
 ## Offline (service worker)
 
 `src/sw.js` is filled in by the build and published as `dist/sw.js`, under a fixed name, because browsers recheck the service worker at that URL for changes. Each build's worker has a different build id, so every deploy installs a new worker.

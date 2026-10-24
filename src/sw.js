@@ -1,13 +1,15 @@
 // Offline support for events with flaky Wi-Fi. The build fills in the placeholders.
-//  - One cache per build. Install stores this build's hashed files (each checked against its SRI
-//    hash) and this build's index.html; activate deletes every other build's cache.
+//  - One cache per build and folder: the latest app (/PosePop/) and each pinned release
+//    (/PosePop/v/1.2.0/) have their own worker and cache. Install stores this build's hashed files
+//    (each checked against its SRI hash) and its index.html; activate deletes only this folder's
+//    older caches, so using one version never empties another's offline cache.
 //  - Hashed files never change, so they are served from the cache first.
 //  - index.html always comes from the network first, so a new deploy is never hidden behind a stale
 //    page. The cached copy is used only when the network fails (offline), not when it's slow.
 //  - version.json is never handled here: the page's update check always reaches the server.
 "use strict";
 const BUILD = "__BUILD_ID__";
-const CACHE = "posepop-" + BUILD;
+const SCOPE = new URL("./", self.location).pathname, PREFIX = "posepop|" + SCOPE + "|", CACHE = PREFIX + BUILD;
 const PRECACHE = __PRECACHE__; // [{ url, integrity }] relative to this file
 const scope = new URL("./", self.location).href;
 const hashed = new Set(PRECACHE.map((f) => new URL(f.url, scope).href));
@@ -28,7 +30,18 @@ self.addEventListener("install", (event) => {
 
 self.addEventListener("activate", (event) => {
   event.waitUntil((async () => {
-    for (const key of await caches.keys()) if (key.startsWith("posepop-") && key !== CACHE) await caches.delete(key);
+    // Caches from before 1.1.0 are named "posepop-<build>" and don't say which folder they belong to, and a
+    // pinned 1.0.0 still makes one. The latest app removes such a cache only when releases.json says it isn't
+    // a published release; offline (no list) it removes none, so a pinned release never loses its copy.
+    let releaseCaches = null;
+    if (!/\/v\/[^/]+\/$/.test(SCOPE)) try {
+      const list = await (await fetch(new URL("releases.json", scope), { cache: "no-store" })).json();
+      releaseCaches = new Set((list.releases || []).map((r) => "posepop-" + r.build));
+    } catch {}
+    for (const key of await caches.keys()) {
+      if (key.startsWith(PREFIX) && key !== CACHE) await caches.delete(key);
+      else if (releaseCaches && key.startsWith("posepop-") && !releaseCaches.has(key)) await caches.delete(key);
+    }
     await self.clients.claim();
   })());
 });

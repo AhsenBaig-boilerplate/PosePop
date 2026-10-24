@@ -15,7 +15,7 @@ Read `docs/ARCHITECTURE.md` and `docs/ROADMAP.md` before changing code.
 
 - `npm ci --ignore-scripts`, then `npm test` (build + `scripts/verify.mjs`) must pass before every commit.
 - `npm start` previews `dist/` at http://localhost:8080 with production caching rules.
-- Work on a branch and open a PR; `main` deploys to GitHub Pages automatically.
+- Work on a branch and open a PR; `main` deploys to GitHub Pages automatically. Releases are signed `v<version>` tags matching `package.json`, with an entry in `CHANGELOG.md`. Every deploy also publishes each tag at `/v/<version>/` (see Releasing in the README).
 - GitHub Actions must stay pinned to full commit SHAs, with least-privilege `permissions:`.
 - For any user-visible change, test at phone width (~400 px) and desktop, in light and dark themes.
 - Browser tests: the CSP blocks string eval, so Playwright `wait_for_function` fails. Poll from the test side instead.

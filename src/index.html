@@ -172,6 +172,8 @@ input[type=range]{width:100%;accent-color:var(--accent)}
   width:min(380px,calc(100vw - 16px));max-height:70vh;overflow:auto;background:var(--surface);color:var(--fg);
   border:1px solid var(--line);border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.18);padding:8px 10px;font:.76rem/1.4 var(--f-mono)}
 .diag.closed{width:auto;overflow:visible}
+.version-row{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center}
+.vpick{display:inline-flex;gap:6px;align-items:center}.vpick select{font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:3px 6px}
 .diag-head{display:flex;gap:6px;justify-content:space-between}
 .diag.closed #diagCopy{display:none}
 .diag h4{margin:8px 0 2px;font:600 .68rem var(--f-body);text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
@@ -345,7 +347,8 @@ input[type=range]{width:100%;accent-color:var(--accent)}
     </div>
     <div class="inv" id="inv"></div>
   </section>
-  <p class="note op" id="version">PosePop</p>
+  <p class="note op version-row"><span id="version">PosePop</span>
+    <label class="vpick" id="vpick" hidden>Version <select id="versionPick" aria-label="App version"></select></label></p>
   <p class="note op">Open-source parts: three.js (MIT), TensorFlow.js (Apache-2.0), MediaPipe Selfie Segmentation and MoveNet MultiPose models (Apache-2.0), Pixelify Sans and IBM Plex fonts (SIL OFL). Block textures are drawn in code for this page. Not an official Minecraft product; not approved by or associated with Mojang or Microsoft.</p>
 </div>
 
@@ -1508,13 +1511,17 @@ function sample(){
 // Every deploy gets a new build id. Hashed asset names make libraries, fonts and models
 // immutable; only index.html and version.json can go stale, so we ask the server which
 // build is current (bypassing every cache) and move to it with a versioned URL.
-const BUILD="__BUILD_ID__",BUILT_AT="__BUILT_AT__";
+const BUILD="__BUILD_ID__",BUILT_AT="__BUILT_AT__",VERSION="__VERSION__";
+// Channels: the site root is the latest app (main, updates itself); /v/<version>/ is a pinned release,
+// whose own version.json never changes, so it never auto-updates. releases.json lists them.
+const PINNED=(location.pathname.match(/\/v\/([^/]+)\/(?:index\.html)?$/)||[])[1]||null;
+const SITE_ROOT=PINNED?location.pathname.replace(/v\/[^/]+\/(?:index\.html)?$/,""):location.pathname.replace(/[^/]*$/,"");
 let userWork=false,updateTo=null;
 // footer line: which build this is, when it was built, and what the last update check found
 let versionState="",offlineOK=false;
 function showVersion(state){if(state!==undefined)versionState=state;
   const at=BUILT_AT.startsWith("__")?"":new Date(BUILT_AT).toLocaleString(undefined,{dateStyle:"medium",timeStyle:"short"});
-  $("version").textContent="PosePop "+(BUILD.startsWith("__")?"(unbuilt source)":"version "+BUILD.split("-")[0]+(at?" · built "+at:""))+(versionState?" · "+versionState:"")+(offlineOK?" · works offline":"");
+  $("version").textContent="PosePop "+(BUILD.startsWith("__")?"(unbuilt source)":VERSION+(PINNED?" (pinned)":"")+(at?" · built "+at:""))+(versionState?" · "+versionState:"")+(offlineOK?" · works offline":"");
   $("version").title="Build "+BUILD}
 showVersion("checking for updates…");
 function goToBuild(b){const u=new URL(location.href);u.searchParams.set("v",b);location.replace(u.toString())}
@@ -1537,11 +1544,25 @@ setTimeout(checkForUpdate,4000);setInterval(checkForUpdate,5*60*1000);
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")checkForUpdate()});
 window.addEventListener("online",checkForUpdate);
 
+// ================= Version picker =================
+// Lists Latest and every published release (releases.json at the site root). Picking one moves to it and keeps
+// the page's options (?kiosk=1, ?debug=1, ...). Offline or on a local build there is nothing to list, so it stays hidden.
+async function loadVersions(){
+  let list;try{const r=await fetch(SITE_ROOT+"releases.json",{cache:"no-store"});if(!r.ok)return;list=await r.json()}catch(e){return}
+  const sel=$("versionPick"),add=(value,label,on)=>{const o=document.createElement("option");o.value=value;o.textContent=label;o.selected=on;sel.append(o)};
+  add(SITE_ROOT,"Latest ("+list.latest.version+")",!PINNED);
+  for(const r of list.releases||[])add(SITE_ROOT+r.path,r.version+" · "+r.date,PINNED===r.version);
+  if(sel.options.length<2)return;
+  $("vpick").hidden=false;mark("Build","channel",PINNED?"pinned release "+PINNED:"latest");
+  sel.addEventListener("change",()=>{const u=new URL(sel.value,location.origin),q=new URLSearchParams(location.search);q.delete("v");u.search=q.toString();location.assign(u.toString())});
+}
+if(!BUILD.startsWith("__")){if(navigator.onLine)loadVersions();else addEventListener("online",loadVersions,{once:true})}
+
 // ================= Offline =================
 // src/sw.js caches this build so the app still opens and finds people with no network. The people
 // model is the largest file and is cached with the rest in one step, so finding it means everything is there.
 async function buildCached(){const bin=Object.keys(MODEL_SRI).find(u=>/people\.[0-9a-f]+\.bin$/.test(u));
-  try{return!!(await caches.match(new URL(bin,location.href).href,{cacheName:"posepop-"+BUILD,ignoreVary:true}))}catch(e){return false}}
+  try{return!!(await caches.match(new URL(bin,location.href).href,{cacheName:"posepop|"+new URL("./",location.href).pathname+"|"+BUILD,ignoreVary:true}))}catch(e){return false}}
 // Registered only once the models have loaded: installing copies this build's files, and doing that
 // alongside the page's own downloads makes them compete (and the HTTP cache can refuse two writers).
 // Afterwards the copy comes from the browser cache, so nothing is downloaded twice.

@@ -86,7 +86,13 @@ if (!commit) {
 const contentHash = digest("sha256", html + JSON.stringify(manifest), "hex").slice(0, 12);
 const build = `${commit.slice(0, 7)}-${contentHash}`;
 const builtAt = new Date().toISOString();
-html = html.replaceAll("__BUILD_ID__", build).replaceAll("__BUILT_AT__", builtAt);
+// Version label: package.json's version when this commit carries its signed tag (v1.2.0), otherwise
+// "1.2.0+abc1234" for a build of main between releases. Filled in after hashing, like the build time.
+const pkgVersion = JSON.parse(readFileSync(join(root, "package.json"), "utf8")).version;
+let tagged = false;
+try { tagged = execSync(`git tag --points-at ${commit}`, { cwd: root }).toString().split("\n").includes(`v${pkgVersion}`); } catch {}
+const version = tagged ? pkgVersion : `${pkgVersion}+${commit.slice(0, 7)}`;
+html = html.replaceAll("__BUILD_ID__", build).replaceAll("__BUILT_AT__", builtAt).replaceAll("__VERSION__", version);
 
 // CSP: no third-party origins, no eval, no inline code except the exact blocks we ship.
 const inline = (re) => [...html.matchAll(re)].map((m) => `'sha256-${digest("sha256", m[1], "base64")}'`);
@@ -112,7 +118,9 @@ writeFileSync(join(out, "index.html"), html);
 const precache = Object.values(manifest).map(({ file, sri }) => ({ url: file, integrity: sri }));
 writeFileSync(join(out, "sw.js"), readFileSync(join(root, "src/sw.js"), "utf8")
   .replace("__BUILD_ID__", build).replace("__PRECACHE__", JSON.stringify(precache)));
-writeFileSync(join(out, "version.json"), JSON.stringify({ build, commit, builtAt }, null, 2) + "\n");
+writeFileSync(join(out, "version.json"), JSON.stringify({ version, build, commit, builtAt }, null, 2) + "\n");
+// Latest only; scripts/releases.mjs replaces it with the full list on deploys.
+writeFileSync(join(out, "releases.json"), JSON.stringify({ latest: { version, build }, releases: [] }, null, 2) + "\n");
 writeFileSync(join(out, "asset-manifest.json"), JSON.stringify({ build, assets: manifest }, null, 2) + "\n");
 writeFileSync(join(out, ".nojekyll"), "");
 console.log(`Built ${build}: ${Object.keys(manifest).length} assets, ${scriptHashes.length} inline script, ${styleHashes.length} inline style`);
