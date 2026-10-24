@@ -22,7 +22,7 @@ Read `docs/ARCHITECTURE.md` and `docs/ROADMAP.md` before changing code.
 
 ## Code map (all in `src/index.html` until the module split)
 
-Textures `tex()` · worlds `makeWorld/buildScene/renderScene` · detection `findPeople/detectIn` · cut-out `segment/selfieMask` · styles `STYLES` (`palette/toCells/drawCell`, picked by `S.style`) via `convert` · mask and edits `personMask` · layout `buildView/compose` · editing (move group/each via `cur()`, resize, erase, box edges `boxHit/dragEdge`, undo) · print `frameSize/sizeForCount/renderSheet` · updates `checkForUpdate` · diagnostics `mark/timed/drawDiag` (shown with `?debug=1`; record new timings with `mark`).
+Textures `tex()` · worlds `makeWorld/buildScene/renderScene` · detection `findPeople/detectIn` · cut-out `segment/selfieMask` · styles `STYLES` (`palette/toCells/drawCell`, picked by `S.style`) via `convert`; Clean look `cleanCells/kmeans` with `LOOK_*` constants (`?sample=photo` and Photo → busyness in `?debug=1` to measure) · mask and edits `personMask` · layout `buildView/compose` · editing (move group/each via `cur()`, resize, erase, box edges `boxHit/dragEdge`, undo) · print `frameSize/sizeForCount/renderSheet` · updates `checkForUpdate` · diagnostics `mark/timed/drawDiag` (shown with `?debug=1`; record new timings with `mark`).
 
 ## Product constraints
 

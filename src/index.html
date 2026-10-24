@@ -181,12 +181,20 @@ input[type=range]{width:100%;accent-color:var(--accent)}
           <input id="width" type="range" min="24" max="160" step="2" value="64" aria-label="Blocks across the photo">
         </div>
         <div class="group">
+          <span class="label">Look</span>
+          <div class="seg" id="look">
+            <button data-v="clean" aria-pressed="true">Clean</button>
+            <button data-v="detailed" aria-pressed="false">Detailed</button>
+          </div>
+          <p class="hint" id="lookHint">A short palette chosen for this photo, without speckle. Best for phone photos.</p>
+        </div>
+        <div class="group">
           <span class="label" id="setsLabel">Block palette</span>
           <div class="chips" id="sets"></div>
         </div>
         <div class="group">
           <label class="toggle"><input id="zoom" type="checkbox" checked> Zoom in on the people</label>
-          <label class="toggle"><input id="dither" type="checkbox" checked> Dither colors</label>
+          <label class="toggle"><input id="dither" type="checkbox"> Dither colors</label>
           <label class="toggle"><input id="bevel" type="checkbox" checked> 3D block edges</label>
           <label class="toggle"><input id="shadow" type="checkbox" checked> Shadow on the world</label>
           <label class="toggle"><input id="grid" type="checkbox"> Show block grid (preview only)</label>
@@ -719,6 +727,9 @@ function makeTexture(b){
   const cv=document.createElement("canvas");cv.width=cv.height=16;cv.getContext("2d").putImageData(new ImageData(d,16,16),0,0);
   const s=[0,0,0];for(let i=0;i<1024;i+=4){s[0]+=d[i];s[1]+=d[i+1];s[2]+=d[i+2]}
   b.avg=s.map(v=>v/256);b.tex=d;b.canvas=cv;b.lab=toLab(...b.avg);
+  // how grainy the texture is (luminance spread relative to brightness); the Clean look prefers smooth blocks
+  const mL=b.avg[0]*.299+b.avg[1]*.587+b.avg[2]*.114;let v=0;for(let i=0;i<1024;i+=4){const L=d[i]*.299+d[i+1]*.587+d[i+2]*.114;v+=(L-mL)**2}
+  b.busy=Math.sqrt(v/256)/Math.max(20,mL);
 }
 function lin(v){v/=255;return v<=.04045?v/12.92:Math.pow((v+.055)/1.055,2.4)}
 function toLab(r,g,b){r=lin(r);g=lin(g);b=lin(b);let X=(r*.4124+g*.3576+b*.1805)/.95047,Y=r*.2126+g*.7152+b*.0722,Z=(r*.0193+g*.1192+b*.9505)/1.08883;
@@ -772,17 +783,19 @@ const STYLES={
 const ST=()=>STYLES[S.style];
 
 // ================= State =================
-const S={width:64,style:"blocks",groups:Object.fromEntries(Object.entries(STYLES).map(([k,st])=>[k,new Set(st.on)])),dither:true,bevel:true,shadow:true,grid:false,
+const S={width:64,style:"blocks",look:"clean",groups:Object.fromEntries(Object.entries(STYLES).map(([k,st])=>[k,new Set(st.on)])),dither:false,bevel:true,shadow:true,grid:false,
   scene:"plains",media:"sticker",inches:3,count:2,zoom:true,focus:null,border:1,tool:"move",brushSize:2,fixes:[],place:[],sel:0,boxes:[],boxesFull:[],
   moveMode:"group",gplace:{dx:0,dy:0,s:1},edges:[],boxSel:0,
   src:null,alpha:null,segMode:"loading",result:null,view:null,layout:null};
-let palette=[],palEntries=BLOCKS,cache=null;
-function buildPalette(){const st=ST(),on=S.groups[S.style];palEntries=st.palette;palette=st.palette.map((b,i)=>i).filter(i=>on.has(st.palette[i].group));cache=new Int16Array(262144).fill(-1)}
-function nearest(r,g,b){r=r<0?0:r>255?255:r;g=g<0?0:g>255?255:g;b=b<0?0:b>255?255:b;
-  const k=((r>>2)<<12)|((g>>2)<<6)|(b>>2),hit=cache[k];if(hit>=0)return hit;
-  const L=toLab((r&252)+2,(g&252)+2,(b&252)+2);let best=-1,bd=1e9;
-  for(const i of palette){const q=palEntries[i].lab,a=L[0]-q[0],c=L[1]-q[1],e=L[2]-q[2],dd=a*a+c*c+e*e;if(dd<bd){bd=dd;best=i}}
-  cache[k]=best;return best}
+let palette=[],palEntries=BLOCKS,nearest=()=>0;
+function buildPalette(){const st=ST(),on=S.groups[S.style];palEntries=st.palette;palette=st.palette.map((b,i)=>i).filter(i=>on.has(st.palette[i].group));nearest=makeNearest(palette,0)}
+// nearest palette entry in CIELAB among ids, with a 64³ cache; smooth > 0 adds a cost for grainy textures
+function makeNearest(ids,smooth){const pal=palEntries,cache=new Int16Array(262144).fill(-1);
+  return(r,g,b)=>{r=r<0?0:r>255?255:r;g=g<0?0:g>255?255:g;b=b<0?0:b>255?255:b;
+    const k=((r>>2)<<12)|((g>>2)<<6)|(b>>2),hit=cache[k];if(hit>=0)return hit;
+    const L=toLab((r&252)+2,(g&252)+2,(b&252)+2);cache[k]=closest(L,ids,pal,smooth);return cache[k]}}
+function closest(L,ids,pal,smooth){let best=-1,bd=1e18;
+  for(const i of ids){const q=pal[i].lab,a=L[0]-q[0],c=L[1]-q[1],e=L[2]-q[2],t=smooth*(pal[i].busy||0),dd=a*a+c*c+e*e+t*t;if(dd<bd){bd=dd;best=i}}return best}
 
 // ================= Diagnostics (?debug=1) =================
 // Build, timings and device facts for checking real phones at events. Values are collected
@@ -950,6 +963,44 @@ function downsample(src,w,h){
   const c=document.createElement("canvas");c.width=w;c.height=h;const x=c.getContext("2d",{willReadFrequently:true});x.imageSmoothingQuality="high";x.drawImage(cur,0,0,w,h);
   return x.getImageData(0,0,w,h).data;
 }
+// ================= Clean look =================
+// Phone photos have shading, noise and texture, so neighbouring cells land on different blocks and the
+// people look like confetti until the detail is very high. The Clean look (default) fixes that before
+// cells are chosen: a gentle contrast and saturation lift on the people, and a short palette of the LOOK_K
+// colors that best describe this photo, matched to smooth blocks first. Shrinking the photo to cell size
+// already averages away sensor noise; an edge-preserving smoothing pass was tried and dropped because it
+// erased eyes and mouths. Dithering is off by default in Clean. "Detailed" is the original behaviour.
+// LOOK_K colors per photo; LOOK_KEEP: a color further than this (ΔE) from every cluster, on at least
+// LOOK_KEEP_N cells, keeps its own block, so eyes and mouths survive the short palette
+const LOOK_K=14,LOOK_SMOOTH=30,LOOK_STRETCH=.6,LOOK_SAT=1.18,LOOK_KEEP=12,LOOK_KEEP_N=2;
+function kmeans(pts,k,iters){ // pts: n×3 Lab; deterministic k-means++ start
+  const n=pts.length/3;if(!n)return[];const r=rng(1),C=[],d2=new Float32Array(n).fill(1e18),j0=Math.floor(r()*n);C.push([pts[j0*3],pts[j0*3+1],pts[j0*3+2]]);
+  while(C.length<Math.min(k,n)){const c=C[C.length-1];let tot=0;
+    for(let i=0;i<n;i++){const a=pts[i*3]-c[0],b=pts[i*3+1]-c[1],e=pts[i*3+2]-c[2],d=a*a+b*b+e*e;if(d<d2[i])d2[i]=d;tot+=d2[i]}
+    if(!tot)break;let t=r()*tot,i=0;for(;i<n-1;i++){t-=d2[i];if(t<=0)break}C.push([pts[i*3],pts[i*3+1],pts[i*3+2]])}
+  for(let it=0;it<iters;it++){const acc=C.map(()=>[0,0,0,0]);
+    for(let i=0;i<n;i++){let bi=0,bd=1e18;for(let j=0;j<C.length;j++){const a=pts[i*3]-C[j][0],b=pts[i*3+1]-C[j][1],e=pts[i*3+2]-C[j][2],d=a*a+b*b+e*e;if(d<bd){bd=d;bi=j}}
+      const s=acc[bi];s[0]+=pts[i*3];s[1]+=pts[i*3+1];s[2]+=pts[i*3+2];s[3]++}
+    for(let j=0;j<C.length;j++)if(acc[j][3])C[j]=[acc[j][0]/acc[j][3],acc[j][1]/acc[j][3],acc[j][2]/acc[j][3]]}
+  return C}
+function cleanCells(data,w,h,alpha){ // data: the photo shrunk to one RGBA pixel per cell
+  const d=new Uint8ClampedArray(data);
+  // contrast and saturation from the people's own range (phone photos are often flat)
+  const ppl=[];for(let i=0;i<w*h;i++)if(!alpha||alpha[i]>=.42)ppl.push(i);
+  const lum=i=>d[i*4]*.299+d[i*4+1]*.587+d[i*4+2]*.114,ls=ppl.map(lum).sort((a,b)=>a-b);
+  if(ls.length>8){const lo=ls[Math.floor(ls.length*.02)],hi=ls[Math.floor(ls.length*.98)],sc=Math.min(1.6,Math.max(1,(235-20)/Math.max(1,hi-lo)));
+    for(let i=0;i<w*h;i++){const o=i*4,l=lum(i),l2=l+((l-lo)*sc+20-l)*LOOK_STRETCH;for(let c=0;c<3;c++){const v=d[o+c]+(l2-l);d[o+c]=l2+(v-l2)*LOOK_SAT}}}
+  // this photo's own short palette: cluster the people's colors, snap each cluster to the closest smooth block
+  const pts=new Float32Array(ppl.length*3);ppl.forEach((i,j)=>{const L=toLab(d[i*4],d[i*4+1],d[i*4+2]);pts[j*3]=L[0];pts[j*3+1]=L[1];pts[j*3+2]=L[2]});
+  const C=kmeans(pts,LOOK_K,10),far=new Map();
+  // small, strongly different features (eyes, mouths, logos) would be absorbed by big clusters: keep their colors
+  for(let j=0;j<ppl.length;j++){let bd=1e18;for(const c of C){const a=pts[j*3]-c[0],b=pts[j*3+1]-c[1],e=pts[j*3+2]-c[2];bd=Math.min(bd,a*a+b*b+e*e)}
+    if(bd>LOOK_KEEP*LOOK_KEEP){const id=closest([pts[j*3],pts[j*3+1],pts[j*3+2]],palette,palEntries,LOOK_SMOOTH);far.set(id,(far.get(id)||0)+1)}}
+  const ids=[...new Set([...C.map(c=>closest(c,palette,palEntries,LOOK_SMOOTH)),...[...far].filter(([,n])=>n>=LOOK_KEEP_N).map(([id])=>id)])].filter(i=>i>=0);
+  const near=makeNearest(ids.length?ids:palette,LOOK_SMOOTH);
+  return ST().toCells(d,w,h,S.dither,near);
+}
+
 function convert(){
   const Wk=work(),img=Wk.img,iw=img.naturalWidth||img.width,ih=img.naturalHeight||img.height;
   let w=S.width,h=Math.max(1,Math.round(w*ih/iw));if(h>240){h=240;w=Math.max(1,Math.round(h*iw/ih))}
@@ -957,7 +1008,7 @@ function convert(){
   for(let i=0,p=0;i<data.length;i+=4,p++){const L=toLab(data[i],data[i+1],data[i+2]);lab[p*3]=L[0];lab[p*3+1]=L[1];lab[p*3+2]=L[2]}
   const alpha=new Float32Array(w*h);
   if(Wk.alpha){const a=downsample(Wk.alpha,w,h);for(let i=0;i<w*h;i++)alpha[i]=a[i*4]/255}
-  const grid=ST().toCells(data,w,h,S.dither,nearest);
+  const grid=S.look==="clean"?cleanCells(data,w,h,Wk.alpha?alpha:null):ST().toCells(data,w,h,S.dither,nearest);
   S.result={w,h,grid,lab,alpha,hasAlpha:!!Wk.alpha};drawOrig();
 }
 
@@ -1171,6 +1222,9 @@ function redraw(){
   buildView(true);const P=frameSize(),[pw,ph]=previewSize(P),out=$("out");
   compose(out,pw,ph,true);
   const list=counts(),total=list.reduce((a,b)=>a+b[1],0);
+  {const{w:vw,cells}=S.view;let pairs=0,diff=0;for(let i=0;i<cells.length;i++){if(cells[i]<0)continue;
+    for(const j of[i%vw<vw-1?i+1:-1,i+vw])if(j>=0&&j<cells.length&&cells[j]>=0){pairs++;if(cells[j]!==cells[i])diff++}}
+   mark("Photo","busyness",(pairs?Math.round(diff/pairs*100):0)+"% of neighbouring cells differ · "+list.length+" "+ST().kinds+" · "+S.look)}
   $("dims").innerHTML="<strong>"+S.result.w+" × "+S.result.h+"</strong> "+ST().units+" · "+fmt(total)+" in the people";
   renderMaterials(list,total);
   const bpx=Math.min(P.win*DPI/S.view.w,P.hin*DPI/S.view.h);
@@ -1241,6 +1295,9 @@ document.addEventListener("drop",e=>{e.preventDefault();frame.classList.remove("
 
 $("width").addEventListener("input",e=>{S.width=+e.target.value;$("wRead").textContent=S.width+" "+ST().units+" wide";run()});
 $("dither").addEventListener("change",e=>{S.dither=e.target.checked;run()});
+// Clean starts without dithering, Detailed with it (the original behaviour); the checkbox can still change either
+seg("look",v=>{S.look=v;S.dither=v==="detailed";$("dither").checked=S.dither;
+  $("lookHint").textContent=v==="clean"?"A short palette chosen for this photo, without speckle. Best for phone photos.":"Every color in the palette and dithering, as before. Needs more detail for photos.";run()});
 $("zoom").addEventListener("change",e=>{S.zoom=e.target.checked;resetEdits();run()});
 for(const k of["bevel","shadow","grid"])$(k).addEventListener("change",e=>{S[k]=e.target.checked;restyle()});
 $("inches").addEventListener("input",e=>{S.inches=+e.target.value;restyle()});
@@ -1424,6 +1481,11 @@ function sample(){
       ctx.strokeStyle="#8a3b2c";ctx.lineWidth=5*s;ctx.lineCap="round";ctx.beginPath();ctx.arc(cx,cy+30*s,20*s,.2*Math.PI,.8*Math.PI);ctx.stroke()}}};
   person(205,250,1.0,"#e8b48f","#3b2618","#2e6db4");
   person(410,280,.92,"#9a6644","#16110d","#c9473a");
+  // ?sample=photo: the same scene with a phone photo's flaws (uneven light, sensor noise, softness), always identical
+  if(new URLSearchParams(location.search).get("sample")==="photo"){const img=x.getImageData(0,0,W,H),d=img.data,r=rng(7),n=()=>(r()+r()+r()-1.5)*26;
+    for(let y=0;y<H;y++)for(let X=0;X<W;X++){const i=(y*W+X)*4,light=.72+.4*(1-X/W)*(1-.35*y/H)+.07*Math.sin(X/37+y/53);
+      d[i]=d[i]*light+n();d[i+1]=d[i+1]*light+n();d[i+2]=d[i+2]*light+n()}
+    const t=document.createElement("canvas");t.width=W;t.height=H;t.getContext("2d").putImageData(img,0,0);x.filter="blur(1.4px)";x.drawImage(t,0,0);x.filter="none"}
   S.src=c;S.alpha=m;S.focus=null;S.boxesFull=[{x:.13,y:.2,w:.42,h:.8},{x:.5,y:.26,w:.4,h:.74}];
 }
 

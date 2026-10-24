@@ -46,6 +46,7 @@ The panel sits in the top-right corner. **Diagnostics** collapses it to one butt
 4. **Choose image** → Group of 6.
    *Expect:* 6 people found. If not, record the **detections** line (raw → merged → after crowd filter), which shows the stage where people were lost.
 5. **Choose image** → Seated. Record the people found and how good the cut-out looks, rated 1–5. This photo is the baseline for the P1 item on seated people.
+   Then switch **Look** between **Clean** and **Detailed** at 48 and 64 blocks wide. Record **Photo → busyness** for each, and whether faces keep their eyes and mouth in Clean.
 6. Edit: drag the group, resize it by a corner handle and by pinching, erase a patch, then undo and redo. Part F covers moving people one by one and adjusting boxes.
    *Expect:* the page stays responsive between photos. While detection runs, the page will freeze for a few seconds; that is known (refactor note 3). Record how long it lasts.
 7. Save a sticker PNG, then a full sheet.

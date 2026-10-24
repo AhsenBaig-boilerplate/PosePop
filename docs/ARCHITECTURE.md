@@ -74,6 +74,13 @@ A style decides what the people are made of. Detection, masks, editing, worlds a
 | Blocks | 83 textured blocks in 4 groups | Floyd–Steinberg error diffusion | 16×16 texture plus optional bevel |
 | Retro pixel | DawnBringer 16 (free to use), or 4 handheld greens | 4×4 ordered (Bayer) dithering, for the checkerboard look of old consoles | Flat colour |
 
+**Look** (`S.look`, People panel) applies to every style:
+
+- **Clean** (default): a gentle contrast (`LOOK_STRETCH`) and saturation (`LOOK_SAT`) lift taken from the people's own 2nd–98th brightness percentiles. Then `LOOK_K` k-means clusters of the people's colours, each snapped to the closest block with a cost for grainy textures (`LOOK_SMOOTH`, using each block's `busy`). Colours further than `LOOK_KEEP` ΔE from every cluster, on at least `LOOK_KEEP_N` cells, keep their own block, which is what preserves eyes and mouths. Cells are then matched to that short palette. Dithering is off by default.
+- **Detailed:** the full palette with dithering, byte-for-byte the previous behaviour.
+- **Tried and dropped:** an edge-preserving (Kuwahara) smoothing pass erased eyes and mouths at normal detail. Shrinking the photo to cell size already averages away sensor noise.
+- **Measuring:** `?debug=1` shows **Photo → busyness**, the share of neighbouring person cells that differ. `?sample=photo` gives the built-in demo uneven light, sensor noise and softness, always identically. On it, at 64 blocks wide, Detailed scores 69% with 43 block types and Clean 11% with 16.
+
 To add a style, add an entry to `STYLES`. The picker above the worlds lists every entry, and every label that names the cells follows the style. New art (for example an emoji set) must be self-hosted from a pinned package under an open licence and listed in `THIRD_PARTY_NOTICES.md`. Names stay generic: no game, toy or brand names.
 
 ## Offline (service worker)
