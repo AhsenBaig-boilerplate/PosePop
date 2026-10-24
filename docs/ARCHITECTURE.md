@@ -66,6 +66,21 @@ Detection and cut-out live in `src/detect.js`. The page normally runs it in a We
 - **Per photo:** the page posts the photo as a transferred `ImageBitmap`. The worker posts `progress` labels ("Finding people (pass 2 of 4)…", "Cutting out person 3 of 6…") for the busy badge, then the mask as a transferred `ImageBitmap`. A newer photo cancels the running one at its next step. The page ignores results for photos that have since been replaced.
 - **Falls back to the page** when there's no `Worker` or OffscreenCanvas, when the worker fails to start, or when the worker has no WebGL but the page does. Safari before 17 is the known case: tf.js on the CPU in a worker is about 10× slower than WebGL on the page, and a short freeze beats a long wait. `?worker=0` forces the page path for testing. `?debug=1` shows which path ran ("Detection → runs in").
 - **Security:** no CSP change. `new Worker()` on a same-origin hashed file is allowed by `worker-src 'self'`, and the models are still fetched with SRI inside the worker. Browsers offer no integrity check for `new Worker()` or `importScripts()`, so the worker script and tf.js inside it aren't SRI-checked (see SECURITY.md).
+## Kiosk mode (`?kiosk=1`)
+
+A guest view for events. Add `?kiosk=1` to the URL; it survives update reloads, because `?v=` is added to the existing query.
+
+| Part | Behaviour |
+|---|---|
+| Start screen | "Tap to start". The tap enters full screen (Fullscreen API; iPhone Safari has none, iPad does) and turns on Screen Wake Lock, which both need a user gesture. |
+| Camera | A live preview (`getUserMedia`, front camera first, mirrored preview, **Switch camera**) with a big shutter, a 3-2-1 countdown and a flash. The saved photo isn't mirrored. The stream stops as soon as the photo is taken or the screen is left. If the camera is denied or unavailable, **Take photo** opens the normal phone camera input instead. |
+| Guest view | The picture, the world picker, and a bottom bar with **Retake** and **Save** (≥ 56 px targets; 48 px on screens under 520 px tall). Landscape puts the worlds beside the picture; portrait puts them below. Everything marked `op` is hidden, including the update bar. |
+| Reset | 60 s after any save, it returns to the start screen. Any tap restarts the 60 s. The reset cancels any running detection, replaces the guest's photo with the built-in sample, clears edits, sets the tool back to Move, and runs the update check: with nobody's work open, a waiting update applies straight away. |
+| Settings | Long-press any PosePop title for 1.5 s to show or hide the operator view (`.unlocked`), which also has **Exit kiosk**. |
+
+**Permissions:** the live camera triggers the browser's camera prompt once per device. There's no CSP change: a `MediaStream` isn't a URL fetch, and `Permissions-Policy` allows the camera for our own origin by default. Wake Lock shows no prompt.
+
+**Limits:** a web page can't stop a guest leaving the browser, opening another tab, or long-pressing the title. For real lock-down, use the OS: **Guided Access** on iOS/iPadOS, **App pinning** on Android. Saved PNGs stay in the device's downloads for the operator to print; they aren't cleared by the reset.
 
 ## Offline (service worker)
 
