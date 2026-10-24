@@ -4,7 +4,7 @@ Status: `[ ]` open · `[~]` in progress · `[x]` done. Priority: **P0** blocks e
 
 ## P0: before the first event
 
-**First production event: 24 October 2026, on the app build ending in `c8df69895c7a`. `main` is frozen for app changes until it's over.** Setup, troubleshooting and rollback: [EVENT-RUNBOOK.md](EVENT-RUNBOOK.md).
+**First production event: 24 October 2026, on the app build ending in `e5f984fcb878`. `main` is frozen for app changes until it's over.** Setup, troubleshooting and rollback: [EVENT-RUNBOOK.md](EVENT-RUNBOOK.md).
 
 - [~] **Test the camera and upload on real devices** over the Pages URL: Android Chrome, iOS Safari, and one tablet. The Claude-hosted copy can't open the camera on Android; the Pages build should. Script and `?debug=1` panel ready: [DEVICE-TEST.md](DEVICE-TEST.md) Parts A–C.
 - [~] **Do a test print on the StickerPix.** The sheet margin (0.15 in) and gap between stickers (0.12 in) in `SHEET` are estimates. Print a 2, 4 and 8-up sheet and adjust. Steps and reference sizes: [DEVICE-TEST.md](DEVICE-TEST.md) Part D.
