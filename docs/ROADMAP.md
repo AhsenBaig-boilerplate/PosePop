@@ -14,7 +14,6 @@ Status: `[ ]` open · `[~]` in progress · `[x]` done. Priority: **P0** blocks e
 
 - [ ] **Halve the people model download** with uint8 quantization (about 9.4 MB → 4.7 MB). The weights are already float16, so float16 conversion gains nothing. uint8 is lossier: compare detections on the single, group of 6 and seated test photos (the same ones the e2e tests need) before shipping.
 - [ ] **Run detection in a Web Worker** (refactor note 3). No UI freeze while finding people.
-- [ ] **Kiosk mode:** full screen, large buttons, auto-reset after saving, optional countdown timer for the camera, and a lock so guests can't open settings.
 - [ ] **Improve cut-outs for seated or partly hidden people** (as in the car photo). Evaluate MediaPipe's multiclass selfie segmenter (Apache-2.0); it needs `'wasm-unsafe-eval'`, so weigh that against keeping the CSP strict.
 - [ ] **End-to-end tests in CI:** Playwright against `dist/`, using CSP-safe polling (no `wait_for_function`). Cover the sample images (single, group of 6, seated), move/resize/erase/undo, save, and the update flow by swapping `version.json`.
 - [ ] **Unit tests** for the pure functions (refactor note 8).
@@ -41,6 +40,7 @@ Status: `[ ]` open · `[~]` in progress · `[x]` done. Priority: **P0** blocks e
 
 ## Done
 
+- [x] Kiosk mode (`?kiosk=1`): start screen, full screen and wake lock, live camera with a 3-2-1 countdown, big Retake/Save, reset to the start screen 60 s after a save (clears the guest's photo), settings behind a 1.5 s long-press
 - [x] Offline support: service worker with one integrity-checked cache per build, network-first page, old caches deleted on activate, "works offline" in the footer
 - [x] World thumbnails as hashed JPEG files instead of base64 in the HTML (`index.html` 73 KB → 42 KB gzipped); `img-src` no longer allows `data:`
 - [x] Version line in the footer (version, build time, update status); tf.js preloaded and models downloaded in parallel with it (time to detection ready −14 % on a 10 Mbit/s link)

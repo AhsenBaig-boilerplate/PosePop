@@ -131,6 +131,43 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .update{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap;
   background:var(--surface);color:var(--fg);border-top:1px solid var(--line);box-shadow:0 -4px 16px rgba(0,0,0,.12);
   padding-block:10px calc(10px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+/* Kiosk mode (?kiosk=1): guests see the picture, the worlds and two big buttons; long-press the title for the rest */
+.kiosk:not(.unlocked) .op,.kiosk:not(.unlocked) #update{display:none!important}
+.kiosk .btn{min-height:56px;padding:12px 22px;font-size:1.05rem}
+.kiosk h1{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.kiosk .wrap{padding-bottom:calc(140px + env(safe-area-inset-bottom,0px))}
+.kiosk .scenes{gap:10px}.kiosk .scene{font-size:.95rem;padding:5px}
+.kiosk:not(.unlocked) .top p{display:none}.kiosk .frame{min-height:0}
+.kiosk #out{max-height:calc(100dvh - 200px)}
+@media (max-height:520px){.kiosk .wrap{padding-top:8px;gap:10px;padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}.kiosk h1{font-size:1.4rem}
+  .kiosk #out{max-height:calc(100dvh - 140px)}.kiosk .frame{padding:8px}.kbar{padding-top:8px;padding-bottom:calc(8px + env(safe-area-inset-bottom,0px))}.kiosk .kbar .btn{min-height:48px}}
+@media (orientation:landscape){.kiosk:not(.unlocked) .studio{grid-template-columns:minmax(0,1fr) minmax(240px,30%)}.kiosk:not(.unlocked) .rail{order:2}}
+@media (orientation:portrait){.kiosk:not(.unlocked) .studio{grid-template-columns:minmax(0,1fr)}.kiosk:not(.unlocked) .stage{order:-1}}
+.kscreen{position:fixed;inset:0;z-index:40;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:24px;
+  background:var(--bg);color:var(--fg);text-align:center}
+.ktitle{font-size:clamp(2.6rem,10vmin,5rem)}.klead{margin:0;font-size:1.2rem;color:var(--muted)}
+.kbig{font-size:1.4rem!important;padding:18px 40px!important;min-height:72px!important}
+.kcam{background:#000;color:#fff;padding:0;justify-content:flex-end}
+.kcam video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.kcam video.mirror{transform:scaleX(-1)}
+.kcount{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;
+  font:700 32vmin var(--f-display);color:#fff;text-shadow:0 4px 24px rgba(0,0,0,.6)}
+.kcount.tick{animation:kpop .35s ease-out}
+@keyframes kpop{from{transform:scale(1.5);opacity:0}to{transform:scale(1);opacity:1}}
+.kflash{position:absolute;inset:0;background:#fff;animation:kflash .45s ease-out forwards;pointer-events:none}
+@keyframes kflash{from{opacity:.95}to{opacity:0}}
+.kcam-msg{position:relative;margin:0 16px;max-width:36ch;font-size:1.05rem;text-shadow:0 1px 4px #000}
+.kcam-bar{position:relative;display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap;width:100%;
+  padding:16px max(16px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));background:linear-gradient(transparent,rgba(0,0,0,.55))}
+.kshutter{min-width:170px;min-height:76px!important;border-radius:999px;font-size:1.25rem!important}
+.kbar{position:fixed;left:0;right:0;bottom:0;z-index:15;display:flex;flex-direction:column;gap:8px;align-items:center;background:var(--surface);
+  border-top:1px solid var(--line);box-shadow:0 -4px 16px rgba(0,0,0,.12);
+  padding:12px max(16px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.kbar-row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}.kbar-row .btn{min-width:140px;justify-content:center}
+.kreset{margin:0;font-size:.95rem;color:var(--muted)}
+.ktoast{position:fixed;top:max(12px,env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);z-index:50;margin:0;
+  background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:6px;font-size:.95rem;max-width:calc(100vw - 32px);text-align:center}
+@media (prefers-reduced-motion:reduce){.kcount.tick,.kflash{animation:none}.kflash{display:none}}
 /* ?debug=1 diagnostics: floats top-right, collapses to a single button so it never blocks the app */
 .diag{position:fixed;z-index:30;top:max(8px,env(safe-area-inset-top,0px));right:max(8px,env(safe-area-inset-right,0px));
   width:min(380px,calc(100vw - 16px));max-height:70vh;overflow:auto;background:var(--surface);color:var(--fg);
@@ -154,7 +191,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 
   <div class="studio">
     <aside class="rail">
-      <section class="panel">
+      <section class="panel op">
         <div class="group">
           <span class="label">Photo</span>
           <div class="row">
@@ -172,7 +209,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
         <p class="hint" id="worldNote">Each world is a 3D scene built from blocks and rendered behind the people.</p>
       </section>
 
-      <section class="panel">
+      <section class="panel op">
         <h3>People</h3>
         <div class="group">
           <div class="row between"><span class="label">Detail</span><span class="readout" id="wRead">64 blocks wide</span></div>
@@ -221,7 +258,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
         </div>
       </section>
 
-      <section class="panel">
+      <section class="panel op">
         <h3>StickerPix print</h3>
         <div class="group">
           <span class="label">Media</span>
@@ -271,38 +308,64 @@ input[type=range]{width:100%;accent-color:var(--accent)}
           <canvas id="orig" hidden></canvas>
           <span class="busy" id="busy" hidden>Placing blocks…</span>
         </div>
-        <div class="sheetbox">
+        <div class="sheetbox op">
           <span class="label" id="sheetLabel">Sticker sheet</span>
           <canvas id="sheet" aria-label="Sheet layout preview, to scale"></canvas>
           <p class="readout" id="sheetRead"></p>
         </div>
       </div>
-      <div class="statbar">
+      <div class="statbar op">
         <span id="dims"></span>
         <span id="hover">Hover a person to name a block</span>
       </div>
-      <div class="row">
+      <div class="row op">
         <button class="btn" id="peek">Hold to compare with photo</button>
         <span class="note" id="srcNote">Showing the built-in sample. Take or choose a photo to start.</span>
       </div>
-      <div class="howto">
+      <div class="howto op">
         <h3>Printing in Design Space</h3>
         <ol id="steps"></ol>
       </div>
     </section>
   </div>
 
-  <section class="materials">
+  <section class="materials op">
     <div class="mhead">
       <h2>Blocks in the people</h2>
       <span class="readout" id="mSum"></span>
     </div>
     <div class="inv" id="inv"></div>
   </section>
-  <p class="note" id="version">PosePop</p>
-  <p class="note">Open-source parts: three.js (MIT), TensorFlow.js (Apache-2.0), MediaPipe Selfie Segmentation and MoveNet MultiPose models (Apache-2.0), Pixelify Sans and IBM Plex fonts (SIL OFL). Block textures are drawn in code for this page. Not an official Minecraft product; not approved by or associated with Mojang or Microsoft.</p>
+  <p class="note op" id="version">PosePop</p>
+  <p class="note op">Open-source parts: three.js (MIT), TensorFlow.js (Apache-2.0), MediaPipe Selfie Segmentation and MoveNet MultiPose models (Apache-2.0), Pixelify Sans and IBM Plex fonts (SIL OFL). Block textures are drawn in code for this page. Not an official Minecraft product; not approved by or associated with Mojang or Microsoft.</p>
 </div>
 
+<!-- kiosk mode (?kiosk=1): start screen, live camera with countdown, guest bar -->
+<div class="kscreen" id="kStart" hidden>
+  <h1 class="ktitle">Pose<span>Pop</span></h1>
+  <p class="klead">Strike a pose and pop into a block world.</p>
+  <button class="btn primary kbig" id="kGo">Tap to start</button>
+</div>
+<div class="kscreen kcam" id="kCam" hidden>
+  <video id="kVideo" playsinline muted aria-label="Camera preview"></video>
+  <div class="kcount" id="kCount" aria-live="assertive"></div>
+  <div class="kflash" id="kFlash" hidden></div>
+  <p class="kcam-msg" id="kCamMsg" role="status"></p>
+  <div class="kcam-bar">
+    <button class="btn" id="kBack">Back</button>
+    <button class="btn primary kshutter" id="kShoot">Take photo</button>
+    <button class="btn" id="kFlip">Switch camera</button>
+  </div>
+</div>
+<div class="kbar" id="kbar" hidden>
+  <p class="kreset" id="kReset" role="status" hidden></p>
+  <div class="kbar-row">
+    <button class="btn" id="kRetake">Retake</button>
+    <button class="btn primary" id="kSave">Save</button>
+    <button class="btn op" id="kExit">Exit kiosk</button>
+  </div>
+</div>
+<p class="ktoast" id="kToast" role="status" hidden></p>
 <div class="update" id="update" role="status" hidden>
   <span id="updateText">A new version of PosePop is ready.</span>
   <button class="btn primary small" id="updateBtn">Reload now</button>
@@ -1349,8 +1412,8 @@ async function pngAt300(canvas){const blob=await new Promise(r=>canvas.toBlob(r,
 let downloads=null;const msg=t=>$("saveMsg").textContent=t;
 async function save(filename,data){if(!downloads){ // standalone hosting: a normal browser download
     const blob=data instanceof Blob?data:new Blob([data],{type:"text/csv"}),url=URL.createObjectURL(blob),a=document.createElement("a");
-    a.href=url;a.download=filename;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);msg("Saved "+filename+".");return}
-  try{await downloads.save({filename,data});msg("Saved "+filename+".")}catch(e){msg(e&&e.code==="declined"?"Save cancelled.":e&&e.code==="rate_limited"?"A save prompt is already open.":"Couldn't save the file here.")}}
+    a.href=url;a.download=filename;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);msg("Saved "+filename+".");afterSave();return}
+  try{await downloads.save({filename,data});msg("Saved "+filename+".");afterSave()}catch(e){msg(e&&e.code==="declined"?"Save cancelled.":e&&e.code==="rate_limited"?"A save prompt is already open.":"Couldn't save the file here.")}}
 function printCanvas(){const P=frameSize(),c=document.createElement("canvas");compose(c,Math.round(P.win*DPI),Math.round(P.hin*DPI),false);compose($("out"),...previewSize(P),true);return{P,c}}
 $("saveSticker").addEventListener("click",async()=>{if(!S.view)return;msg("Rendering at 300 dpi…");const{P,c}=printCanvas();
   save(P.media==="photo"?"posepop-photo-4x6.png":"posepop-"+S.scene+"-"+P.win.toFixed(2)+"in.png",await pngAt300(c))});
@@ -1462,6 +1525,72 @@ if(DEBUG){
   $("diagCopy").addEventListener("click",async()=>{sampleMemory();
     try{await navigator.clipboard.writeText(diagText());$("diagMsg").textContent="Copied. Photos and file names are not included."}
     catch(e){$("diagMsg").textContent="Copy isn't available here. Take a screenshot instead."}});
+}
+
+// ================= Kiosk mode (?kiosk=1) =================
+// For events: a start screen, a live camera with a 3-2-1 countdown, big Retake and Save buttons, and a reset
+// to the start screen 60 s after a save that clears the guest's photo. Any tap restarts the 60 s, so a guest
+// who is still editing isn't cut off. Operators long-press the title for 1.5 s to show or hide everything else.
+const KIOSK=new URLSearchParams(location.search).get("kiosk")==="1",RESET_S=60,LONG_PRESS_MS=1500;
+let camStream=null,facing="user",resetAt=0,resetTick=0,wakeLock=null,shooting=false;
+function toast(t){const el=$("kToast");el.textContent=t;el.hidden=false;clearTimeout(el._t);el._t=setTimeout(()=>el.hidden=true,2600)}
+function afterSave(){if(!KIOSK)return;resetAt=Date.now()+RESET_S*1000;showReset();clearInterval(resetTick);resetTick=setInterval(showReset,1000)}
+function showReset(){const left=Math.max(0,Math.ceil((resetAt-Date.now())/1000));
+  if(!left){kioskReset();return}$("kReset").hidden=false;$("kReset").textContent="Saved! Starting over for the next guest in "+left+" s. Tap anything to keep editing."}
+function kioskReset(){
+  clearInterval(resetTick);resetAt=0;$("kReset").hidden=true;closeCam();
+  // forget this guest's photo: cancel any detection still running and go back to the built-in sample
+  loading++;DIAG.get("Photo").clear();sample();resetEdits();userWork=false;
+  $("tool").querySelector('[data-v="move"]').click();note("Showing the built-in sample. Take or choose a photo to start.");run();
+  document.documentElement.classList.remove("unlocked");$("kStart").hidden=false;scrollTo(0,0);
+  checkForUpdate(); // nobody's work is open now, so a waiting update applies straight away
+}
+async function keepAwake(){if(!("wakeLock" in navigator)||(wakeLock&&!wakeLock.released))return;
+  try{wakeLock=await navigator.wakeLock.request("screen");mark("Build","wake lock","on")}catch(e){mark("Build","wake lock","unavailable: "+(e.message||e))}}
+function goFullscreen(){const el=document.documentElement;try{const r=(el.requestFullscreen||el.webkitRequestFullscreen)?.call(el);r&&r.catch&&r.catch(()=>{})}catch(e){}}
+function closeCam(){if(camStream){for(const t of camStream.getTracks())t.stop();camStream=null}$("kVideo").srcObject=null;$("kCam").hidden=true}
+async function openCam(){
+  $("kCam").hidden=false;$("kCamMsg").textContent="";$("kCount").textContent="";$("kShoot").disabled=true;
+  if(camStream)for(const t of camStream.getTracks())t.stop();
+  try{
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error("no camera API in this browser");
+    camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:facing,width:{ideal:1920},height:{ideal:1920}},audio:false});
+    const v=$("kVideo");v.srcObject=camStream;v.classList.toggle("mirror",facing==="user");await v.play();$("kShoot").disabled=false;
+  }catch(e){
+    // denied or unavailable: the phone's own camera still works, just without the countdown
+    $("kCamMsg").textContent="The live camera isn't available ("+(e.name==="NotAllowedError"?"permission was denied":e.message||e.name)+"). Tap Take photo to use the phone's camera instead.";
+    $("kShoot").disabled=false;camStream=null;
+  }
+}
+async function shoot(){
+  if(shooting)return;if(!camStream){closeCam();$("cam").click();return}
+  shooting=true;$("kShoot").disabled=true;const n=$("kCount");
+  for(const s of["3","2","1"]){n.textContent=s;n.classList.remove("tick");void n.offsetWidth;n.classList.add("tick");await new Promise(r=>setTimeout(r,1000))}
+  n.textContent="";$("kFlash").hidden=false;setTimeout(()=>$("kFlash").hidden=true,450);
+  // the saved photo is the camera's real view; only the preview is mirrored
+  const v=$("kVideo"),c=document.createElement("canvas");c.width=v.videoWidth;c.height=v.videoHeight;c.getContext("2d").drawImage(v,0,0);
+  const blob=await new Promise(r=>c.toBlob(r,"image/jpeg",.92));shooting=false;closeCam();
+  if(blob)loadFile(new File([blob],"camera.jpg",{type:"image/jpeg"}),"Camera");else note("The camera photo couldn't be read. Try again.");
+}
+function longPress(el,fn){let t=0;const stop=()=>clearTimeout(t);
+  el.addEventListener("pointerdown",()=>{stop();t=setTimeout(fn,LONG_PRESS_MS)});
+  for(const ev of["pointerup","pointerleave","pointercancel"])el.addEventListener(ev,stop);el.addEventListener("contextmenu",e=>e.preventDefault())}
+function toggleSettings(){const on=document.documentElement.classList.toggle("unlocked");
+  if(on){$("kStart").hidden=true;closeCam()}toast(on?"Settings shown. Long-press the title again to hide them.":"Settings hidden.")}
+if(KIOSK){
+  document.documentElement.classList.add("kiosk");$("kStart").hidden=false;$("kbar").hidden=false;
+  $("kGo").addEventListener("click",()=>{goFullscreen();keepAwake();$("kStart").hidden=true;openCam()});
+  $("kRetake").addEventListener("click",()=>{clearInterval(resetTick);resetAt=0;$("kReset").hidden=true;openCam()});
+  $("kSave").addEventListener("click",()=>$("saveSticker").click());
+  $("kShoot").addEventListener("click",shoot);
+  $("kBack").addEventListener("click",closeCam);
+  $("kFlip").addEventListener("click",()=>{facing=facing==="user"?"environment":"user";openCam()});
+  $("kExit").addEventListener("click",()=>{const u=new URL(location.href);u.searchParams.delete("kiosk");closeCam();try{document.exitFullscreen?.()}catch(e){}location.replace(u.toString())});
+  for(const h of document.querySelectorAll("h1"))longPress(h,toggleSettings);
+  // a guest still editing gets another 60 s
+  document.addEventListener("pointerdown",()=>{if(resetAt)resetAt=Date.now()+RESET_S*1000},true);
+  document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")keepAwake();else closeCam()});
+  mark("Build","kiosk","on");
 }
 
 // ================= Boot =================

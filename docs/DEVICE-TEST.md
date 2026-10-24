@@ -160,6 +160,29 @@ Run this on each phone and the tablet with the Group of 6 photo and the **Plains
 4. Turn airplane mode off, then reload.
    *Expect:* the footer goes back to **up to date**.
 
+## Part H: kiosk mode
+
+Use the event tablet, and set up Guided Access (iPad) or App pinning (Android) first.
+
+1. Open the URL with `?kiosk=1` added.
+   *Expect:* a "Tap to start" screen.
+2. Tap it.
+   *Expect:* the browser goes full screen (not on iPhone), asks once for camera permission, and shows a live, mirrored preview.
+3. Tap **Take photo**.
+   *Expect:* a 3-2-1 countdown and a flash. The photo isn't mirrored, people are found, and the screen shows the picture, the worlds, and **Retake** / **Save**.
+4. Try **Switch camera**, then **Retake**.
+5. Tap **Save**.
+   *Expect:* the PNG saves, and "Starting over for the next guest in 60 s" appears. Tap the picture: the count goes back to 60.
+6. Leave it alone.
+   *Expect:* after 60 s it returns to the start screen and the guest's photo is gone.
+7. Long-press the PosePop title for 1.5 s.
+   *Expect:* all settings appear. Long-press again to hide them.
+8. Leave the tablet for 10 minutes.
+   *Expect:* the screen stays on (`?kiosk=1&debug=1` shows "wake lock: on").
+9. Repeat steps 3 and 5 in the other orientation.
+10. On a phone, deny camera permission, then tap **Take photo**.
+    *Expect:* the phone's own camera opens.
+
 ## Results
 
 Copy this table for each device and fill it in. Paste each device's **Copy** report underneath.
@@ -180,6 +203,7 @@ Copy this table for each device and fill it in. Paste each device's **Copy** rep
 | Arm follows its owner after a box edit (F7) | | | |
 | Saved PNG free of box overlay (F9) | | | |
 | Opens and finds people in airplane mode (G2–G3) | | | |
+| Kiosk: countdown, save, 60 s reset, long-press, screen stays on (H) | | | |
 
 | Sheet | Piece (app) | Imported at | Fitted on one sheet | Measured size | Min margin | Min gap | Cut offset |
 |---|---|---|---|---|---|---|---|
