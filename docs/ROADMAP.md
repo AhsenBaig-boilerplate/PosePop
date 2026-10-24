@@ -40,6 +40,7 @@ Status: `[ ]` open · `[~]` in progress · `[x]` done. Priority: **P0** blocks e
 
 ## Done
 
+- [x] **Clean look** (default) for phone photos: people's contrast and saturation lift, a short per-photo palette (k-means, smooth blocks first) that keeps eyes and mouths, no dithering. Neighbouring cells that differ 69 % → 11 % on the photo-like demo. **Detailed** keeps the previous behaviour. Tune `LOOK_*` on the real test photos when they arrive
 - [x] Pluggable styles (refactor note 7): a `Style` interface (`palette`, `toCells`, `drawCell`) with Blocks unchanged and **Retro pixel** as the second style, picked above the worlds
 - [x] Kiosk mode (`?kiosk=1`): start screen, full screen and wake lock, live camera with a 3-2-1 countdown, big Retake/Save, reset to the start screen 60 s after a save (clears the guest's photo), settings behind a 1.5 s long-press
 - [x] Person detection in a Web Worker with OffscreenCanvas (refactor note 3), with a page fallback and live progress ("Finding people (pass 2 of 4)…"); longest freeze while finding people 48.5 s → 0 in testing
