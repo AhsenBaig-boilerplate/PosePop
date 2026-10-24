@@ -1,6 +1,6 @@
 # Event runbook
 
-For running PosePop at an event. The first production event is **24 October 2026**. The app version for it is the build whose id ends in **`c8df69895c7a`**. To see the full id, hover the footer version or open `?debug=1`. The first part of the id is the commit, which changes with any merge, docs included; the part after the dash only changes when the app itself changes.
+For running PosePop at an event. The first production event is **24 October 2026**. The app version for it is the build whose id ends in **`e5f984fcb878`**. To see the full id, hover the footer version or open `?debug=1`. The first part of the id is the commit, which changes with any merge, docs included; the part after the dash only changes when the app itself changes.
 
 ## The day before
 
@@ -20,7 +20,7 @@ For running PosePop at an event. The first production event is **24 October 2026
 ## On the day: setup (about 15 minutes)
 
 1. Open **https://ahsenbaig-boilerplate.github.io/PosePop/?kiosk=1&debug=1** once, and check the panel:
-   - **Build → build** ends in `c8df69895c7a`.
+   - **Build → build** ends in `e5f984fcb878`.
    - **Detection → runs in** says Web Worker, or explains why not, and **backend** is `webgl`. `cpu` means detection will be slow on this device: use another device if you can.
    - **offline** says "this build is cached", and **wake lock** says "on".
 2. Reopen without `&debug=1`: **https://ahsenbaig-boilerplate.github.io/PosePop/?kiosk=1**
