@@ -45,6 +45,7 @@ Warm the offline cache for the version you'll use: open its URL on good Wi-Fi un
 - **Groups:** best with 1–6 people. Larger groups work but take longer, and people at the back may be dropped.
 - **Seated people** cut out less cleanly. The operator can fix it in the settings with **Erase**, **Restore** or **Adjust boxes**.
 - **Detail:** 48–64 blocks wide suits stickers.
+- **Photo style** (no blocks): if a patch of background sticks to someone, often between the legs, use **Erase area** and tap it once.
 
 ## If something goes wrong
 

@@ -173,6 +173,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
   border:1px solid var(--line);border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.18);padding:8px 10px;font:.76rem/1.4 var(--f-mono)}
 .diag.closed{width:auto;overflow:visible}
 .version-row{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center}
+.chip.swatch{width:30px;height:30px;padding:0;border-radius:50%;border:2px solid var(--line)}
 .vpick{display:inline-flex;gap:6px;align-items:center}.vpick select{font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:3px 6px}
 .diag-head{display:flex;gap:6px;justify-content:space-between}
 .diag.closed #diagCopy{display:none}
@@ -209,6 +210,11 @@ input[type=range]{width:100%;accent-color:var(--accent)}
         <div class="seg" id="style" aria-label="Style"></div>
         <h3>World</h3>
         <div class="scenes" id="scenes"></div>
+        <div class="group" id="bgColorRow" hidden>
+          <span class="label">Background color</span>
+          <div class="row"><div class="chips" id="bgSwatches"></div><input id="bgColor" type="color" value="#ffffff" aria-label="Background color"></div>
+        </div>
+        <input id="bgFile" type="file" accept="image/*" hidden aria-label="Choose a background image">
         <p class="hint" id="worldNote">Each world is a 3D scene built from blocks and rendered behind the people.</p>
       </section>
 
@@ -521,6 +527,9 @@ const key=(x,y,z)=>((x-X0)*WZ+(z-Z0))*256+(y+64);
 
 const SCENES=[
  {k:"none",label:"Cut-out"},
+ {k:"original",label:"Original photo"},
+ {k:"color",label:"Color"},
+ {k:"image",label:"Your image"},
  {k:"plains",label:"Plains"},
  {k:"village",label:"Village"},
  {k:"mountains",label:"Mountains"},
@@ -845,12 +854,18 @@ const STYLES={
     amount:n=>fmt(n)+(n===1?" pixel":" pixels"),
     csv:list=>[["Color","Count","RGB"],...list.map(([id,n])=>[PIXELS[id].name,n,PIXELS[id].avg.join(" ")])]},
 };
+// Photo: no cells drawn at all. compose() draws each person as the real photo, cut out (see photoLayer);
+// the cells still exist, so moving, resizing, boxes, erasing and print work exactly as for the other styles.
+STYLES.photo={name:"Photo",photo:true,palette:[(()=>{const cv=document.createElement("canvas");cv.width=cv.height=16;const x=cv.getContext("2d");
+    x.fillStyle="#c58f6d";x.fillRect(0,0,16,16);x.fillStyle="#3a6fb0";x.fillRect(0,9,16,7);return{name:"Photo",group:"photo",avg:[0,0,0],lab:[0,0,0],canvas:cv}})()],
+  groups:{photo:"Photo"},on:["photo"],textured:false,unit:"cell",units:"cells",kinds:"",title:"",paletteLabel:"",listName:"",
+  toCells:(d,w,h)=>new Int16Array(w*h),drawCell(){},amount:()=>"",csv:()=>[]};
 const ST=()=>STYLES[S.style];
 
 // ================= State =================
 const S={width:64,style:"blocks",look:"clean",groups:Object.fromEntries(Object.entries(STYLES).map(([k,st])=>[k,new Set(st.on)])),dither:false,bevel:true,shadow:true,grid:false,
   scene:"plains",media:"sticker",inches:3,count:2,zoom:true,focus:null,border:1,tool:"move",brushSize:2,fixes:[],place:[],sel:0,boxes:[],boxesFull:[],
-  moveMode:"group",gplace:{dx:0,dy:0,s:1},edges:[],boxSel:0,
+  moveMode:"group",gplace:{dx:0,dy:0,s:1},edges:[],boxSel:0,bgColor:"#ffffff",bgImage:null,
   src:null,alpha:null,segMode:"loading",result:null,view:null,layout:null};
 let palette=[],palEntries=BLOCKS,nearest=()=>0;
 function buildPalette(){const st=ST(),on=S.groups[S.style];palEntries=st.palette;palette=st.palette.map((b,i)=>i).filter(i=>on.has(st.palette[i].group));nearest=makeNearest(palette,0)}
@@ -1022,7 +1037,7 @@ function convert(){
   for(let i=0,p=0;i<data.length;i+=4,p++){const L=toLab(data[i],data[i+1],data[i+2]);lab[p*3]=L[0];lab[p*3+1]=L[1];lab[p*3+2]=L[2]}
   const alpha=new Float32Array(w*h);
   if(Wk.alpha){const a=downsample(Wk.alpha,w,h);for(let i=0;i<w*h;i++)alpha[i]=a[i*4]/255}
-  const grid=S.look==="clean"?cleanCells(data,w,h,Wk.alpha?alpha:null):ST().toCells(data,w,h,S.dither,nearest);
+  const grid=ST().photo?new Int16Array(w*h):S.look==="clean"?cleanCells(data,w,h,Wk.alpha?alpha:null):ST().toCells(data,w,h,S.dither,nearest);
   S.result={w,h,grid,lab,alpha,hasAlpha:!!Wk.alpha};drawOrig();
 }
 
@@ -1125,12 +1140,50 @@ function frameSize(){ // inches of the printed piece
   return{media:"sticker",win,hin,capped,copies:layout.n,layout};
 }
 function canMove(){return S.scene!=="none"||S.media==="photo"}
+// backgrounds that aren't 3D worlds: the photo's own background, a plain color, or the operator's own image
+const BACKDROPS={original:1,color:1,image:1},isWorld=k=>k!=="none"&&!BACKDROPS[k];
+function cover(ctx,im,W,H){const iw=im.naturalWidth||im.width,ih=im.naturalHeight||im.height,s=Math.max(W/iw,H/ih);ctx.imageSmoothingQuality="high";ctx.drawImage(im,(W-iw*s)/2,(H-ih*s)/2,iw*s,ih*s)}
+// the photo's own background, placed so that people who haven't been moved sit exactly where they were
+function drawOriginal(ctx,ox,oy,cell){const im=work().img,iw=im.naturalWidth||im.width,ih=im.naturalHeight||im.height,R=S.result,C=S.crop,p=S.view.pad,cw=C.x1-C.x0+1,ch=C.y1-C.y0+1;
+  ctx.imageSmoothingQuality="high";ctx.drawImage(im,C.x0/R.w*iw,C.y0/R.h*ih,cw/R.w*iw,ch/R.h*ih,ox+p*cell,oy+p*cell,cw*cell,ch*cell)}
+// Detector mask with its strength in the alpha channel (it arrives as a grey image), made once per photo.
+// The cut-out model is sure about heads and shoulders but often only 30–60 % sure about legs; drawn as is, that
+// leaves see-through smudges, so the unsure middle is sharpened (PHOTO_EDGE: below → clear, above → solid).
+const PHOTO_EDGE=[.35,.65];
+function alphaMask(Wk){if(Wk.alphaA!==undefined)return Wk.alphaA;if(!Wk.alpha)return Wk.alphaA=null;
+  const a=Wk.alpha,c=document.createElement("canvas");c.width=a.width;c.height=a.height;const x=c.getContext("2d",{willReadFrequently:true});x.drawImage(a,0,0);
+  const d=x.getImageData(0,0,c.width,c.height),[lo,hi]=PHOTO_EDGE;
+  for(let i=0;i<d.data.length;i+=4){const t=Math.min(1,Math.max(0,(d.data[i]/255-lo)/(hi-lo)));d.data[i+3]=255*t*t*(3-2*t);d.data[i]=d.data[i+1]=d.data[i+2]=255}
+  x.putImageData(d,0,0);return Wk.alphaA=c}
+let photoCache=null;
+// One person as the real photo: the photo × the detector's soft mask × this person's cells. The cells are grown by
+// one into empty space, so the photo's own soft edge decides the outline, while splits between people and erasing
+// follow the cells. Kept to the person's own box so a group stays light on memory.
+function photoLayer(Lr){
+  if(!photoCache||photoCache.view!==S.view)photoCache={view:S.view,m:new Map()};
+  if(photoCache.m.has(Lr.L))return photoCache.m.get(Lr.L);
+  const Wk=work(),im=Wk.img,iw=im.naturalWidth||im.width,ih=im.naturalHeight||im.height,R=S.result,C=S.crop,{w:vw,h:vh,cells,lay,pad:p}=S.view,e=Lr.e;
+  const x0=Math.max(0,e.x0-1),y0=Math.max(0,e.y0-1),x1=Math.min(vw-1,e.x1+1),y1=Math.min(vh-1,e.y1+1),mw=x1-x0+1,mh=y1-y0+1;
+  const own=i=>cells[i]>=0&&lay[i]===Lr.L,mc=document.createElement("canvas");mc.width=mw;mc.height=mh;const mx=mc.getContext("2d"),md=mx.createImageData(mw,mh);
+  for(let y=0;y<mh;y++)for(let x=0;x<mw;x++){const vx=x0+x,vy=y0+y,i=vy*vw+vx;
+    const on=own(i)||(cells[i]<0&&((vx>0&&own(i-1))||(vx<vw-1&&own(i+1))||(vy>0&&own(i-vw))||(vy<vh-1&&own(i+vw))));md.data[(y*mw+x)*4+3]=on?255:0}
+  mx.putImageData(md,0,0);
+  const sx=(x0-p+C.x0)/R.w*iw,sy=(y0-p+C.y0)/R.h*ih,sw=mw/R.w*iw,sh=mh/R.h*ih,ow=Math.max(1,Math.round(sw)),oh=Math.max(1,Math.round(sh));
+  const c=document.createElement("canvas");c.width=ow;c.height=oh;const x=c.getContext("2d");x.imageSmoothingQuality="high";
+  x.drawImage(im,sx,sy,sw,sh,0,0,ow,oh);x.globalCompositeOperation="destination-in";x.imageSmoothingEnabled=true;x.drawImage(mc,0,0,ow,oh);
+  const A=alphaMask(Wk);if(A){const k=A.width/iw;x.drawImage(A,sx*k,sy*k,sw*k,sh*k,0,0,ow,oh)}
+  const sil=document.createElement("canvas");sil.width=ow;sil.height=oh;const sx2=sil.getContext("2d");sx2.drawImage(c,0,0);sx2.globalCompositeOperation="source-in";sx2.fillStyle="#fff";sx2.fillRect(0,0,ow,oh);
+  const L={c,sil,x0,y0,mw,mh};photoCache.m.set(Lr.L,L);return L}
 function compose(canvas,Wpx,Hpx,preview){
   canvas.width=Wpx;canvas.height=Hpx;const ctx=canvas.getContext("2d");ctx.clearRect(0,0,Wpx,Hpx);
-  const{w,h,cells}=S.view,hasScene=S.scene!=="none"&&THREE_OK;
-  if(hasScene){try{ctx.drawImage(renderScene(S.scene,Wpx,Hpx),0,0)}catch(e){THREE_OK=false;worldFail()}}
-  else if(S.media==="photo"){ctx.fillStyle="#ffffff";ctx.fillRect(0,0,Wpx,Hpx)}
-  const cell=Math.min(Wpx/w,Hpx/h)*(hasScene?.86:1),ox=(Wpx-cell*w)/2,oy=Hpx-cell*h,{lay,layers}=S.view,movable=canMove();
+  const{w,h,cells}=S.view,world=isWorld(S.scene)&&THREE_OK,hasScene=world||!!BACKDROPS[S.scene],st=ST();
+  if(world){try{ctx.drawImage(renderScene(S.scene,Wpx,Hpx),0,0)}catch(e){THREE_OK=false;worldFail()}}
+  else if(S.scene==="color"){ctx.fillStyle=S.bgColor;ctx.fillRect(0,0,Wpx,Hpx)}
+  else if(S.media==="photo"||hasScene){ctx.fillStyle="#ffffff";ctx.fillRect(0,0,Wpx,Hpx)}
+  if(S.scene==="image"&&S.bgImage)cover(ctx,S.bgImage,Wpx,Hpx);
+  // the original background keeps the photo's own scale, so people line up with it; other backgrounds leave headroom
+  const cell=Math.min(Wpx/w,Hpx/h)*(hasScene&&S.scene!=="original"?.86:1),ox=(Wpx-cell*w)/2,oy=Hpx-cell*h,{lay,layers}=S.view,movable=canMove();
+  if(S.scene==="original")drawOriginal(ctx,ox,oy,cell);
   // while adjusting boxes everyone stands where they were in the photo, so boxes line up with the blocks
   const boxing=preview&&S.tool==="move"&&S.moveMode==="boxes",ID={dx:0,dy:0,s:1},G=S.gplace,byL=new Map(layers.map(l=>[l.L,l]));
   // the group scales around the bottom centre of everyone together
@@ -1144,15 +1197,20 @@ function compose(canvas,Wpx,Hpx,preview){
     const a=Math.round(X0),b2=Math.round(Y0);return[a,b2,Math.round(X0+c)-a,Math.round(Y0+c)-b2]};
   const byLayer=new Map(layers.map(l=>[l.L,[]]));const border=[];
   for(let i=0;i<w*h;i++){if(cells[i]===-1)continue;if(cells[i]===-2){border.push(i);continue}const L=lay[i];if(byLayer.has(L))byLayer.get(L).push(i)}
-  if(hasScene&&S.shadow){
+  if(hasScene&&S.scene!=="original"&&S.shadow){
     const m=document.createElement("canvas");m.width=Wpx;m.height=Hpx;const mx=m.getContext("2d");mx.fillStyle="#000";
     for(const Lr of order)for(const i of byLayer.get(Lr.L)){const r=rect(i%w,i/w|0,Lr);mx.fillRect(r[0],r[1],r[2],r[3])}
     ctx.save();ctx.globalAlpha=.42;ctx.filter="blur("+Math.max(2,Math.round(cell*1.4))+"px)";ctx.drawImage(m,Math.round(cell*.9),Math.round(cell*.5));ctx.restore();
   }
   ctx.imageSmoothingEnabled=false;
-  for(const i of border){ctx.fillStyle="#ffffff";const x=i%w,y=i/w|0;ctx.fillRect(Math.round(ox+x*cell),Math.round(oy+y*cell),Math.round(ox+(x+1)*cell)-Math.round(ox+x*cell),Math.round(oy+(y+1)*cell)-Math.round(oy+y*cell))}
-  const st=ST();
-  for(const Lr of order){const P=pl(Lr.L),c=cell*P.s,bevel=st.textured&&S.bevel&&c>=4&&!boxing,t=Math.max(1,Math.round(c/11));
+  if(st.photo){ // cut-out border traced around the photo's own outline instead of whole cells
+    if(border.length){const r=S.border*cell;for(const Lr of order){const L=photoLayer(Lr),a=rect(L.x0,L.y0,Lr),c=cell*pl(Lr.L).s;ctx.imageSmoothingEnabled=true;
+      for(let k=0;k<16;k++){const t=k/16*2*Math.PI;ctx.drawImage(L.sil,a[0]+Math.cos(t)*r,a[1]+Math.sin(t)*r,L.mw*c,L.mh*c)}}}}
+  else for(const i of border){ctx.fillStyle="#ffffff";const x=i%w,y=i/w|0;ctx.fillRect(Math.round(ox+x*cell),Math.round(oy+y*cell),Math.round(ox+(x+1)*cell)-Math.round(ox+x*cell),Math.round(oy+(y+1)*cell)-Math.round(oy+y*cell))}
+  if(st.photo)for(const Lr of order){const L=photoLayer(Lr),a=rect(L.x0,L.y0,Lr),c=cell*pl(Lr.L).s;ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality="high";
+    ctx.drawImage(L.c,a[0],a[1],L.mw*c,L.mh*c);
+    if(boxing){ctx.fillStyle=BOXC[Lr.L%BOXC.length]+"55";for(const i of byLayer.get(Lr.L)){const r2=rect(i%w,i/w|0,Lr);ctx.fillRect(r2[0],r2[1],r2[2],r2[3])}}}
+  else for(const Lr of order){const P=pl(Lr.L),c=cell*P.s,bevel=st.textured&&S.bevel&&c>=4&&!boxing,t=Math.max(1,Math.round(c/11));
     for(const i of byLayer.get(Lr.L)){const[x0,y0,bw,bh]=rect(i%w,i/w|0,Lr);
       st.drawCell(ctx,cells[i],x0,y0,bw,bh,bevel,t);
       if(boxing){ctx.fillStyle=BOXC[Lr.L%BOXC.length]+"55";ctx.fillRect(x0,y0,bw,bh);continue}
@@ -1236,10 +1294,10 @@ function redraw(){
   buildView(true);const P=frameSize(),[pw,ph]=previewSize(P),out=$("out");
   compose(out,pw,ph,true);
   const list=counts(),total=list.reduce((a,b)=>a+b[1],0);
-  {const{w:vw,cells}=S.view;let pairs=0,diff=0;for(let i=0;i<cells.length;i++){if(cells[i]<0)continue;
+  if(!ST().photo){const{w:vw,cells}=S.view;let pairs=0,diff=0;for(let i=0;i<cells.length;i++){if(cells[i]<0)continue;
     for(const j of[i%vw<vw-1?i+1:-1,i+vw])if(j>=0&&j<cells.length&&cells[j]>=0){pairs++;if(cells[j]!==cells[i])diff++}}
    mark("Photo","busyness",(pairs?Math.round(diff/pairs*100):0)+"% of neighbouring cells differ · "+list.length+" "+ST().kinds+" · "+S.look)}
-  {const{w:rw,h:rh,grid,lab,alpha,hasAlpha}=S.result,pal=ST().palette;let n=0,t=0;
+  if(!ST().photo){const{w:rw,h:rh,grid,lab,alpha,hasAlpha}=S.result,pal=ST().palette;let n=0,t=0;
    for(let i=0;i<rw*rh;i++)if(!hasAlpha||alpha[i]>=.42){t+=deltaE00([lab[i*3],lab[i*3+1],lab[i*3+2]],pal[grid[i]].lab);n++}
    mark("Photo","color error",(n?(t/n).toFixed(1):"0")+" ΔE2000 mean (cell color vs its block)")}
   $("dims").innerHTML="<strong>"+S.result.w+" × "+S.result.h+"</strong> "+ST().units+" · "+fmt(total)+" in the people";
@@ -1254,7 +1312,7 @@ function redraw(){
   $("sheetLabel").textContent=P.media==="sticker"?"Sheet 3.94 × 7.68 in":"Photo "+P.win+" × "+P.hin+" in";
   $("sheetRead").textContent=P.media==="sticker"?n+(n===1?" sticker":" stickers")+" per sheet":"1 photo";
   $("saveSticker").textContent=P.media==="sticker"?"Save sticker PNG":"Save 4 × 6 photo PNG";$("saveSheet").hidden=P.media!=="sticker";
-  renderSteps(P);syncScale();
+  renderSteps(P);syncScale();backdropThumbs();
   mark("Print","piece",P.media+" "+P.win.toFixed(2)+" × "+P.hin.toFixed(2)+" in · "+Math.round(P.win*DPI)+" × "+Math.round(P.hin*DPI)+" px");
   if(P.media==="sticker")mark("Print","sheet",n+" up · "+P.layout.cols+" × "+P.layout.rows+(P.layout.rot?" rotated":"")+" · margin "+SHEET.margin+" in, gap "+SHEET.gap+" in");
   else DIAG.get("Print").delete("sheet");
@@ -1263,7 +1321,7 @@ let pending=0;
 function run(){if(!S.src)return;$("busy").hidden=false;cancelAnimationFrame(pending);
   pending=requestAnimationFrame(()=>setTimeout(()=>{const t=performance.now();convert();redraw();$("busy").hidden=true;
     mark("Photo","blocks",S.result.w+" × "+S.result.h+" · "+since(t))},0))}
-function restyle(){if(!S.result)return;$("busy").textContent=S.scene!=="none"&&!meshes[S.scene]?"Building world…":"Placing blocks…";$("busy").hidden=false;cancelAnimationFrame(pending);pending=requestAnimationFrame(()=>setTimeout(()=>{redraw();$("busy").hidden=true},0))}
+function restyle(){if(!S.result)return;$("busy").textContent=isWorld(S.scene)&&!meshes[S.scene]?"Building world…":"Placing blocks…";$("busy").hidden=false;cancelAnimationFrame(pending);pending=requestAnimationFrame(()=>setTimeout(()=>{redraw();$("busy").hidden=true},0))}
 
 // ================= Inputs =================
 function note(t){$("srcNote").textContent=t}
@@ -1333,6 +1391,8 @@ function renderGroups(){const sets=$("sets"),on=S.groups[S.style];sets.textConte
     b.addEventListener("click",()=>{if(on.has(k)){if(on.size===1)return;on.delete(k)}else on.add(k);b.setAttribute("aria-pressed",String(on.has(k)));buildPalette();run()});sets.append(b)})}
 // the style picker sits above the worlds; every label that names the cells follows the style
 function setStyle(k){S.style=k;const st=ST();buildPalette();renderGroups();
+  // block-only controls step aside for the Photo style
+  for(const el of[$("sets").closest(".group"),$("look").closest(".group"),$("dither").closest("label"),$("saveCsv"),document.querySelector(".materials")])el.hidden=!!st.photo;
   $("setsLabel").textContent=st.paletteLabel;$("wRead").textContent=S.width+" "+st.units+" wide";$("saveCsv").textContent="Save "+st.listName+" (CSV)";
   $("bevel").closest("label").hidden=!st.textured;$("hover").textContent="Hover a person to name a "+(st.unit==="block"?"block":"color");run()}
 Object.entries(STYLES).forEach(([k,st])=>{const b=document.createElement("button");b.dataset.v=k;b.textContent=st.name;b.setAttribute("aria-pressed",String(k===S.style));$("style").append(b)});
@@ -1342,11 +1402,25 @@ function worldFail(){$("worldNote").textContent="3D worlds need WebGL, which isn
 const sceneBtns={};
 SCENES.forEach(({k,label})=>{const b=document.createElement("button");b.className="scene";b.dataset.k=k;b.setAttribute("aria-pressed",String(k===S.scene));
   const c=document.createElement("canvas");c.width=160;c.height=120;const t=document.createElement("span");t.textContent=label;b.append(c,t);sceneBtns[k]=c;
-  b.addEventListener("click",()=>{if(k!=="none"&&!THREE_OK)return;S.scene=k;document.querySelectorAll(".scene").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));setTool(S.tool);restyle()});
+  if(k==="image")b.classList.add("op"); // operators choose the backdrop; guests in kiosk mode just pick from the rest
+  b.addEventListener("click",()=>{if(isWorld(k)&&!THREE_OK)return;
+    if(k==="image"&&(!S.bgImage||S.scene==="image")){$("bgFile").click();return} // choose (or change) the image first
+    pickScene(k)});
   $("scenes").append(b)});
+function pickScene(k){S.scene=k;document.querySelectorAll(".scene").forEach(x=>x.setAttribute("aria-pressed",String(x.dataset.k===k)));
+  $("bgColorRow").hidden=k!=="color";setTool(S.tool);restyle()}
+// backdrop thumbnails follow the current photo, color and image
+function backdropThumbs(){const t=(k,f)=>{const x=sceneBtns[k].getContext("2d");x.clearRect(0,0,160,120);f(x)};
+  t("original",x=>{if(S.src)cover(x,S.src,160,120)});t("color",x=>{x.fillStyle=S.bgColor;x.fillRect(0,0,160,120);x.strokeStyle="rgba(0,0,0,.15)";x.strokeRect(.5,.5,159,119)});
+  t("image",x=>{if(S.bgImage)cover(x,S.bgImage,160,120);else{x.fillStyle="#d9ddd4";x.fillRect(0,0,160,120);x.fillStyle="#5b6457";x.font="600 40px sans-serif";x.textAlign="center";x.textBaseline="middle";x.fillText("+",80,60)}})}
+["#ffffff","#111111","#8fd3ff","#ffd1e8","#fff3a6","#b9f6ca","#c9b8ff","#ff8a65"].forEach(c=>{const b=document.createElement("button");b.className="chip swatch";b.style.background=c;b.setAttribute("aria-label","Background "+c);
+  b.addEventListener("click",()=>{S.bgColor=c;$("bgColor").value=c;backdropThumbs();restyle()});$("bgSwatches").append(b)});
+$("bgColor").addEventListener("input",e=>{S.bgColor=e.target.value;backdropThumbs();restyle()});
+$("bgFile").addEventListener("change",async e=>{const f=e.target.files&&e.target.files[0];e.target.value="";if(!f)return;
+  try{S.bgImage=await decodeFile(f);backdropThumbs();pickScene("image")}catch(err){note("That background image couldn't be opened. Try a JPG or PNG.")}});
 // world picker thumbnails: hashed files, so they stay cached between deploys
 const THUMBS={"plains":"__ASSET:thumbs/plains.jpg__","village":"__ASSET:thumbs/village.jpg__","mountains":"__ASSET:thumbs/mountains.jpg__","taiga":"__ASSET:thumbs/taiga.jpg__","desert":"__ASSET:thumbs/desert.jpg__","beach":"__ASSET:thumbs/beach.jpg__","nether":"__ASSET:thumbs/nether.jpg__","end":"__ASSET:thumbs/end.jpg__"};
-function thumbs(){
+function thumbs(){backdropThumbs();
   const cut=sceneBtns.none.getContext("2d");cut.fillStyle="#d9ddd4";for(let y=0;y<120;y+=12)for(let x=(y/12%2)*12;x<160;x+=24)cut.fillRect(x,y,12,12);cut.fillStyle="#b07a4f";cut.fillRect(62,30,36,40);cut.fillStyle="#3a6fb0";cut.fillRect(50,72,60,48);
   if(!THREE_OK){worldFail();return}
   for(const k in THUMBS){const im=new Image();im.onload=()=>sceneBtns[k].getContext("2d").drawImage(im,0,0,160,120);im.src=THUMBS[k]}

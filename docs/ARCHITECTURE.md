@@ -106,6 +106,15 @@ A style decides what the people are made of. Detection, masks, editing, worlds a
 - **Tried and dropped:** an edge-preserving (Kuwahara) smoothing pass erased eyes and mouths at normal detail. Shrinking the photo to cell size already averages away sensor noise. **CIEDE2000 for choosing blocks** pulled dark greys towards blue on real photos, so matching stays on plain Lab distance, and CIEDE2000 is used only to judge lone cells and for the colour-error figure. A **"connected cells only"** keep rule cut block types sharply but lost eye whites.
 - **Measuring:** `?debug=1` shows **Photo → busyness**, the share of neighbouring person cells that differ, and **Photo → color error**, the mean ΔE2000 between each person cell's own colour and its block. Judge a change on both, and on the faces: busyness alone can improve while colours get worse. `?sample=photo` gives the built-in demo uneven light, sensor noise and softness, always identically. On it, at 64 blocks wide, Detailed scores 69% with 43 block types and Clean 11% with 16.
 
+**Photo style** (`STYLES.photo`): no cells are drawn. `compose()` draws each person with `photoLayer(Lr)`: the work image × the detector mask × that person's cells. The cells are grown by one into empty space, so the photo's soft edge sets the outline, while splits between people and erasing follow the cells. Each layer is limited to the person's own box and cached per view. The detector mask is sharpened (`PHOTO_EDGE`, smoothstep 0.35 → 0.65), because Selfie Segmentation is only 30–60% sure about legs, and drawn as is that leaves see-through smudges. Patches it gets wrong, usually between the legs, are removed with **Erase area**; a full-body model is the real fix (see the roadmap). The Cut-out border is the silhouette drawn in white at 16 offsets. Palette, look, dithering, CSV and the materials list are hidden.
+
+**Backgrounds** (`S.scene`): 3D worlds (`isWorld`), `none` (transparent Cut-out), and the backdrops in `BACKDROPS`:
+- **`original`:** the work image's crop, drawn at the people's own scale (not the 0.86 used for worlds), so unmoved people sit exactly where they were. No shadow.
+- **`color`:** `S.bgColor`.
+- **`image`:** `S.bgImage`, decoded like a photo and kept only in memory, operator only in kiosk mode.
+
+Thumbnails follow the photo, the colour and the image (`backdropThumbs`).
+
 To add a style, add an entry to `STYLES`. The picker above the worlds lists every entry, and every label that names the cells follows the style. New art (for example an emoji set) must be self-hosted from a pinned package under an open licence and listed in `THIRD_PARTY_NOTICES.md`. Names stay generic: no game, toy or brand names.
 
 ## Versions and releases
