@@ -1,6 +1,6 @@
 // Release gate for dist/: fails the build if the page could break or loosen its security.
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -14,13 +14,29 @@ const version = JSON.parse(readFileSync(join(dist, "version.json"), "utf8"));
 const { assets } = JSON.parse(readFileSync(join(dist, "asset-manifest.json"), "utf8"));
 
 // 1. No placeholders left behind.
-for (const token of ["__ASSET:", "__SRI:", "__BUILD_ID__", "__BUILT_AT__", "__CSP__"]) if (html.includes(token)) fail(`placeholder ${token} left in index.html`);
+for (const token of ["__ASSET:", "__SRI:", "__BUILD_ID__", "__BUILT_AT__", "__VERSION__", "__CSP__"]) if (html.includes(token)) fail(`placeholder ${token} left in index.html`);
 
 // 2. Build ids agree.
 const meta = html.match(/<meta name="build" content="([^"]+)">/)?.[1];
 if (meta !== version.build) fail(`index.html build ${meta} != version.json build ${version.build}`);
 if (!html.includes(`const BUILD="${version.build}"`)) fail("inline BUILD constant does not match version.json");
 if (!html.includes(`BUILT_AT="${version.builtAt}"`)) fail("inline BUILT_AT constant does not match version.json");
+if (!version.version || !html.includes(`VERSION="${version.version}"`)) fail("inline VERSION constant does not match version.json");
+
+// 2b. Published releases (scripts/releases.mjs): each listed folder holds that build, and nothing else is there.
+if (existsSync(join(dist, "releases.json"))) {
+  const rel = JSON.parse(readFileSync(join(dist, "releases.json"), "utf8"));
+  if (rel.latest?.build !== version.build) fail("releases.json latest is not this build");
+  const listed = new Set();
+  for (const r of rel.releases || []) {
+    listed.add(r.version);
+    if (!/^\d+\.\d+\.\d+$/.test(r.version) || r.path !== `v/${r.version}/`) { fail(`releases.json entry ${r.version} is malformed`); continue; }
+    const vj = join(dist, r.path, "version.json");
+    if (!existsSync(join(dist, r.path, "index.html")) || !existsSync(vj)) fail(`release ${r.version} is listed but not built`);
+    else if (JSON.parse(readFileSync(vj, "utf8")).build !== r.build) fail(`release ${r.version} folder holds a different build`);
+  }
+  if (existsSync(join(dist, "v"))) for (const d of readdirSync(join(dist, "v"))) if (!listed.has(d)) fail(`dist/v/${d} is not in releases.json`);
+}
 
 // 3. Every asset exists and still matches its integrity hash.
 for (const [logical, { file, sri }] of Object.entries(assets)) {

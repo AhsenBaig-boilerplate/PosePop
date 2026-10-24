@@ -4,7 +4,7 @@ For running PosePop at an event. The first production event is **24 October 2026
 
 ## The day before
 
-1. **Freeze `main`.** Merge nothing until the event is over. Every merge deploys a new build. Devices sitting on the start screen reload to it, and devices mid-edit show an update bar. An untested change could also break something on the day.
+1. **Pin the release you'll test** (see "Pinning a version" below), so later merges to `main` can't change it during the event. Without a pinned release, merges to `main` reach event devices: at once on the start screen, or through the update bar mid-edit.
 2. **Check each event device.** Run [DEVICE-TEST.md](DEVICE-TEST.md) on the tablet and phone you'll use. If time is short, do these parts, in this order (about 30 minutes):
    - **Part H**, kiosk mode: the camera countdown, save, the 60 s reset, and the long-press for settings.
    - **Part A, steps 1–4 and 7:** detection is ready, the camera opens, people are found, and the save works.
@@ -16,6 +16,15 @@ For running PosePop at an event. The first production event is **24 October 2026
    - charger, and enough free storage for the saved PNGs
    - **Auto-Lock set to Never** (iPad: Settings → Display & Brightness → Auto-Lock), in case wake lock isn't supported
    - a **Guided Access** passcode chosen (iPad: Settings → Accessibility → Guided Access)
+
+## Pinning a version
+
+From 1.1.0, an event can run a fixed, tested release instead of Latest. **Releases never change by themselves.**
+
+- **In the app:** long-press the title to show the settings, then use the footer's **Version** picker.
+- **By URL:** `https://ahsenbaig-boilerplate.github.io/PosePop/v/<version>/?kiosk=1` (for example, `v/1.0.0/`).
+
+Warm the offline cache for the version you'll use: open its URL on good Wi-Fi until the footer says "works offline". To go back to Latest, choose it in the picker. Release 1.0.0 has no picker, so open the site root instead.
 
 ## On the day: setup (about 15 minutes)
 

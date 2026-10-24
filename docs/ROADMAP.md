@@ -4,7 +4,7 @@ Status: `[ ]` open · `[~]` in progress · `[x]` done. Priority: **P0** blocks e
 
 ## P0: before the first event
 
-**First production event: 24 October 2026, on the app build ending in `e5f984fcb878`. `main` is frozen for app changes until it's over.** Setup, troubleshooting and rollback: [EVENT-RUNBOOK.md](EVENT-RUNBOOK.md).
+**First production event: 24 October 2026.** For events, pin a release in the Version picker (`/v/<version>/`) rather than freezing `main`. Setup, troubleshooting and rollback: [EVENT-RUNBOOK.md](EVENT-RUNBOOK.md).
 
 - [~] **Test the camera and upload on real devices** over the Pages URL: Android Chrome, iOS Safari, and one tablet. The Claude-hosted copy can't open the camera on Android; the Pages build should. Script and `?debug=1` panel ready: [DEVICE-TEST.md](DEVICE-TEST.md) Parts A–C.
 - [~] **Do a test print on the StickerPix.** The sheet margin (0.15 in) and gap between stickers (0.12 in) in `SHEET` are estimates. Print a 2, 4 and 8-up sheet and adjust. Steps and reference sizes: [DEVICE-TEST.md](DEVICE-TEST.md) Part D.
@@ -42,6 +42,7 @@ Status: `[ ]` open · `[~]` in progress · `[x]` done. Priority: **P0** blocks e
 
 ## Done
 
+- [x] Versions: semantic versions with signed tags, `CHANGELOG.md`, every release published at `/v/<version>/` (never auto-updates), a Version picker, and per-version offline caches
 - [x] Clean look: lone-cell pass (busyness −2 to −6 points on all 10 test photos, colour error unchanged, faces intact) and a colour-error figure in `?debug=1`
 - [x] **Clean look** (default) for phone photos: people's contrast and saturation lift, a short per-photo palette (k-means, smooth blocks first) that keeps eyes and mouths, no dithering. Neighbouring cells that differ 69 % → 11 % on the photo-like demo. **Detailed** keeps the previous behaviour. Tune `LOOK_*` on the real test photos when they arrive
 - [x] Pluggable styles (refactor note 7): a `Style` interface (`palette`, `toCells`, `drawCell`) with Blocks unchanged and **Retro pixel** as the second style, picked above the worlds

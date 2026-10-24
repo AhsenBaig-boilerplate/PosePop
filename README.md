@@ -18,12 +18,22 @@ Photos never leave the device: detection, cut-out and rendering all run locally.
 
 Add `?kiosk=1` to the URL for events: a start screen, a live camera with a 3-2-1 countdown, big Retake and Save buttons, and a reset for the next guest 60 s after a save. Long-press the PosePop title for 1.5 s to show the settings. Lock the device to the browser with Guided Access (iOS) or App pinning (Android). See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#kiosk-mode-kiosk1).
 
+## Releasing
+
+1. In a PR, bump `version` in `package.json` and move the "unreleased" heading in `CHANGELOG.md` to the version and date. Merge it.
+2. Tag that commit with a signed tag and push the tag: `git tag -s v1.2.0 -m "PosePop 1.2.0"`, then `git push origin v1.2.0`.
+3. Deploy: `gh workflow run "Build and deploy" --ref main`. Pages only accepts deploys from `main`, so a tag push doesn't deploy by itself. Every deploy also rebuilds all `v*` tags.
+4. The release is now at `/PosePop/v/1.2.0/` and in the Version picker. Optionally, add release notes with `gh release create v1.2.0 --notes-file …`.
+
+To use a release at an event, pick it in the footer's **Version** picker, or open `/PosePop/v/<version>/?kiosk=1`. It won't change until you pick another version.
+
 ## Develop
 
 ```sh
 npm ci --ignore-scripts
 npm start          # build and preview on http://localhost:8080
 npm test           # build + release gate (what CI runs)
+npm run releases   # also build every v* tag into dist/v/<version>/ (slow: npm ci per tag)
 ```
 
 Edit `src/index.html`. Reference any bundled file as `__ASSET:<path>__` and its integrity hash as `__SRI:<path>__`; the build fills them in. Add new files to the `ASSETS` list in `scripts/build.mjs`.
