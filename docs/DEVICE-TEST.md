@@ -47,7 +47,7 @@ The panel sits in the top-right corner. **Diagnostics** collapses it to one butt
    *Expect:* 6 people found. If not, record the **detections** line (raw → merged → after crowd filter), which shows the stage where people were lost.
 5. **Choose image** → Seated. Record the people found and how good the cut-out looks, rated 1–5. This photo is the baseline for the P1 item on seated people.
 6. Edit: drag the group, resize it by a corner handle and by pinching, erase a patch, then undo and redo. Part F covers moving people one by one and adjusting boxes.
-   *Expect:* the page stays responsive between photos. While detection runs, the page will freeze for a few seconds; that is known (refactor note 3). Record how long it lasts.
+   *Expect:* while people are found, the busy badge counts the steps ("Finding people (pass 2 of 4)…") and the page keeps responding: you can scroll and tap the world picker. A short freeze remains at "Placing blocks…"; record how long it lasts. Check **Detection → runs in** on the panel: it should say Web Worker, or explain why not.
 7. Save a sticker PNG, then a full sheet.
    *Expect:* the files land in Downloads with names starting `posepop-`.
 8. **Memory soak:** load 10 photos in a row (use the camera, or alternate the test photos). After each one, note **tf.js tensors**.
@@ -190,7 +190,7 @@ Copy this table for each device and fill it in. Paste each device's **Copy** rep
 | Check | Android | iOS | Tablet |
 |---|---|---|---|
 | Build id | | | |
-| Backend / ready after (first load, then cached) | | | |
+| Runs in (worker or page) / backend / ready after (first load, then cached) | | | |
 | Camera opens directly | | | |
 | Single / group of 6 / seated: people found | | | |
 | Find + cut-out time (group of 6) | | | |
