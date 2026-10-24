@@ -20,7 +20,7 @@ Read `docs/ARCHITECTURE.md` and `docs/ROADMAP.md` before changing code.
 - For any user-visible change, test at phone width (~400 px) and desktop, in light and dark themes.
 - Browser tests: the CSP blocks string eval, so Playwright `wait_for_function` fails. Poll from the test side instead.
 
-## Code map (all in `src/index.html` until the module split)
+## Code map (`src/app/*.js`, one file per section, joined in name order into one `app.js`; markup and styles in `src/index.html`)
 
 Textures `tex()` · worlds `makeWorld/buildScene/renderScene` · detection `findPeople/detectIn` and cut-out `segment/selfieMask` in `src/detect.js` (run by `src/detect-worker.js`, or on the page as a fallback; host code `startWorker/segment` in index.html) · styles `STYLES` (`palette/toCells/drawCell`, picked by `S.style`) via `convert`; Clean look `cleanCells/kmeans` with `LOOK_*` constants (`?sample=photo` and Photo → busyness in `?debug=1` to measure) · mask and edits `personMask` · layout `buildView/compose` · editing (move group/each via `cur()`, resize, erase, box edges `boxHit/dragEdge`, undo) · print `frameSize/sizeForCount/renderSheet` · updates `checkForUpdate` · kiosk `openCam/shoot/afterSave/kioskReset` (`?kiosk=1`; mark operator-only markup with class `op`) · diagnostics `mark/timed/drawDiag` (shown with `?debug=1`; record new timings with `mark`).
 

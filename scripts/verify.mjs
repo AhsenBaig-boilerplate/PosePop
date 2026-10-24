@@ -19,9 +19,8 @@ for (const token of ["__ASSET:", "__SRI:", "__BUILD_ID__", "__BUILT_AT__", "__VE
 // 2. Build ids agree.
 const meta = html.match(/<meta name="build" content="([^"]+)">/)?.[1];
 if (meta !== version.build) fail(`index.html build ${meta} != version.json build ${version.build}`);
-if (!html.includes(`const BUILD="${version.build}"`)) fail("inline BUILD constant does not match version.json");
-if (!html.includes(`BUILT_AT="${version.builtAt}"`)) fail("inline BUILT_AT constant does not match version.json");
-if (!version.version || !html.includes(`VERSION="${version.version}"`)) fail("inline VERSION constant does not match version.json");
+if (!html.includes(`<meta name="built-at" content="${version.builtAt}">`)) fail("built-at meta tag does not match version.json");
+if (!version.version || !html.includes(`<meta name="version" content="${version.version}">`)) fail("version meta tag does not match version.json");
 
 // 2b. Published releases (scripts/releases.mjs): each listed folder holds that build, and nothing else is there.
 if (existsSync(join(dist, "releases.json"))) {
@@ -38,12 +37,20 @@ if (existsSync(join(dist, "releases.json"))) {
   if (existsSync(join(dist, "v"))) for (const d of readdirSync(join(dist, "v"))) if (!listed.has(d)) fail(`dist/v/${d} is not in releases.json`);
 }
 
+// The app's code is app.js (src/app/*.js joined by the build), so references are looked for in the page and the app.
+const appFile = assets["app.js"]?.file, app = appFile && existsSync(join(dist, appFile)) ? readFileSync(join(dist, appFile), "utf8") : "";
+if (!app) fail("app.js missing");
+else if (!html.includes(`<script src="${appFile}" integrity="${assets["app.js"].sri}"></script>`)) fail("index.html does not load app.js with its SRI hash");
+if (/<script>/.test(html) || /<script(?![^>]*\bsrc=)[^>]*>/.test(html)) fail("inline <script> found: all code must be in hashed files");
+for (const token of ["__ASSET:", "__SRI:"]) if (app.includes(token)) fail(`placeholder ${token} left in app.js`);
+const code = html + "\n" + app;
+
 // 3. Every asset exists and still matches its integrity hash.
 for (const [logical, { file, sri }] of Object.entries(assets)) {
   const path = join(dist, file);
   if (!existsSync(path)) { fail(`missing ${file} (${logical})`); continue; }
   if (`sha384-${digest("sha384", readFileSync(path))}` !== sri) fail(`integrity mismatch for ${file}`);
-  if (!html.includes(file)) fail(`${file} is built but never referenced`);
+  if (!code.includes(file) && logical !== "app.js") fail(`${file} is built but never referenced`);
 }
 
 // 3b. Each model's JSON points at built, hashed weights next to it, and the page has an SRI hash for both.
@@ -53,9 +60,9 @@ for (const [logical, { file }] of Object.entries(assets)) {
   const dir = file.slice(0, file.lastIndexOf("/") + 1);
   for (const path of JSON.parse(readFileSync(join(dist, file), "utf8")).weightsManifest.flatMap((g) => g.paths)) {
     if (!built.has(dir + path)) fail(`${file} loads weights ${path}, which is not a built asset`);
-    else if (!html.includes(`"${dir + path}":"${assets[Object.keys(assets).find((k) => assets[k].file === dir + path)].sri}"`)) fail(`no SRI entry for ${dir + path} in index.html`);
+    else if (!code.includes(`"${dir + path}":"${assets[Object.keys(assets).find((k) => assets[k].file === dir + path)].sri}"`)) fail(`no SRI entry for ${dir + path} in index.html`);
   }
-  if (!html.includes(`"${file}":"${assets[logical].sri}"`)) fail(`no SRI entry for ${file} in index.html`);
+  if (!code.includes(`"${file}":"${assets[logical].sri}"`)) fail(`no SRI entry for ${file} in the app`);
 }
 
 // 3c. The service worker belongs to this build and precaches exactly this build's assets, with their SRI.
@@ -69,7 +76,7 @@ else {
   if (pre.map((f) => `${f.url} ${f.integrity}`).sort().join("\n") !== want) fail("sw.js precache list does not match the built assets");
   if (/version\.json/.test(sw.replace(/\/\/.*$/gm, ""))) fail("sw.js must not handle version.json");
 }
-if (!html.includes('register("sw.js")')) fail("index.html does not register sw.js");
+if (!code.includes('register("sw.js")')) fail("the app does not register sw.js");
 
 // 4. Every <script src> carries SRI, and nothing loads from another origin.
 for (const [tag] of html.matchAll(/<script\b[^>]*\bsrc=[^>]*>/g)) if (!/\bintegrity="sha384-/.test(tag)) fail(`script without integrity: ${tag}`);

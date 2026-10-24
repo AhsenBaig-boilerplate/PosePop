@@ -5,7 +5,7 @@
 //  - version.json tells running pages which build is current, so they update themselves.
 import { createHash } from "node:crypto";
 import { execSync } from "node:child_process";
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -69,13 +69,25 @@ for (const [src, logical, transform] of ASSETS) {
   manifest[logical] = { file, sri: `sha384-${digest("sha384", buf, "base64")}`, bytes: buf.length };
 }
 
-let html = readFileSync(join(root, "src/index.html"), "utf8");
-const lookup = (kind) => (_, logical) => {
+const lookup = (where, kind) => (_, logical) => {
   const entry = manifest[logical];
-  if (!entry) throw new Error(`src/index.html references unknown asset "${logical}"`);
+  if (!entry) throw new Error(`${where} references unknown asset "${logical}"`);
   return kind === "file" ? entry.file : entry.sri;
 };
-html = html.replace(/__ASSET:([A-Za-z0-9._/-]+)__/g, lookup("file")).replace(/__SRI:([A-Za-z0-9._/-]+)__/g, lookup("sri"));
+const fill = (text, where) => text.replace(/__ASSET:([A-Za-z0-9._/-]+)__/g, lookup(where, "file")).replace(/__SRI:([A-Za-z0-9._/-]+)__/g, lookup(where, "sri"));
+
+// The app: src/app/*.js joined in file-name order into one scope (one file per section of the app), then hashed
+// like any asset. Build facts (id, time, version) are <meta> tags in the page, not in here, so this file's hash
+// only changes when the code does.
+const parts = readdirSync(join(root, "src/app")).filter((f) => /^\d{3}-[a-z0-9-]+\.js$/.test(f)).sort();
+const app = Buffer.from(fill(`(() => {\n"use strict";\n${parts.map((f) => readFileSync(join(root, "src/app", f), "utf8")).join("")}})();\n`, "src/app"));
+{
+  const file = hashedName("app.js", digest("sha256", app, "hex").slice(0, 12));
+  writeFileSync(join(out, file), app);
+  manifest["app.js"] = { file, sri: `sha384-${digest("sha384", app, "base64")}`, bytes: app.length, parts };
+}
+
+let html = fill(readFileSync(join(root, "src/index.html"), "utf8"), "src/index.html");
 
 let commit = process.env.GITHUB_SHA || "";
 if (!commit) {
@@ -100,7 +112,7 @@ const scriptHashes = inline(/<script>([\s\S]*?)<\/script>/g);
 const styleHashes = inline(/<style>([\s\S]*?)<\/style>/g);
 const csp = [
   "default-src 'none'",
-  `script-src 'self' ${scriptHashes.join(" ")}`,
+  ["script-src 'self'", ...scriptHashes].join(" "), // no inline scripts any more, so normally just 'self'
   `style-src 'self' ${styleHashes.join(" ")}`,
   "img-src 'self' blob:",
   "font-src 'self'",
