@@ -31,6 +31,9 @@ const model = (name) => [
 const ASSETS = [
   ["node_modules/three/build/three.min.js", "vendor/three.min.js"],
   ["node_modules/@tensorflow/tfjs/dist/tf.min.js", "vendor/tf.min.js"],
+  // detection code; detect-worker.js must stay at the root, next to index.html (see the file)
+  ["src/detect.js", "detect.js"],
+  ["src/detect-worker.js", "detect-worker.js"],
   ...model("selfie"),
   ...model("people"),
   ["src/favicon.svg", "favicon.svg"],
