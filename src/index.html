@@ -10,7 +10,6 @@
 <title>PosePop</title>
 <link rel="icon" href="__ASSET:favicon.svg__" type="image/svg+xml">
 <link rel="preload" href="__ASSET:vendor/three.min.js__" as="script" integrity="__SRI:vendor/three.min.js__">
-<link rel="preload" href="__ASSET:vendor/tf.min.js__" as="script" integrity="__SRI:vendor/tf.min.js__">
 <style>
 @font-face{font-family:"Pixelify Sans";font-style:normal;font-weight:500;font-display:swap;src:url("__ASSET:fonts/pixelify-sans-latin-500-normal.woff2__") format("woff2")}
 @font-face{font-family:"Pixelify Sans";font-style:normal;font-weight:700;font-display:swap;src:url("__ASSET:fonts/pixelify-sans-latin-700-normal.woff2__") format("woff2")}
@@ -131,6 +130,43 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .update{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap;
   background:var(--surface);color:var(--fg);border-top:1px solid var(--line);box-shadow:0 -4px 16px rgba(0,0,0,.12);
   padding-block:10px calc(10px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+/* Kiosk mode (?kiosk=1): guests see the picture, the worlds and two big buttons; long-press the title for the rest */
+.kiosk:not(.unlocked) .op,.kiosk:not(.unlocked) #update{display:none!important}
+.kiosk .btn{min-height:56px;padding:12px 22px;font-size:1.05rem}
+.kiosk h1{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.kiosk .wrap{padding-bottom:calc(140px + env(safe-area-inset-bottom,0px))}
+.kiosk .scenes{gap:10px}.kiosk .scene{font-size:.95rem;padding:5px}
+.kiosk:not(.unlocked) .top p{display:none}.kiosk .frame{min-height:0}
+.kiosk #out{max-height:calc(100dvh - 200px)}
+@media (max-height:520px){.kiosk .wrap{padding-top:8px;gap:10px;padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}.kiosk h1{font-size:1.4rem}
+  .kiosk #out{max-height:calc(100dvh - 140px)}.kiosk .frame{padding:8px}.kbar{padding-top:8px;padding-bottom:calc(8px + env(safe-area-inset-bottom,0px))}.kiosk .kbar .btn{min-height:48px}}
+@media (orientation:landscape){.kiosk:not(.unlocked) .studio{grid-template-columns:minmax(0,1fr) minmax(240px,30%)}.kiosk:not(.unlocked) .rail{order:2}}
+@media (orientation:portrait){.kiosk:not(.unlocked) .studio{grid-template-columns:minmax(0,1fr)}.kiosk:not(.unlocked) .stage{order:-1}}
+.kscreen{position:fixed;inset:0;z-index:40;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:24px;
+  background:var(--bg);color:var(--fg);text-align:center}
+.ktitle{font-size:clamp(2.6rem,10vmin,5rem)}.klead{margin:0;font-size:1.2rem;color:var(--muted)}
+.kbig{font-size:1.4rem!important;padding:18px 40px!important;min-height:72px!important}
+.kcam{background:#000;color:#fff;padding:0;justify-content:flex-end}
+.kcam video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.kcam video.mirror{transform:scaleX(-1)}
+.kcount{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;
+  font:700 32vmin var(--f-display);color:#fff;text-shadow:0 4px 24px rgba(0,0,0,.6)}
+.kcount.tick{animation:kpop .35s ease-out}
+@keyframes kpop{from{transform:scale(1.5);opacity:0}to{transform:scale(1);opacity:1}}
+.kflash{position:absolute;inset:0;background:#fff;animation:kflash .45s ease-out forwards;pointer-events:none}
+@keyframes kflash{from{opacity:.95}to{opacity:0}}
+.kcam-msg{position:relative;margin:0 16px;max-width:36ch;font-size:1.05rem;text-shadow:0 1px 4px #000}
+.kcam-bar{position:relative;display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap;width:100%;
+  padding:16px max(16px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));background:linear-gradient(transparent,rgba(0,0,0,.55))}
+.kshutter{min-width:170px;min-height:76px!important;border-radius:999px;font-size:1.25rem!important}
+.kbar{position:fixed;left:0;right:0;bottom:0;z-index:15;display:flex;flex-direction:column;gap:8px;align-items:center;background:var(--surface);
+  border-top:1px solid var(--line);box-shadow:0 -4px 16px rgba(0,0,0,.12);
+  padding:12px max(16px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.kbar-row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}.kbar-row .btn{min-width:140px;justify-content:center}
+.kreset{margin:0;font-size:.95rem;color:var(--muted)}
+.ktoast{position:fixed;top:max(12px,env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);z-index:50;margin:0;
+  background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:6px;font-size:.95rem;max-width:calc(100vw - 32px);text-align:center}
+@media (prefers-reduced-motion:reduce){.kcount.tick,.kflash{animation:none}.kflash{display:none}}
 /* ?debug=1 diagnostics: floats top-right, collapses to a single button so it never blocks the app */
 .diag{position:fixed;z-index:30;top:max(8px,env(safe-area-inset-top,0px));right:max(8px,env(safe-area-inset-right,0px));
   width:min(380px,calc(100vw - 16px));max-height:70vh;overflow:auto;background:var(--surface);color:var(--fg);
@@ -154,7 +190,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 
   <div class="studio">
     <aside class="rail">
-      <section class="panel">
+      <section class="panel op">
         <div class="group">
           <span class="label">Photo</span>
           <div class="row">
@@ -174,7 +210,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
         <p class="hint" id="worldNote">Each world is a 3D scene built from blocks and rendered behind the people.</p>
       </section>
 
-      <section class="panel">
+      <section class="panel op">
         <h3>People</h3>
         <div class="group">
           <div class="row between"><span class="label">Detail</span><span class="readout" id="wRead">64 blocks wide</span></div>
@@ -231,7 +267,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
         </div>
       </section>
 
-      <section class="panel">
+      <section class="panel op">
         <h3>StickerPix print</h3>
         <div class="group">
           <span class="label">Media</span>
@@ -281,38 +317,64 @@ input[type=range]{width:100%;accent-color:var(--accent)}
           <canvas id="orig" hidden></canvas>
           <span class="busy" id="busy" hidden>Placing blocks…</span>
         </div>
-        <div class="sheetbox">
+        <div class="sheetbox op">
           <span class="label" id="sheetLabel">Sticker sheet</span>
           <canvas id="sheet" aria-label="Sheet layout preview, to scale"></canvas>
           <p class="readout" id="sheetRead"></p>
         </div>
       </div>
-      <div class="statbar">
+      <div class="statbar op">
         <span id="dims"></span>
         <span id="hover">Hover a person to name a block</span>
       </div>
-      <div class="row">
+      <div class="row op">
         <button class="btn" id="peek">Hold to compare with photo</button>
         <span class="note" id="srcNote">Showing the built-in sample. Take or choose a photo to start.</span>
       </div>
-      <div class="howto">
+      <div class="howto op">
         <h3>Printing in Design Space</h3>
         <ol id="steps"></ol>
       </div>
     </section>
   </div>
 
-  <section class="materials">
+  <section class="materials op">
     <div class="mhead">
       <h2 id="mTitle">Blocks in the people</h2>
       <span class="readout" id="mSum"></span>
     </div>
     <div class="inv" id="inv"></div>
   </section>
-  <p class="note" id="version">PosePop</p>
-  <p class="note">Open-source parts: three.js (MIT), TensorFlow.js (Apache-2.0), MediaPipe Selfie Segmentation and MoveNet MultiPose models (Apache-2.0), Pixelify Sans and IBM Plex fonts (SIL OFL). Block textures are drawn in code for this page. Not an official Minecraft product; not approved by or associated with Mojang or Microsoft.</p>
+  <p class="note op" id="version">PosePop</p>
+  <p class="note op">Open-source parts: three.js (MIT), TensorFlow.js (Apache-2.0), MediaPipe Selfie Segmentation and MoveNet MultiPose models (Apache-2.0), Pixelify Sans and IBM Plex fonts (SIL OFL). Block textures are drawn in code for this page. Not an official Minecraft product; not approved by or associated with Mojang or Microsoft.</p>
 </div>
 
+<!-- kiosk mode (?kiosk=1): start screen, live camera with countdown, guest bar -->
+<div class="kscreen" id="kStart" hidden>
+  <h1 class="ktitle">Pose<span>Pop</span></h1>
+  <p class="klead">Strike a pose and pop into a block world.</p>
+  <button class="btn primary kbig" id="kGo">Tap to start</button>
+</div>
+<div class="kscreen kcam" id="kCam" hidden>
+  <video id="kVideo" playsinline muted aria-label="Camera preview"></video>
+  <div class="kcount" id="kCount" aria-live="assertive"></div>
+  <div class="kflash" id="kFlash" hidden></div>
+  <p class="kcam-msg" id="kCamMsg" role="status"></p>
+  <div class="kcam-bar">
+    <button class="btn" id="kBack">Back</button>
+    <button class="btn primary kshutter" id="kShoot">Take photo</button>
+    <button class="btn" id="kFlip">Switch camera</button>
+  </div>
+</div>
+<div class="kbar" id="kbar" hidden>
+  <p class="kreset" id="kReset" role="status" hidden></p>
+  <div class="kbar-row">
+    <button class="btn" id="kRetake">Retake</button>
+    <button class="btn primary" id="kSave">Save</button>
+    <button class="btn op" id="kExit">Exit kiosk</button>
+  </div>
+</div>
+<p class="ktoast" id="kToast" role="status" hidden></p>
 <div class="update" id="update" role="status" hidden>
   <span id="updateText">A new version of PosePop is ready.</span>
   <button class="btn primary small" id="updateBtn">Reload now</button>
@@ -808,38 +870,51 @@ const since=t=>Math.round(performance.now()-t)+" ms";
 async function timed(sec,key,p){const t=performance.now();try{return await p}finally{mark(sec,key,since(t))}}
 const mb=n=>(n/1048576).toFixed(1)+" MB";
 
-// ================= Person detection (MediaPipe Selfie Segmentation, Apache-2.0, via TensorFlow.js) =================
-let segModel=null,poseModel=null;
+// ================= Person detection (runs in src/detect.js) =================
+// Detection runs in a Web Worker (src/detect-worker.js) where the browser has OffscreenCanvas, so the
+// page stays responsive while people are found and tf.js never loads on the page. Otherwise, or with
+// ?worker=0, the same code runs here on the page.
 // Every model file tf.js fetches must match its Subresource Integrity hash; anything else is refused.
 const MODEL_SRI={"__ASSET:models/selfie.json__":"__SRI:models/selfie.json__","__ASSET:models/selfie.bin__":"__SRI:models/selfie.bin__",
   "__ASSET:models/people.json__":"__SRI:models/people.json__","__ASSET:models/people.bin__":"__SRI:models/people.bin__"};
-// Start downloading the models right away, so the 9 MB overlaps tf.js loading and starting up
-// instead of waiting for it. tf.js picks these responses up when it asks for the same files.
-const earlyModels=new Map(Object.entries(MODEL_SRI).map(([url,integrity])=>{const p=fetch(url,{integrity});p.catch(()=>{});return[url,p]}));
-function loadModel(json){
-  return tf.loadGraphModel(json,{fetchFunc:(url,init)=>{const key=new URL(url,location.href).pathname.split("/").slice(-2).join("/"),integrity=MODEL_SRI[key];
-    // the early download is retried once if it failed (flaky Wi-Fi); an integrity failure fails again
-    const early=earlyModels.get(key);if(early){earlyModels.delete(key);return early.catch(()=>fetch(url,{...init,integrity}))}
-    return integrity?fetch(url,{...init,integrity}):Promise.reject(new Error("no integrity hash for "+key))}});
-}
+const DETECT={tf:"__ASSET:vendor/tf.min.js__",tfSri:"__SRI:vendor/tf.min.js__",code:"__ASSET:detect.js__",codeSri:"__SRI:detect.js__",worker:"__ASSET:detect-worker.js__"};
+let detectWorker=null,jobSeq=0;const jobs=new Map();
 function setSeg(state,text){S.segMode=state;const el=$("segStatus");el.dataset.s=state;el.querySelector("span").textContent=text;mark("Detection","status",state)}
 function loadScript(src,integrity){return new Promise((res,rej)=>{const s=document.createElement("script");s.src=src;if(integrity)s.integrity=integrity;s.onload=res;s.onerror=()=>rej(new Error("script"));document.head.append(s)})}
+function startWorker(){return new Promise((res,rej)=>{
+  if(new URLSearchParams(location.search).get("worker")==="0")return rej(new Error("turned off with ?worker=0"));
+  if(typeof Worker==="undefined"||typeof OffscreenCanvas==="undefined")return rej(new Error("no OffscreenCanvas in this browser"));
+  const w=new Worker(DETECT.worker),fail=err=>{w.terminate();if(detectWorker===w)detectWorker=null;for(const j of jobs.values())j.rej(err);jobs.clear();rej(err)};
+  w.onmessage=e=>{const m=e.data;
+    if(m.type==="mark")mark(m.sec,m.key,m.val);
+    else if(m.type==="ready"){detectWorker=w;res(m)}
+    else if(m.type==="failed")fail(new Error(m.error));
+    else{const j=jobs.get(m.id);if(!j)return;if(m.type==="progress"){j.progress(m.text);return}
+      jobs.delete(m.id);if(m.type==="result")j.res(m);else j.rej(new Error(m.error))}};
+  w.onerror=e=>{e.preventDefault();mark("Errors","detection worker",e.message||"worker error");fail(new Error(e.message||"worker error"))};
+  w.postMessage({type:"init",tf:DETECT.tf,detect:DETECT.code,models:MODEL_SRI});
+})}
+// asked the way tf.js asks: software-only WebGL counts as none
+function pageHasWebGL(){try{const gl=document.createElement("canvas").getContext("webgl",{failIfMajorPerformanceCaveat:true});gl?.getExtension("WEBGL_lose_context")?.loseContext();return!!gl}catch(e){return false}}
+async function startHere(){
+  // TF.js bundles regenerator-runtime, which falls back to eval when this global is missing.
+  // Declaring it keeps the page working under a CSP without 'unsafe-eval'.
+  if(!("regeneratorRuntime" in window))window.regeneratorRuntime=undefined;
+  await loadScript(DETECT.code,DETECT.codeSri);PosePopDetect.start(MODEL_SRI,mark);
+  await timed("Detection","tf.js script",loadScript(DETECT.tf,DETECT.tfSri));
+  return PosePopDetect.load();
+}
 const segReady=(async()=>{
   try{
-    // TF.js bundles regenerator-runtime, which falls back to eval when this global is missing.
-    // Declaring it keeps the page working under a CSP without 'unsafe-eval'.
-    if(!("regeneratorRuntime" in window))window.regeneratorRuntime=undefined;
-    await timed("Detection","tf.js script",loadScript("__ASSET:vendor/tf.min.js__","__SRI:vendor/tf.min.js__"));
-    await timed("Detection","backend start",(async()=>{try{await tf.setBackend("webgl")}catch(e){}await tf.ready()})());
-    mark("Detection","backend",tf.getBackend()==="webgl"?"webgl "+tf.env().getNumber("WEBGL_VERSION"):tf.getBackend()+" (WebGL unavailable to tf.js: detection will be slow)");
-    [segModel,poseModel]=await Promise.all([timed("Detection","cut-out model",loadModel("__ASSET:models/selfie.json__")),
-      timed("Detection","people model",loadModel("__ASSET:models/people.json__")).catch(e=>{mark("Errors","people model",e.message||e);return null})]);
-    // transferSize is 0 when a file came from the browser cache
-    const res=performance.getEntriesByType("resource").filter(r=>/\/(models|vendor)\//.test(r.name)),got=res.reduce((a,r)=>a+(r.transferSize||0),0);
-    mark("Detection","downloaded",mb(got)+" of "+mb(res.reduce((a,r)=>a+(r.decodedBodySize||0),0))+(got?"":" (cached)"));
+    let r;
+    try{r=await startWorker();
+      // without WebGL in workers (Safari before 17) tf.js runs ~10× slower there: a short freeze on the page beats that
+      if(r.backend!=="webgl"&&pageHasWebGL()){detectWorker.terminate();detectWorker=null;throw new Error("no WebGL in the worker")}
+      mark("Detection","runs in","Web Worker (page stays responsive)")}
+    catch(e){mark("Detection","runs in","page: "+e.message);r=await startHere()}
     mark("Detection","ready after",Math.round(performance.now())+" ms from page start");
     setSeg("ready","Person detection ready. People are cut out automatically.");
-    if(!poseModel)mark("Detection","status","ready without people model: cut-out by tiles only");
+    if(!r.people)mark("Detection","status","ready without people model: cut-out by tiles only");
     return true;
   }catch(e){
     mark("Errors","detection load",e.message||e);
@@ -847,97 +922,11 @@ const segReady=(async()=>{
     return false;
   }
 })();
-function workCanvas(img,maxSide){
-  const iw=img.naturalWidth||img.width,ih=img.naturalHeight||img.height,sc=Math.min(1,maxSide/Math.max(iw,ih));
-  const c=document.createElement("canvas");c.width=Math.round(iw*sc);c.height=Math.round(ih*sc);const x=c.getContext("2d");x.imageSmoothingQuality="high";x.drawImage(img,0,0,c.width,c.height);return c;
-}
-let detectPasses=0;
-async function detectIn(c,rx,ry,rw,rh){ // MoveNet MultiPose on one region; up to 6 people
-  detectPasses++;rx=Math.max(0,Math.round(rx));ry=Math.max(0,Math.round(ry));rw=Math.min(Math.round(rw),c.width-rx);rh=Math.min(Math.round(rh),c.height-ry);
-  const sc=512/Math.max(rw,rh),iw=Math.max(32,Math.round(rw*sc/32)*32),ih=Math.max(32,Math.round(rh*sc/32)*32);
-  const out=tf.tidy(()=>{const img=tf.browser.fromPixels(c).slice([ry,rx,0],[rh,rw,3]);
-    return poseModel.execute(tf.image.resizeBilinear(img,[ih,iw]).toInt().expandDims(0))});
-  const d=await out.data();out.dispose();const found=[];
-  for(let i=0;i<6;i++){const o=i*56,score=d[o+55];if(score<.15)continue;
-    const kp=[];for(let k=0;k<17;k++)kp.push({y:ry+d[o+k*3]*rh,x:rx+d[o+k*3+1]*rw,s:d[o+k*3+2]});
-    const vis=kp.filter(p=>p.s>.2);if(vis.length<3)continue;
-    // tight box from the visible joints; the model's own box is often too wide in groups
-    const x0=Math.min(...vis.map(p=>p.x)),x1=Math.max(...vis.map(p=>p.x)),y0=Math.min(...vis.map(p=>p.y)),y1=Math.max(ry+d[o+53]*rh,...vis.map(p=>p.y));
-    found.push({x0,x1,y0,y1,score,kp,area:Math.max(1,(x1-x0)*(y1-y0))})}
-  return found;
-}
-async function findPeople(c){
-  if(!poseModel)return[];
-  const W=c.width,H=c.height;let all=await detectIn(c,0,0,W,H);
-  // people cut off by the photo's edge are easy to miss, so look again with grey margins added
-  {const px=Math.round(W*.18),py=Math.round(H*.08),pc=document.createElement("canvas");pc.width=W+2*px;pc.height=H+2*py;
-   const g=pc.getContext("2d");g.fillStyle="#7f7f7f";g.fillRect(0,0,pc.width,pc.height);g.drawImage(c,px,py);
-   for(const p of await detectIn(pc,0,0,pc.width,pc.height)){p.kp.forEach(q=>{q.x-=px;q.y-=py});p.x0-=px;p.x1-=px;p.y0-=py;p.y1-=py;
-     if(p.x1>0&&p.x0<W)all.push(p)}}
-  // wide or tall photos (groups): also look in overlapping windows so nobody at the edges is missed
-  const ar=W/H;
-  if(ar>1.15||ar<.87){const land=ar>1,side=Math.min(W,H),len=Math.max(W,H),n=Math.max(2,Math.ceil((len-side)/(side*.5))+1),step=(len-side)/(n-1);
-    for(let t=0;t<n;t++){const o=t*step;all=all.concat(await detectIn(c,land?o:0,land?0:o,land?side:W,land?H:side))}}
-  // merge duplicates found in more than one window: keep the stronger detection
-  all.sort((a,b)=>b.score-a.score);const kept=[];
-  const iou=(a,b)=>{const ix=Math.max(0,Math.min(a.x1,b.x1)-Math.max(a.x0,b.x0)),iy=Math.max(0,Math.min(a.y1,b.y1)-Math.max(a.y0,b.y0)),I=ix*iy;return I/(a.area+b.area-I)};
-  // people in groups overlap (arms round shoulders), so judge duplicates by where the head and shoulders are
-  const core=p=>{const pts=[0,1,2,3,4,5,6].map(i=>p.kp[i]).filter(q=>q.s>.2);if(!pts.length)return null;
-    const ls=p.kp[5],rs=p.kp[6],sw=ls.s>.2&&rs.s>.2?Math.hypot(ls.x-rs.x,ls.y-rs.y):Math.max(8,(p.x1-p.x0)*.3);
-    return{x:pts.reduce((a,q)=>a+q.x,0)/pts.length,y:pts.reduce((a,q)=>a+q.y,0)/pts.length,sw}};
-  const same=(a,b)=>{const ca=core(a),cb=core(b);if(ca&&cb)return Math.hypot(ca.x-cb.x,ca.y-cb.y)<Math.min(ca.sw,cb.sw)*.55;return iou(a,b)>.6};
-  for(const p of all)if(!kept.some(k=>same(k,p)))kept.push(p);
-  if(!kept.length){mark("Photo","detections",all.length+" raw → 0");return kept}
-  // drop tiny people far behind the main subjects (crowds)
-  const big=Math.max(...kept.map(p=>p.y1-p.y0)),front=kept.filter(p=>(p.y1-p.y0)>=big*.35);
-  mark("Photo","detections",all.length+" raw → "+kept.length+" merged → "+front.length+" after crowd filter");
-  return front.map(p=>{const bw=p.x1-p.x0,bh=p.y1-p.y0,head=Math.max(bw*.35,bh*.16);
-    return{x0:Math.max(0,p.x0-bw*.22-head*.3),x1:Math.min(W,p.x1+bw*.22+head*.3),y0:Math.max(0,p.y0-head*.95),y1:Math.min(H,p.y1+bh*.08),score:p.score,kp:p.kp}});
-}
-async function selfieMask(c,sx,sy,side){ // returns 256×256 mask canvas for a square region
-  const m=document.createElement("canvas");m.width=m.height=256;
-  const crop=document.createElement("canvas");crop.width=crop.height=256;const cx=crop.getContext("2d");cx.imageSmoothingQuality="high";
-  cx.fillStyle="#808080";cx.fillRect(0,0,256,256);cx.drawImage(c,sx,sy,side,side,0,0,256,256);
-  const t=tf.tidy(()=>segModel.execute(tf.browser.fromPixels(crop).toFloat().div(255).expandDims(0)).squeeze());
-  const d=await t.data();t.dispose();const mx=m.getContext("2d"),id=mx.createImageData(256,256);
-  for(let i=0;i<65536;i++){const v=Math.max(0,Math.min(255,d[i]*255));id.data[i*4]=id.data[i*4+1]=id.data[i*4+2]=v;id.data[i*4+3]=255}
-  mx.putImageData(id,0,0);return m;
-}
-async function segment(img){
-  const c=workCanvas(img,1600),W=c.width,H=c.height;
-  const ac=document.createElement("canvas");ac.width=W;ac.height=H;const ax=ac.getContext("2d");ax.fillStyle="#000";ax.fillRect(0,0,W,H);
-  detectPasses=0;let t0=performance.now();
-  const people=await findPeople(c);
-  mark("Photo","find people",since(t0)+" · "+detectPasses+" passes on "+W+" × "+H);t0=performance.now();
-  if(people.length){
-    ax.globalCompositeOperation="lighten";ax.imageSmoothingQuality="high";
-    for(const p of people){
-      // square crop around each person, padded so the model sees head-and-shoulders framing
-      const bw=p.x1-p.x0,bh=p.y1-p.y0,side=Math.max(bw,bh)*1.12,cx=(p.x0+p.x1)/2,cy=(p.y0+p.y1)/2;
-      const sx=cx-side/2,sy=cy-side/2,m=await selfieMask(c,sx,sy,side);
-      // keep only what falls inside this person's box
-      const clip=document.createElement("canvas");clip.width=W;clip.height=H;const kx=clip.getContext("2d");
-      kx.globalCompositeOperation="lighten";kx.drawImage(m,sx,sy,side,side);
-      // a second, tighter head-and-shoulders pass: the model is tuned for that framing
-      const ls=p.kp[5],rs=p.kp[6],face=[0,1,2,3,4].map(i=>p.kp[i]).filter(q=>q.s>.2);
-      if(ls.s>.2&&rs.s>.2){const sw=Math.max(Math.hypot(ls.x-rs.x,ls.y-rs.y),...face.length>1?[Math.max(...face.map(q=>q.x))-Math.min(...face.map(q=>q.x))]:[0])*1;
-        const hx=(ls.x+rs.x)/2,hy=(ls.y+rs.y)/2-sw*.45,hs=sw*2.9;kx.drawImage(await selfieMask(c,hx-hs/2,hy-hs/2,hs),hx-hs/2,hy-hs/2,hs,hs)}
-      kx.globalCompositeOperation="source-over";kx.globalCompositeOperation="destination-in";kx.fillStyle="#fff";kx.fillRect(p.x0,p.y0,bw,bh);
-      ax.drawImage(clip,0,0);
-    }
-    ax.globalCompositeOperation="source-over";
-  }else{
-    // nobody found: overlapping square tiles across the whole photo
-    const side=Math.min(W,H),n=Math.max(1,Math.ceil((Math.max(W,H)-side)/(side*.6))+1),step=n>1?(Math.max(W,H)-side)/(n-1):0;
-    ax.globalCompositeOperation="lighten";
-    for(let t=0;t<n;t++){const ox=W>H?t*step:0,oy=W>H?0:t*step;ax.drawImage(await selfieMask(c,ox,oy,side),ox,oy,side,side)}
-    ax.globalCompositeOperation="source-over";
-  }
-  mark("Photo","cut out",since(t0)+(people.length?" · "+people.length+(people.length===1?" person":" people"):" · tiles, nobody found"));
-  const focus=people.length?(()=>{let x0=Math.min(...people.map(p=>p.x0)),x1=Math.max(...people.map(p=>p.x1)),y0=Math.min(...people.map(p=>p.y0)),y1=Math.max(...people.map(p=>p.y1));
-    const mw=(x1-x0)*.12,mh=(y1-y0)*.08;x0=Math.max(0,x0-mw);x1=Math.min(W,x1+mw);y0=Math.max(0,y0-mh);y1=Math.min(H,y1+mh*.5);
-    return{x:x0/W,y:y0/H,w:(x1-x0)/W,h:(y1-y0)/H}})():null;
-  return{alpha:ac,people:people.length,focus,boxes:people.map(p=>({x:p.x0/W,y:p.y0/H,w:(p.x1-p.x0)/W,h:(p.y1-p.y0)/H}))};
+// resolves to {alpha, people, focus, boxes}; alpha is an ImageBitmap from the worker or a canvas from the page
+async function segment(img,opts){
+  if(!detectWorker)return PosePopDetect.segment(img,opts);
+  const bm=await createImageBitmap(img),id=++jobSeq;
+  return new Promise((res,rej)=>{jobs.set(id,{res,rej,progress:opts.progress});detectWorker.postMessage({type:"segment",id,image:bm},[bm])});
 }
 
 // ================= Zoom to the people =================
@@ -1278,8 +1267,9 @@ async function loadFile(file,label){
   const ok=await timeout(segReady,30000);
   if(job!==loading)return;
   if(ok){$("busy").textContent="Finding people…";
-    try{const r=await segment(img);S.alpha=r.alpha;S.focus=r.focus;S.boxesFull=r.boxes;note(name+" · "+(r.people?r.people+(r.people===1?" person":" people")+" found":"no people found, cut-out by shape"))}
-    catch(e){S.alpha=null;mark("Errors","detection",e.message||e);setSeg("fallback","Person detection failed on this photo, so the cut-out uses color. Fix stray areas with Erase and Restore.")}}
+    try{const r=await segment(img,{progress:t=>{if(job===loading)$("busy").textContent=t},cancelled:()=>job!==loading});if(job!==loading)return;S.alpha=r.alpha;S.focus=r.focus;S.boxesFull=r.boxes;note(name+" · "+(r.people?r.people+(r.people===1?" person":" people")+" found":"no people found, cut-out by shape"))}
+    catch(e){if(job!==loading)return; // replaced by a newer photo
+      S.alpha=null;mark("Errors","detection",e.message||e);setSeg("fallback","Person detection failed on this photo, so the cut-out uses color. Fix stray areas with Erase and Restore.")}}
   else if(S.segMode==="loading"){mark("Photo","cut out","by color: detection still loading after 30 s");note(name+" · person detection is still loading, so this cut-out uses color. Choose the photo again in a moment for a better cut-out.")}
   if(job!==loading)return;
   $("busy").textContent="Placing blocks…";run();
@@ -1454,8 +1444,8 @@ async function pngAt300(canvas){const blob=await new Promise(r=>canvas.toBlob(r,
 let downloads=null;const msg=t=>$("saveMsg").textContent=t;
 async function save(filename,data){if(!downloads){ // standalone hosting: a normal browser download
     const blob=data instanceof Blob?data:new Blob([data],{type:"text/csv"}),url=URL.createObjectURL(blob),a=document.createElement("a");
-    a.href=url;a.download=filename;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);msg("Saved "+filename+".");return}
-  try{await downloads.save({filename,data});msg("Saved "+filename+".")}catch(e){msg(e&&e.code==="declined"?"Save cancelled.":e&&e.code==="rate_limited"?"A save prompt is already open.":"Couldn't save the file here.")}}
+    a.href=url;a.download=filename;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);msg("Saved "+filename+".");afterSave();return}
+  try{await downloads.save({filename,data});msg("Saved "+filename+".");afterSave()}catch(e){msg(e&&e.code==="declined"?"Save cancelled.":e&&e.code==="rate_limited"?"A save prompt is already open.":"Couldn't save the file here.")}}
 function printCanvas(){const P=frameSize(),c=document.createElement("canvas");compose(c,Math.round(P.win*DPI),Math.round(P.hin*DPI),false);compose($("out"),...previewSize(P),true);return{P,c}}
 $("saveSticker").addEventListener("click",async()=>{if(!S.view)return;msg("Rendering at 300 dpi…");const{P,c}=printCanvas();
   save(P.media==="photo"?"posepop-photo-4x6.png":"posepop-"+S.scene+"-"+P.win.toFixed(2)+"in.png",await pngAt300(c))});
@@ -1572,6 +1562,72 @@ if(DEBUG){
   $("diagCopy").addEventListener("click",async()=>{sampleMemory();
     try{await navigator.clipboard.writeText(diagText());$("diagMsg").textContent="Copied. Photos and file names are not included."}
     catch(e){$("diagMsg").textContent="Copy isn't available here. Take a screenshot instead."}});
+}
+
+// ================= Kiosk mode (?kiosk=1) =================
+// For events: a start screen, a live camera with a 3-2-1 countdown, big Retake and Save buttons, and a reset
+// to the start screen 60 s after a save that clears the guest's photo. Any tap restarts the 60 s, so a guest
+// who is still editing isn't cut off. Operators long-press the title for 1.5 s to show or hide everything else.
+const KIOSK=new URLSearchParams(location.search).get("kiosk")==="1",RESET_S=60,LONG_PRESS_MS=1500;
+let camStream=null,facing="user",resetAt=0,resetTick=0,wakeLock=null,shooting=false;
+function toast(t){const el=$("kToast");el.textContent=t;el.hidden=false;clearTimeout(el._t);el._t=setTimeout(()=>el.hidden=true,2600)}
+function afterSave(){if(!KIOSK)return;resetAt=Date.now()+RESET_S*1000;showReset();clearInterval(resetTick);resetTick=setInterval(showReset,1000)}
+function showReset(){const left=Math.max(0,Math.ceil((resetAt-Date.now())/1000));
+  if(!left){kioskReset();return}$("kReset").hidden=false;$("kReset").textContent="Saved! Starting over for the next guest in "+left+" s. Tap anything to keep editing."}
+function kioskReset(){
+  clearInterval(resetTick);resetAt=0;$("kReset").hidden=true;closeCam();
+  // forget this guest's photo: cancel any detection still running and go back to the built-in sample
+  loading++;DIAG.get("Photo").clear();sample();resetEdits();userWork=false;
+  $("tool").querySelector('[data-v="move"]').click();note("Showing the built-in sample. Take or choose a photo to start.");run();
+  document.documentElement.classList.remove("unlocked");$("kStart").hidden=false;scrollTo(0,0);
+  checkForUpdate(); // nobody's work is open now, so a waiting update applies straight away
+}
+async function keepAwake(){if(!("wakeLock" in navigator)||(wakeLock&&!wakeLock.released))return;
+  try{wakeLock=await navigator.wakeLock.request("screen");mark("Build","wake lock","on")}catch(e){mark("Build","wake lock","unavailable: "+(e.message||e))}}
+function goFullscreen(){const el=document.documentElement;try{const r=(el.requestFullscreen||el.webkitRequestFullscreen)?.call(el);r&&r.catch&&r.catch(()=>{})}catch(e){}}
+function closeCam(){if(camStream){for(const t of camStream.getTracks())t.stop();camStream=null}$("kVideo").srcObject=null;$("kCam").hidden=true}
+async function openCam(){
+  $("kCam").hidden=false;$("kCamMsg").textContent="";$("kCount").textContent="";$("kShoot").disabled=true;
+  if(camStream)for(const t of camStream.getTracks())t.stop();
+  try{
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error("no camera API in this browser");
+    camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:facing,width:{ideal:1920},height:{ideal:1920}},audio:false});
+    const v=$("kVideo");v.srcObject=camStream;v.classList.toggle("mirror",facing==="user");await v.play();$("kShoot").disabled=false;
+  }catch(e){
+    // denied or unavailable: the phone's own camera still works, just without the countdown
+    $("kCamMsg").textContent="The live camera isn't available ("+(e.name==="NotAllowedError"?"permission was denied":e.message||e.name)+"). Tap Take photo to use the phone's camera instead.";
+    $("kShoot").disabled=false;camStream=null;
+  }
+}
+async function shoot(){
+  if(shooting)return;if(!camStream){closeCam();$("cam").click();return}
+  shooting=true;$("kShoot").disabled=true;const n=$("kCount");
+  for(const s of["3","2","1"]){n.textContent=s;n.classList.remove("tick");void n.offsetWidth;n.classList.add("tick");await new Promise(r=>setTimeout(r,1000))}
+  n.textContent="";$("kFlash").hidden=false;setTimeout(()=>$("kFlash").hidden=true,450);
+  // the saved photo is the camera's real view; only the preview is mirrored
+  const v=$("kVideo"),c=document.createElement("canvas");c.width=v.videoWidth;c.height=v.videoHeight;c.getContext("2d").drawImage(v,0,0);
+  const blob=await new Promise(r=>c.toBlob(r,"image/jpeg",.92));shooting=false;closeCam();
+  if(blob)loadFile(new File([blob],"camera.jpg",{type:"image/jpeg"}),"Camera");else note("The camera photo couldn't be read. Try again.");
+}
+function longPress(el,fn){let t=0;const stop=()=>clearTimeout(t);
+  el.addEventListener("pointerdown",()=>{stop();t=setTimeout(fn,LONG_PRESS_MS)});
+  for(const ev of["pointerup","pointerleave","pointercancel"])el.addEventListener(ev,stop);el.addEventListener("contextmenu",e=>e.preventDefault())}
+function toggleSettings(){const on=document.documentElement.classList.toggle("unlocked");
+  if(on){$("kStart").hidden=true;closeCam()}toast(on?"Settings shown. Long-press the title again to hide them.":"Settings hidden.")}
+if(KIOSK){
+  document.documentElement.classList.add("kiosk");$("kStart").hidden=false;$("kbar").hidden=false;
+  $("kGo").addEventListener("click",()=>{goFullscreen();keepAwake();$("kStart").hidden=true;openCam()});
+  $("kRetake").addEventListener("click",()=>{clearInterval(resetTick);resetAt=0;$("kReset").hidden=true;openCam()});
+  $("kSave").addEventListener("click",()=>$("saveSticker").click());
+  $("kShoot").addEventListener("click",shoot);
+  $("kBack").addEventListener("click",closeCam);
+  $("kFlip").addEventListener("click",()=>{facing=facing==="user"?"environment":"user";openCam()});
+  $("kExit").addEventListener("click",()=>{const u=new URL(location.href);u.searchParams.delete("kiosk");closeCam();try{document.exitFullscreen?.()}catch(e){}location.replace(u.toString())});
+  for(const h of document.querySelectorAll("h1"))longPress(h,toggleSettings);
+  // a guest still editing gets another 60 s
+  document.addEventListener("pointerdown",()=>{if(resetAt)resetAt=Date.now()+RESET_S*1000},true);
+  document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")keepAwake();else closeCam()});
+  mark("Build","kiosk","on");
 }
 
 // ================= Boot =================

@@ -10,6 +10,8 @@ src/
   favicon.svg
   thumbs/             world picker thumbnails (JPEG)
   sw.js               service worker template (offline cache per build)
+  detect.js           person detection and cut-out (worker or page)
+  detect-worker.js    Web Worker that runs detect.js
   models/             TF.js graph models (JSON topology + binary .bin weights)
 scripts/
   build.mjs           src/ + node_modules → dist/ (hashed names, SRI, CSP, build id)
@@ -33,8 +35,8 @@ photo ──► decodeFile ──► findPeople ──► segment ──► work
 | Stage | Function(s) | Notes |
 |---|---|---|
 | Load | `loadFile`, `decodeFile` | `createImageBitmap` with orientation, `<img>` fallback, downscale to 2200 px for mobile memory |
-| Find people | `findPeople`, `detectIn` | Full frame, padded frame (edge people), overlapping windows for wide/tall photos; duplicates merged by head/shoulder position; crowd filter at 35 % of tallest person |
-| Cut out | `segment`, `selfieMask` | Square crop per person + tighter head-and-shoulders pass, clipped to the person's box; tiled fallback when nobody is found |
+| Find people | `findPeople`, `detectIn` (`src/detect.js`) | Full frame, padded frame (edge people), overlapping windows for wide/tall photos; duplicates merged by head/shoulder position; crowd filter at 35 % of tallest person |
+| Cut out | `segment`, `selfieMask` (`src/detect.js`) | Square crop per person + tighter head-and-shoulders pass, clipped to the person's box; tiled fallback when nobody is found |
 | Zoom | `work` | Crops source + alpha to the union of people boxes |
 | Style | `convert`, `nearest`, `STYLES` | CIELAB nearest-colour with a 64³ cache. The current style (`S.style`) supplies the palette, `toCells` (its dithering) and `drawCell`; see "Styles" below. |
 | Mask | `personMask`, `effBoxes` | Threshold, speck removal, hole fill, one layer per person, then user strokes in order. Layers come from the detector boxes (nearest box wins). Once the user adjusts a box (`S.edges`), boxes become claims: an adjusted box owns everything inside it, untouched boxes share the rest, and blocks outside every box are cropped |
@@ -56,6 +58,29 @@ State lives in one object, `S`. Undo/redo snapshots `S.fixes`, `S.place`, `S.gpl
 - CSP hashes are computed from the final inline `<script>` and `<style>`, so any edit to them is automatically reflected and verified.
 - Models: each `.bin` is hashed first, then its JSON is rewritten to name the hashed `.bin`, so the JSON's hash also pins its weights. The page loads them with `tf.loadGraphModel(url)` and a `fetchFunc` that attaches each file's SRI hash from `MODEL_SRI`; a file without a known hash, or one that doesn't match, is refused. `verify.mjs` checks the JSON → `.bin` link and that both have SRI entries.
 
+## Detection worker
+
+Detection and cut-out live in `src/detect.js`. The page normally runs it in a Web Worker (`src/detect-worker.js`), so the page keeps drawing and reacting while people are found, and tf.js never loads on the page.
+
+- **Start-up:** the page creates the worker and sends it the hashed URLs of tf.js, `detect.js` and the models. The worker checks for OffscreenCanvas 2D, loads `detect.js`, starts the model downloads (with SRI), then loads tf.js and the models. `detect-worker.js` must stay at the site root, next to `index.html`, so those relative URLs resolve the same way in both places.
+- **Per photo:** the page posts the photo as a transferred `ImageBitmap`. The worker posts `progress` labels ("Finding people (pass 2 of 4)…", "Cutting out person 3 of 6…") for the busy badge, then the mask as a transferred `ImageBitmap`. A newer photo cancels the running one at its next step. The page ignores results for photos that have since been replaced.
+- **Falls back to the page** when there's no `Worker` or OffscreenCanvas, when the worker fails to start, or when the worker has no WebGL but the page does. Safari before 17 is the known case: tf.js on the CPU in a worker is about 10× slower than WebGL on the page, and a short freeze beats a long wait. `?worker=0` forces the page path for testing. `?debug=1` shows which path ran ("Detection → runs in").
+- **Security:** no CSP change. `new Worker()` on a same-origin hashed file is allowed by `worker-src 'self'`, and the models are still fetched with SRI inside the worker. Browsers offer no integrity check for `new Worker()` or `importScripts()`, so the worker script and tf.js inside it aren't SRI-checked (see SECURITY.md).
+## Kiosk mode (`?kiosk=1`)
+
+A guest view for events. Add `?kiosk=1` to the URL; it survives update reloads, because `?v=` is added to the existing query.
+
+| Part | Behaviour |
+|---|---|
+| Start screen | "Tap to start". The tap enters full screen (Fullscreen API; iPhone Safari has none, iPad does) and turns on Screen Wake Lock, which both need a user gesture. |
+| Camera | A live preview (`getUserMedia`, front camera first, mirrored preview, **Switch camera**) with a big shutter, a 3-2-1 countdown and a flash. The saved photo isn't mirrored. The stream stops as soon as the photo is taken or the screen is left. If the camera is denied or unavailable, **Take photo** opens the normal phone camera input instead. |
+| Guest view | The picture, the world picker, and a bottom bar with **Retake** and **Save** (≥ 56 px targets; 48 px on screens under 520 px tall). Landscape puts the worlds beside the picture; portrait puts them below. Everything marked `op` is hidden, including the update bar. |
+| Reset | 60 s after any save, it returns to the start screen. Any tap restarts the 60 s. The reset cancels any running detection, replaces the guest's photo with the built-in sample, clears edits, sets the tool back to Move, and runs the update check: with nobody's work open, a waiting update applies straight away. |
+| Settings | Long-press any PosePop title for 1.5 s to show or hide the operator view (`.unlocked`), which also has **Exit kiosk**. |
+
+**Permissions:** the live camera triggers the browser's camera prompt once per device. There's no CSP change: a `MediaStream` isn't a URL fetch, and `Permissions-Policy` allows the camera for our own origin by default. Wake Lock shows no prompt.
+
+**Limits:** a web page can't stop a guest leaving the browser, opening another tab, or long-pressing the title. For real lock-down, use the OS: **Guided Access** on iOS/iPadOS, **App pinning** on Android. Saved PNGs stay in the device's downloads for the operator to print; they aren't cleared by the reset.
 ## Styles
 
 A style decides what the people are made of. Detection, masks, editing, worlds and print never look at which style is on. They see only palette indices in `S.result.grid` and call the style to draw them. Styles live in `STYLES` in `src/index.html`:
@@ -106,7 +131,7 @@ These are the known structural debts, roughly in the order they should be paid d
 
 1. **Split `src/index.html` into ES modules.** It's about 1,300 lines in a single inline script. Suggested modules: `textures`, `worlds`, `render3d`, `detect`, `segment`, `blocks`, `compose`, `edit`, `print`, `update`, `ui`. Serve them as hashed `type="module"` files; the CSP already permits `'self'` scripts, so no CSP loosening is needed. Keep it build-step-light (native modules plus the existing hashing), or adopt Vite if the team prefers. In both cases `verify.mjs` stays the gate.
 2. ~~**Store model weights as binary.**~~ Done. Measured: model files 13.2 MB → 9.97 MB on disk, but over the wire only 9.50 MB → 9.00 MB gzipped (Pages already gzipped the base64), so the expected 25 % download saving didn't materialise. Load is faster with no base64 decode (people model 1,134 → 1,001 ms, cut-out model 482 → 320 ms at 6× CPU throttle), the page no longer builds a 12.6 MB string, and model files are now integrity-checked.
-3. **Move detection and segmentation into a Web Worker.** TF.js on the main thread freezes the UI for a few seconds on phones. Use `OffscreenCanvas` and the WebGL backend in the worker, which needs `worker-src 'self'` (already allowed; `blob:` workers are not, and `verify.mjs` rejects `blob:`/`data:` outside `img-src`).
+3. ~~**Move detection and segmentation into a Web Worker.**~~ Done; see "Detection worker" above. The longest freeze while finding people went from 48.5 s to 0 (headless Chromium, CPU backend). What still runs on the page is block conversion and drawing ("Placing blocks", about 5.6 s there).
 4. **Generate world thumbnails at build time.** Half done: the thumbnails are now hashed JPEGs in `src/thumbs/` (35 KB in total, cached between deploys) instead of base64 in the HTML, which took `index.html` from 73 KB to 42 KB gzipped and let `img-src` drop `data:`. Still open: render them in CI with Playwright from the same world code, so they can't drift from the worlds.
 5. **Remove Claude-artifact code paths.** `window.claude.use("downloads")` in the save code is dead on Pages. Remove it so saving has a single path: the standard download.
 6. **Name the magic numbers.** Thresholds (alpha 0.42, crowd 0.35, merge 0.55 × shoulder width, flood 26 ΔE), sheet geometry and timing constants should become named constants in one place, with comments on how they were tuned.
