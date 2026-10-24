@@ -2,6 +2,10 @@
 
 Versions follow [semantic versioning](https://semver.org): **major** for changes that break saved settings or the print workflow, **minor** for new features, **patch** for fixes. Each release is a signed `v<version>` tag and stays published at `/PosePop/v/<version>/`. See "Releasing" in the README.
 
+## Unreleased
+
+- **Internal:** the app's code moved out of `index.html` into `src/app/*.js`, joined by the build into one cached, SRI-checked `app.js`. The page is smaller, the code is cached between deploys, and the CSP no longer needs a script hash (`script-src 'self'`). No change in behaviour.
+
 ## 1.2.0 (24 October 2026)
 
 - **Photo style:** the people as the real photo, background removed and no blocks, on any background. With **Original photo** behind them and nobody moved, it shows the original photo. Moving, resizing, boxes, erasing and print work as in the other styles. The Cut-out sticker's white border follows the photo's outline.

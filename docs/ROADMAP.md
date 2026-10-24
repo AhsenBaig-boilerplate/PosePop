@@ -42,6 +42,7 @@ Status: `[ ]` open · `[~]` in progress · `[x]` done. Priority: **P0** blocks e
 
 ## Done
 
+- [x] Module split, phase 1 (refactor note 1): `src/app/*.js` bundled into one hashed `app.js`; no inline script; CSP `script-src 'self'`
 - [x] Photo style (real photo, background removed, no blocks) and new backgrounds: original photo, colour, your own image (1.2.0)
 - [x] Versions: semantic versions with signed tags, `CHANGELOG.md`, every release published at `/v/<version>/` (never auto-updates), a Version picker, and per-version offline caches
 - [x] Clean look: lone-cell pass (busyness −2 to −6 points on all 10 test photos, colour error unchanged, faces intact) and a colour-error figure in `?debug=1`

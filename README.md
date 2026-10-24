@@ -36,7 +36,7 @@ npm test           # build + release gate (what CI runs)
 npm run releases   # also build every v* tag into dist/v/<version>/ (slow: npm ci per tag)
 ```
 
-Edit `src/index.html`. Reference any bundled file as `__ASSET:<path>__` and its integrity hash as `__SRI:<path>__`; the build fills them in. Add new files to the `ASSETS` list in `scripts/build.mjs`.
+Edit the app in `src/app/*.js`, one file per section, joined in file-name order into one hashed `app.js` by the build, and the markup and styles in `src/index.html`. Reference any bundled file as `__ASSET:<path>__` and its integrity hash as `__SRI:<path>__`; the build fills them in. Add new files to the `ASSETS` list in `scripts/build.mjs`.
 
 ## How it ships
 
