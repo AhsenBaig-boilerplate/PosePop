@@ -1,0 +1,12 @@
+PosePop
+Copyright 2026 Ahsen Baig
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+It bundles third-party components under their own licences, including
+TensorFlow.js, the MoveNet MultiPose and MediaPipe Selfie Segmentation
+models, and Noto Emoji images (Apache-2.0), three.js (MIT), and the
+Pixelify Sans and IBM Plex fonts (SIL OFL 1.1). See THIRD_PARTY_NOTICES.md.
+
+"PosePop" is not licensed for use as the name of other products
+(Apache License 2.0, section 6).
