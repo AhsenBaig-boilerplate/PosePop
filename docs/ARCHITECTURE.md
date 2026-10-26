@@ -134,6 +134,18 @@ To add a style, add an entry to `STYLES`. The picker above the worlds lists ever
 - **Offline per version:** each folder registers its own `sw.js`, and the more specific scope wins for its pages. Since 1.1.0, cache names are `posepop|<folder>|<build>`, and a worker deletes only its own folder's old caches. Caches named in the older `posepop-<build>` form (1.0.0) are removed by Latest only when `releases.json` loads and doesn't list that build, so a pinned 1.0.0 keeps its offline copy.
 - **Deploys:** Pages only accepts deploys from `main`, so releases go out on the next deploy from `main` (`gh workflow run … --ref main`). Deploys are queued one at a time (`concurrency: pages-deploy`).
 
+## Backdrop key (green or blue screen)
+
+`src/app/077-backdrop-key.js`. When **Green or blue screen behind people** is on (`S.key.on`), `applyKey()` replaces the detector's mask with a colour key:
+
+- **Finding the screen colour:** the most common strongly coloured hue across the photo (YCbCr chroma, 32×32 bins), covering at least `KEY_MIN_COVER` (8%) of the photo and clearly green or blue. Red or skin-coloured "screens" are refused, because they would cut into people. A white frame or a light stand doesn't confuse it.
+- **Mask:** smoothstep on chroma distance from the screen colour. Screen removal (`S.key.tol`, 1–10) moves the band. Outside the detected people's boxes, everything is backdrop.
+- **Despill:** near the screen colour, the screen's main channel is capped at the brighter of the other two, so green fringes go grey and don't glow.
+- **Clothes warning:** if more than `KEY_CLOTHES` (45%) of what the detector is sure is a person would be keyed, the note warns that clothes in the screen colour are being cut out.
+- **Switching:** `S.srcRaw` and `S.alphaML` keep the decoded photo and the detector's mask, so the key switches on and off, or retunes, without detecting again. With no screen found, the detector's mask is used.
+
+Tested on a NASA green-screen photo (public domain, an unusual suspended pose): the detector kept only the legs and part of the torso; the key kept the whole person, crisply, in 0.3–0.4 s. On a blue studio backdrop with blue suits, the clothes warning fired (82%).
+
 ## Offline (service worker)
 
 `src/sw.js` is filled in by the build and published as `dist/sw.js`, under a fixed name, because browsers recheck the service worker at that URL for changes. Each build's worker has a different build id, so every deploy installs a new worker.

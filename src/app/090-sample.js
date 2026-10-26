@@ -19,5 +19,5 @@ function sample(){
     for(let y=0;y<H;y++)for(let X=0;X<W;X++){const i=(y*W+X)*4,light=.72+.4*(1-X/W)*(1-.35*y/H)+.07*Math.sin(X/37+y/53);
       d[i]=d[i]*light+n();d[i+1]=d[i+1]*light+n();d[i+2]=d[i+2]*light+n()}
     const t=document.createElement("canvas");t.width=W;t.height=H;t.getContext("2d").putImageData(img,0,0);x.filter="blur(1.4px)";x.drawImage(t,0,0);x.filter="none"}
-  S.src=c;S.alpha=m;S.focus=null;S.boxesFull=[{x:.13,y:.2,w:.42,h:.8},{x:.5,y:.26,w:.4,h:.74}];
+  S.src=c;S.alpha=m;S.srcRaw=null;S.alphaML=null;S.focus=null;S.boxesFull=[{x:.13,y:.2,w:.42,h:.8},{x:.5,y:.26,w:.4,h:.74}];
 }

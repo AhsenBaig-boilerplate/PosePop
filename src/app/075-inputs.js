@@ -33,6 +33,7 @@ async function loadFile(file,label){
       S.alpha=null;mark("Errors","detection",e.message||e);setSeg("fallback","Person detection failed on this photo, so the cut-out uses color. Fix stray areas with Erase and Restore.")}}
   else if(S.segMode==="loading"){mark("Photo","cut out","by color: detection still loading after 30 s");note(name+" · person detection is still loading, so this cut-out uses color. Choose the photo again in a moment for a better cut-out.")}
   if(job!==loading)return;
+  S.srcRaw=img;S.alphaML=S.alpha;applyKey(); // a green or blue screen, when that's switched on, replaces the mask
   $("busy").textContent="Placing blocks…";run();
 }
 function drawOrig(){const im=work().img,o=$("orig"),iw=im.naturalWidth||im.width,ih=im.naturalHeight||im.height,s=Math.min(1,900/Math.max(iw,ih));o.width=Math.round(iw*s);o.height=Math.round(ih*s);o.getContext("2d").drawImage(im,0,0,o.width,o.height)}

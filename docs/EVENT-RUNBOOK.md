@@ -40,7 +40,7 @@ Warm the offline cache for the version you'll use: open its URL on good Wi-Fi un
 ## Getting good pictures
 
 - **Lighting:** light should fall on the guests' faces. Avoid a bright window or lamp behind them.
-- **Background:** a plain one helps the cut-out.
+- **Background:** a plain one helps the cut-out. **A green or blue screen is best:** turn on "Green or blue screen behind people" in the settings (Photo panel) for sharp, complete cut-outs, legs and seated people included. Guests shouldn't wear the screen's colour; the app warns if they do.
 - **Framing:** frame people from head to at least the waist, and fill the picture. Faces alone, with no shoulders, often aren't detected, so the cut-out falls back to colour.
 - **Groups:** best with 1–6 people. Larger groups work but take longer, and people at the back may be dropped.
 - **Seated people** cut out less cleanly. The operator can fix it in the settings with **Erase**, **Restore** or **Adjust boxes**.
