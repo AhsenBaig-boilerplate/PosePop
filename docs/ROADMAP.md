@@ -9,7 +9,6 @@ Status: `[ ]` open · `[~]` in progress · `[x]` done. Priority: **P0** blocks e
 - [~] **Test the camera and upload on real devices** over the Pages URL: Android Chrome, iOS Safari, and one tablet. The Claude-hosted copy can't open the camera on Android; the Pages build should. Script and `?debug=1` panel ready: [DEVICE-TEST.md](DEVICE-TEST.md) Parts A–C.
 - [~] **Do a test print on the StickerPix.** The sheet margin (0.15 in) and gap between stickers (0.12 in) in `SHEET` are estimates. Print a 2, 4 and 8-up sheet and adjust. Steps and reference sizes: [DEVICE-TEST.md](DEVICE-TEST.md) Part D.
 - [~] **Check the Design Space workflow.** Upload a cut-out PNG and a world PNG, confirm the kiss-cut follows the outline / the white border, and confirm that setting the project quantity lays out N copies as expected. Steps: [DEVICE-TEST.md](DEVICE-TEST.md) Part E.
-- [ ] **Choose a licence for PosePop's own code** (for example MIT or Apache-2.0) and add `LICENSE`. `THIRD_PARTY_NOTICES.md` covers the bundled components.
 - [ ] **Run a full event dry run:** about 20 people back to back on one device. Watch memory, heat and speed on the phone that will be used.
 
 ## P1: quality and reliability
@@ -46,6 +45,7 @@ Status: `[ ]` open · `[~]` in progress · `[x]` done. Priority: **P0** blocks e
 ## Done
 
 - [x] Green or blue screen backdrop key, with despill and a clothes warning (1.4.0)
+- [x] Licence: Apache-2.0 (`LICENSE`, `NOTICE`, `package.json`)
 - [x] Emoji style: 73 Noto Emoji, with skin from skin-tone hands and no animals, foods or double-meaning emoji on faces (1.3.0)
 - [x] Module split, phase 1 (refactor note 1): `src/app/*.js` bundled into one hashed `app.js`; no inline script; CSP `script-src 'self'`
 - [x] Photo style (real photo, background removed, no blocks) and new backgrounds: original photo, colour, your own image (1.2.0)
