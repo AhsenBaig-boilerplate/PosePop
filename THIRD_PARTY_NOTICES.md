@@ -12,3 +12,5 @@ PosePop bundles or loads the following components under their own licences:
 | Noto Emoji images (73 of them, for the Emoji style), from emoji-datasource-google 16.0.0 | Apache-2.0 (images); MIT (emoji-datasource data) | https://github.com/googlefonts/noto-emoji, https://github.com/iamcal/emoji-data |
 
 Apache-2.0 text: https://www.apache.org/licenses/LICENSE-2.0
+
+The end-to-end tests also use four NASA photos (public domain in the United States), which are not shipped. Their sources are listed in `tests/fixtures/README.md`.

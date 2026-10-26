@@ -13,13 +13,13 @@ Status: `[ ]` open · `[~]` in progress · `[x]` done. Priority: **P0** blocks e
 
 ## P1: quality and reliability
 
-- [ ] **Halve the people model download** with uint8 quantization (about 9.4 MB → 4.7 MB). The weights are already float16, so float16 conversion gains nothing. uint8 is lossier: compare detections on the single, group of 6 and seated test photos (the same ones the e2e tests need) before shipping.
+- [ ] **Halve the people model download** with uint8 quantization (about 9.4 MB → 4.7 MB). The weights are already float16, so float16 conversion gains nothing. uint8 is lossier: compare detections on the test photos in `tests/fixtures/` (`npm run test:e2e` checks the counts) before shipping.
 - [~] **Make "Placing blocks" faster.** Measured: the pause was mostly the 3D world being re-rendered on every 1 px change in shape; worlds are now cached by size bucket (1.5.1). With a world: 1.2–10.2 s → 0.13–0.34 s in headless Chromium. Without one it was already 0.6–0.8 s. Still open: the first render of each world (about 7 s in software GL, far less on a GPU) could be warmed while people are being detected, and `convert` could move to the worker if real devices show it matters.
 - [~] **Improve cut-outs for seated or partly hidden people** (as in the car photo). Evaluate MediaPipe's multiclass selfie segmenter (Apache-2.0); it needs `'wasm-unsafe-eval'`, so weigh that against keeping the CSP strict. With a green or blue screen this is solved (1.4.0); without one it still needs a better model.
 - [ ] **Edge-aware cell sampling** ("Pixelated Image Abstraction", Gerstner et al. 2012): cells as superpixels that follow edges, so eyes and mouths stay sharp without dithering.
 - [ ] **Better detection on close-ups and big groups:** faces-only shots find nobody (the cut-out then falls back to colour), and big groups can be off by one (6 of 7, 10 of 9 in testing).
-- [ ] **End-to-end tests in CI:** Playwright against `dist/`, using CSP-safe polling (no `wait_for_function`). Cover the sample images (single, group of 6, seated), move/resize/erase/undo, save, and the update flow by swapping `version.json`.
-- [ ] **Unit tests** for the pure functions (refactor note 8).
+- [~] **Unit tests** for the pure functions (refactor note 8). `node --test` runs in `npm test`; the changelog and release-notes parser is covered (1.5.2). Still open: the app's pure functions (`toLab`, `kmeans`, `keyColor`, the world size buckets), which live inside the bundled `app.js` and need loading in a `vm` context or the module split, phase 2.
+- [ ] **Speed up the e2e suite.** Detection in CI runs without a GPU, so each photo takes 1.5–2.5 minutes and the suite about 8 minutes. If it grows, cache the Playwright browser and split the spec files across jobs.
 - [~] **More styles beyond blocks**, picked next to the world picker. The `Style` interface (refactor note 7) and Retro pixel are done; each further style is one entry in `STYLES`. Every style is a generic look with original art: no game, toy or brand names, logos or characters. Candidates, roughly by appeal and effort:
   - ~~**Emoji mosaic**~~ done in 1.3.0 (73 Noto Emoji; skin from skin-tone hands).
   - ~~**Retro pixel (8-bit / 16-bit)**~~ done: DawnBringer 16 or 4 handheld greens, with ordered dithering. Still open: an optional scanline frame.
@@ -38,12 +38,13 @@ Status: `[ ]` open · `[~]` in progress · `[x]` done. Priority: **P0** blocks e
 - [ ] **Direct printing guidance** for other printers (Print Then Cut on Cricut Explore/Maker, standard 4 × 6 photo printers).
 - [ ] **Custom domain and security headers.** Front Pages with a CDN that can set HSTS, `frame-ancestors`, `Permissions-Policy: camera=(self)` and `X-Content-Type-Options`.
 - [ ] **Clean up the Claude-artifact leftovers** (refactor note 5): `window.claude.use("downloads")` in the save code.
-- [ ] **Module split, phase 2** (refactor note 1): native ES modules with a layered import graph, once the Playwright tests exist and the minimum device is iOS 16.4+. Phase 1 (bundled `src/app/*.js`) is done.
+- [ ] **Module split, phase 2** (refactor note 1): native ES modules with a layered import graph, now that the Playwright tests exist to catch regressions, once the minimum device is iOS 16.4+. Phase 1 (bundled `src/app/*.js`) is done.
 - [ ] **Generate world thumbnails in CI** from the world code (refactor note 4). They're already hashed files; this stops them drifting from the worlds.
 - [ ] **Name the tuning constants** (refactor note 6).
 
 ## Done
 
+- [x] End-to-end tests in CI (1.5.2): Playwright against `dist/` on four NASA photos (single, seated, group of 7, green screen). They cover detection counts and the worker, the backdrop key, move group and each, resize, erase, undo and redo, the 300 dpi save, the update flow (a newer `version.json`, with and without work in progress), the version picker and release notes (notes stay text), and offline reloads. Any page error, console error or CSP violation fails a test, and deploys wait for the suite
 - [x] World renders cached by size bucket: "Placing blocks" with a world 1.2–10.2 s → 0.13–0.34 s (1.5.1)
 - [x] Release notes in the app: headlines in the Version picker and a What's new panel, from `CHANGELOG.md` (1.5.0)
 - [x] Green or blue screen backdrop key, with despill and a clothes warning (1.4.0)
