@@ -65,11 +65,16 @@ function renderGroups(){const sets=$("sets"),on=S.groups[S.style];sets.textConte
   Object.entries(ST().groups).forEach(([k,label])=>{const b=document.createElement("button");b.className="chip";b.textContent=label;b.setAttribute("aria-pressed",String(on.has(k)));
     b.addEventListener("click",()=>{if(on.has(k)){if(on.size===1)return;on.delete(k)}else on.add(k);b.setAttribute("aria-pressed",String(on.has(k)));buildPalette();run()});sets.append(b)})}
 // the style picker sits above the worlds; every label that names the cells follows the style
-function setStyle(k){S.style=k;const st=ST();buildPalette();renderGroups();
+function setStyle(k){
+  // the emoji images load the first time their style is picked
+  if(STYLES[k]===STYLES.emoji&&!STYLES.emoji.palette.length){$("busy").hidden=false;$("busy").textContent="Loading emoji…";
+    loadEmoji().then(()=>setStyle(k)).catch(e=>{$("busy").hidden=true;mark("Errors","emoji",e.message);note("The emoji couldn't load. Try again when online.");
+      $("style").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.v===S.style)))});return}
+  S.style=k;const st=ST();buildPalette();renderGroups();
   // block-only controls step aside for the Photo style
   for(const el of[$("sets").closest(".group"),$("look").closest(".group"),$("dither").closest("label"),$("saveCsv"),document.querySelector(".materials")])el.hidden=!!st.photo;
   $("setsLabel").textContent=st.paletteLabel;$("wRead").textContent=S.width+" "+st.units+" wide";$("saveCsv").textContent="Save "+st.listName+" (CSV)";
-  $("bevel").closest("label").hidden=!st.textured;$("hover").textContent="Hover a person to name a "+(st.unit==="block"?"block":"color");run()}
+  $("bevel").closest("label").hidden=!st.textured;$("hover").textContent="Hover a person to name "+(st.unit==="block"?"a block":st.unit==="emoji"?"an emoji":"a color");run()}
 Object.entries(STYLES).forEach(([k,st])=>{const b=document.createElement("button");b.dataset.v=k;b.textContent=st.name;b.setAttribute("aria-pressed",String(k===S.style));$("style").append(b)});
 seg("style",setStyle);renderGroups();
 

@@ -99,6 +99,9 @@ A style decides what the people are made of. Detection, masks, editing, worlds a
 |---|---|---|---|
 | Blocks | 83 textured blocks in 4 groups | Floyd–Steinberg error diffusion | 16×16 texture plus optional bevel |
 | Retro pixel | DawnBringer 16 (free to use), or 4 handheld greens | 4×4 ordered (Bayer) dithering, for the checkerboard look of old consoles | Flat colour |
+| Emoji | 73 Noto Emoji (Apache-2.0), in 3 groups | Floyd–Steinberg, matched on each emoji's average opaque colour | A tile of that colour with the emoji on top |
+
+**Emoji curation** (the `EMOJI` list in `build.mjs`): the build copies each chosen PNG from the pinned `emoji-datasource-google` as a hashed asset, and writes the list into the app as `__EMOJI__`. The images load when the style is first picked (`loadEmoji`). Two rules apply, because every face at an event is drawn with them: **skin must come from neutral emoji** (raised hands in 5 skin tones, hearts, squares), so animals and foods whose colour falls in the skin-tone range are excluded; and **no emoji with well-known double meanings**. Check new candidates on several real photos across skin tones before adding them.
 
 **Look** (`S.look`, People panel) applies to every style:
 

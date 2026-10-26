@@ -42,7 +42,7 @@ const appFile = assets["app.js"]?.file, app = appFile && existsSync(join(dist, a
 if (!app) fail("app.js missing");
 else if (!html.includes(`<script src="${appFile}" integrity="${assets["app.js"].sri}"></script>`)) fail("index.html does not load app.js with its SRI hash");
 if (/<script>/.test(html) || /<script(?![^>]*\bsrc=)[^>]*>/.test(html)) fail("inline <script> found: all code must be in hashed files");
-for (const token of ["__ASSET:", "__SRI:"]) if (app.includes(token)) fail(`placeholder ${token} left in app.js`);
+for (const token of ["__ASSET:", "__SRI:", "__EMOJI__"]) if (app.includes(token)) fail(`placeholder ${token} left in app.js`);
 const code = html + "\n" + app;
 
 // 3. Every asset exists and still matches its integrity hash.

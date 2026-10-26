@@ -20,7 +20,7 @@ Status: `[ ]` open · `[~]` in progress · `[x]` done. Priority: **P0** blocks e
 - [ ] **End-to-end tests in CI:** Playwright against `dist/`, using CSP-safe polling (no `wait_for_function`). Cover the sample images (single, group of 6, seated), move/resize/erase/undo, save, and the update flow by swapping `version.json`.
 - [ ] **Unit tests** for the pure functions (refactor note 8).
 - [~] **More styles beyond blocks**, picked next to the world picker. The `Style` interface (refactor note 7) and Retro pixel are done; each further style is one entry in `STYLES`. Every style is a generic look with original art: no game, toy or brand names, logos or characters. Candidates, roughly by appeal and effort:
-  - **Emoji mosaic:** each cell is the emoji closest in colour. Bundle one pinned open emoji set (Twemoji graphics, CC-BY 4.0 with attribution, or Noto Emoji, OFL/Apache-2.0) so prints look the same on every device; system emoji fonts differ by platform and some can't be redistributed. Precompute each emoji's average colour at build time.
+  - ~~**Emoji mosaic**~~ done in 1.3.0 (73 Noto Emoji; skin from skin-tone hands).
   - ~~**Retro pixel (8-bit / 16-bit)**~~ done: DawnBringer 16 or 4 handheld greens, with ordered dithering. Still open: an optional scanline frame.
   - **Plastic bricks:** studded brick tops with soft shading; also works as a build guide with a parts list, like the block CSV.
   - **Fuse beads:** round beads on a pegboard grid, with a bead-count list for making the real thing.
@@ -42,6 +42,7 @@ Status: `[ ]` open · `[~]` in progress · `[x]` done. Priority: **P0** blocks e
 
 ## Done
 
+- [x] Emoji style: 73 Noto Emoji, with skin from skin-tone hands and no animals, foods or double-meaning emoji on faces (1.3.0)
 - [x] Module split, phase 1 (refactor note 1): `src/app/*.js` bundled into one hashed `app.js`; no inline script; CSP `script-src 'self'`
 - [x] Photo style (real photo, background removed, no blocks) and new backgrounds: original photo, colour, your own image (1.2.0)
 - [x] Versions: semantic versions with signed tags, `CHANGELOG.md`, every release published at `/v/<version>/` (never auto-updates), a Version picker, and per-version offline caches

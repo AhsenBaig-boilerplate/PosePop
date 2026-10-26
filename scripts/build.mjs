@@ -54,6 +54,30 @@ const ASSETS = [
   font("ibm-plex-mono", "ibm-plex-mono-latin-500-normal.woff2"),
 ];
 
+// Emoji style: a curated set from Google's Noto Emoji (images Apache-2.0, via the pinned emoji-datasource-google),
+// chosen to spread across the colour range. Names are emoji-datasource short names; "hand" also brings its 5
+// skin tones. Each becomes a hashed asset and the list is written into the app as __EMOJI__.
+// Skin is drawn from the skin-tone hands and plain hearts and squares only: animals and foods whose colour falls in
+// the skin-tone range (pig, bear, dog, cat, chicken, panda, cookie, bread, chocolate, watermelon, ...) are left out on purpose, so nobody's face at
+// an event turns into pig faces or chocolate. Emoji with well-known double meanings (aubergine, peach, banana) are
+// left out too: events include children.
+const EMOJI = {
+  colors: "large_red_square large_orange_square large_yellow_square large_green_square large_blue_square large_purple_square large_brown_square black_large_square white_large_square red_circle large_orange_circle large_yellow_circle large_green_circle large_blue_circle large_purple_circle large_brown_circle black_circle white_circle heart orange_heart yellow_heart green_heart blue_heart purple_heart brown_heart black_heart white_heart pink_heart light_blue_heart grey_heart",
+  food: "apple tangerine lemon green_apple grapes strawberry cherries broccoli carrot cupcake cheese_wedge pizza ice_cream cherry_blossom sunflower evergreen_tree four_leaf_clover ocean fire snowflake cloud crescent_moon star rainbow fallen_leaf maple_leaf rose mushroom cactus",
+  faces: "grinning sunglasses partying_face heart_eyes star-struck nerd_face frog whale hand",
+};
+const emojiPkg = join(root, "node_modules/emoji-datasource-google");
+const emojiData = JSON.parse(readFileSync(join(emojiPkg, "emoji.json"), "utf8")), byName = new Map();
+for (const e of emojiData) for (const n of e.short_names) if (!byName.has(n)) byName.set(n, e);
+const emojiList = [];
+for (const [group, names] of Object.entries(EMOJI)) for (const name of names.split(" ")) {
+  const e = byName.get(name);
+  if (!e || !e.has_img_google) throw new Error(`emoji "${name}" has no Noto image in emoji-datasource-google`);
+  const add = (n, image, label) => { emojiList.push({ name: n, group, label, logical: `emoji/${n}.png` }); ASSETS.push([`node_modules/emoji-datasource-google/img/google/64/${image}`, `emoji/${n}.png`]); };
+  add(name, e.image, e.name.toLowerCase());
+  if (name === "hand") for (const [k, v] of Object.entries(e.skin_variations || {})) if (v.has_img_google) add(`${name}_${k.toLowerCase()}`, v.image, `${e.name.toLowerCase()} (${{ "1F3FB": "light", "1F3FC": "medium-light", "1F3FD": "medium", "1F3FE": "medium-dark", "1F3FF": "dark" }[k] || k} skin tone)`);
+}
+
 const digest = (alg, data, enc) => createHash(alg).update(data).digest(enc);
 const hashedName = (path, hash) => path.replace(/(\.[^./]+)$/, `.${hash}$1`);
 
@@ -80,7 +104,8 @@ const fill = (text, where) => text.replace(/__ASSET:([A-Za-z0-9._/-]+)__/g, look
 // like any asset. Build facts (id, time, version) are <meta> tags in the page, not in here, so this file's hash
 // only changes when the code does.
 const parts = readdirSync(join(root, "src/app")).filter((f) => /^\d{3}-[a-z0-9-]+\.js$/.test(f)).sort();
-const app = Buffer.from(fill(`(() => {\n"use strict";\n${parts.map((f) => readFileSync(join(root, "src/app", f), "utf8")).join("")}})();\n`, "src/app"));
+const emojiJson = () => JSON.stringify(emojiList.map(({ name, group, label, logical }) => [name, group, label, manifest[logical].file]));
+const app = Buffer.from(fill(`(() => {\n"use strict";\n${parts.map((f) => readFileSync(join(root, "src/app", f), "utf8")).join("")}})();\n`, "src/app").replace("__EMOJI__", emojiJson));
 {
   const file = hashedName("app.js", digest("sha256", app, "hex").slice(0, 12));
   writeFileSync(join(out, file), app);
