@@ -2,8 +2,9 @@
 
 Versions follow [semantic versioning](https://semver.org): **major** for changes that break saved settings or the print workflow, **minor** for new features, **patch** for fixes. Each release is a signed `v<version>` tag and stays published at `/PosePop/v/<version>/`. See "Releasing" in the README.
 
-## Unreleased
+## 1.3.0 (26 October 2026)
 
+- **Emoji style:** a mosaic of 73 Google Noto Emoji (Apache-2.0, nothing printed on stickers), in three palette groups: Colors, Food & nature, Faces & animals. Skin is drawn from raised hands in 5 skin tones and plain hearts and squares: animals and foods in the skin-tone range, and emoji with double meanings, are left out on purpose. The images load the first time the style is picked, and work offline.
 - **Internal:** the app's code moved out of `index.html` into `src/app/*.js`, joined by the build into one cached, SRI-checked `app.js`. The page is smaller, the code is cached between deploys, and the CSP no longer needs a script hash (`script-src 'self'`). No change in behaviour.
 
 ## 1.2.0 (24 October 2026)
