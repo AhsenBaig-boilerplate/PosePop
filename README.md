@@ -67,6 +67,10 @@ GitHub Pages cannot set response headers, so `frame-ancestors`, HSTS and similar
 
 See [SECURITY.md](SECURITY.md) for known accepted risks and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for component licences.
 
+## Licence
+
+PosePop is licensed under the [Apache License 2.0](LICENSE). See [NOTICE](NOTICE). The name "PosePop" isn't licensed for use by other products. Bundled components keep their own licences; see the table below and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
 ## Third-party components
 
 | Component | Licence |
