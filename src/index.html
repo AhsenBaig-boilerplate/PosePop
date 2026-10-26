@@ -203,6 +203,12 @@ input[type=range]{width:100%;accent-color:var(--accent)}
             <label class="btn filebtn">Choose image<input id="pick" type="file" accept="image/*" aria-label="Choose an image"></label>
           </div>
           <p class="hint">You can also drop or paste an image anywhere on the page.</p>
+          <label class="toggle"><input id="keyOn" type="checkbox"> Green or blue screen behind people</label>
+          <div class="group" id="keyGroup" hidden>
+            <div class="row between"><span class="label">Screen removal</span><span class="readout" id="keyRead">5</span></div>
+            <input id="keyTol" type="range" min="1" max="10" step="1" value="5" aria-label="How much of the screen colour to remove">
+            <p class="hint" id="keyNote">PosePop finds the screen colour in each photo. Avoid clothes in the screen's colour.</p>
+          </div>
           <p class="status" id="segStatus" data-s="loading"><i></i><span>Loading person detection…</span></p>
         </div>
       </section>
