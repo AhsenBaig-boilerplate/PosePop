@@ -12,7 +12,7 @@
     "build": "node scripts/build.mjs",
     "verify": "node scripts/verify.mjs",
     "test": "npm run build && npm run verify && npm run test:unit",
-    "test:unit": "node --test tests/unit/",
+    "test:unit": "node --test tests/unit/*.test.mjs",
     "test:e2e": "playwright test",
     "start": "npm run build && node scripts/serve.mjs",
     "releases": "node scripts/releases.mjs"
