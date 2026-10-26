@@ -32,7 +32,8 @@ To use a release at an event, pick it in the footer's **Version** picker, or ope
 ```sh
 npm ci --ignore-scripts
 npm start          # build and preview on http://localhost:8080
-npm test           # build + release gate (what CI runs)
+npm test           # build + release gate + unit tests (what CI runs)
+npm run test:e2e   # Playwright end-to-end tests against dist/ (after npm test; first run: npx playwright install chromium)
 npm run releases   # also build every v* tag into dist/v/<version>/ (slow: npm ci per tag)
 ```
 
@@ -40,7 +41,7 @@ Edit the app in `src/app/*.js`, one file per section, joined in file-name order 
 
 ## How it ships
 
-Pushes to `main` run `.github/workflows/pages.yml`: install from the lockfile, audit, build, verify, then deploy to GitHub Pages with the official Pages actions. Pull requests run the same build and checks without deploying.
+Pushes to `main` run `.github/workflows/pages.yml`: install from the lockfile, audit, build, verify and run the unit tests; in a second job, run the Playwright end-to-end tests; then, once both pass, deploy to GitHub Pages with the official Pages actions. Pull requests run the same build and tests without deploying.
 
 ### Caching and updates
 

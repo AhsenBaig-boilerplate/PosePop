@@ -18,7 +18,12 @@ scripts/
   build.mjs           src/ + node_modules → dist/ (hashed names, SRI, CSP, build id)
   verify.mjs          release gate for dist/
   serve.mjs           local preview with production-like caching
-.github/workflows/pages.yml   CI: build + verify on PRs, deploy on main
+tests/
+  unit/               node --test (run by npm test)
+  e2e/                Playwright against dist/ (npm run test:e2e)
+  fixtures/           NASA test photos and where they came from (README.md)
+playwright.config.mjs
+.github/workflows/pages.yml   CI: build + verify + unit and e2e tests on PRs, deploy on main once both pass
 docs/                 this file, ROADMAP.md, DEVICE-TEST.md (real-device and test-print script)
 ```
 
@@ -163,6 +168,16 @@ Tested on a NASA green-screen photo (public domain, an unusual suspended pose): 
 - **Updates:** unchanged. The page still compares `version.json` with its own build and moves to `?v=<build>`, or shows the update bar mid-edit. With the page network-first, that navigation always gets the new HTML, and the new worker installs alongside.
 - **Status:** the footer adds "works offline" once this build's cache is complete (the people model, the largest file, is present), and `?debug=1` shows it under Build → offline.
 - **CSP:** none needed beyond the existing `worker-src 'self'`. The worker script isn't covered by the page's `<meta>` CSP (workers take their policy from response headers, which Pages can't set). It is our own code, and makes only same-origin requests.
+
+## Tests
+
+- **Unit (`tests/unit/`, `node --test`):** run by `npm test`, so before every commit and in both CI jobs. They cover the release-notes parser and check that `CHANGELOG.md` has a dated entry for `package.json`'s version.
+- **End-to-end (`tests/e2e/`, Playwright):** run against the built `dist/`, served by `scripts/serve.mjs` with production caching, in their own CI job; deploys wait for it. `tests/e2e/fixtures.mjs` fails any test that sees a page error, a console error or a CSP violation.
+- **Reading state:** `app.js` is one closed scope, so with `?debug=1` only, `112-test-snapshot.js` adds `window.posepopState()`. It returns a plain-data copy: people found, filled cells, each person's centre on the preview, the group's move and size, and edit counts. Without `?debug=1` it doesn't exist, and nothing in it can change the app. Tests drive the app only through the UI.
+- **Waiting:** the CSP blocks string eval, so `page.waitForFunction` fails. Use `expect.poll` and locator assertions (polling from the test side). `page.evaluate` works, because it runs over the DevTools protocol.
+- **Updates and the picker:** these tests block the service worker (`serviceWorkers: "block"`) so that `page.route` can answer `version.json` and `releases.json`. The offline test keeps it.
+- **Photos:** only the NASA photos in `tests/fixtures/` (sources in its README). Traces and screenshots from failed CI runs contain only those.
+- **Locally:** `npm run build && npm run test:e2e`. Where Playwright can't install its own Chromium (Ubuntu 20.04, for example), set `PW_CHROMIUM` to a Chromium binary, or run inside the `mcr.microsoft.com/playwright:v<version>-noble` image.
 
 ## Refactor notes
 

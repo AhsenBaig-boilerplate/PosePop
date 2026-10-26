@@ -1,6 +1,6 @@
 {
   "name": "posepop",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "private": true,
   "description": "Strike a pose, pop into a block world, and take home a sticker or photo print.",
   "license": "Apache-2.0",
@@ -11,7 +11,9 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "verify": "node scripts/verify.mjs",
-    "test": "npm run build && npm run verify",
+    "test": "npm run build && npm run verify && npm run test:unit",
+    "test:unit": "node --test tests/unit/",
+    "test:e2e": "playwright test",
     "start": "npm run build && node scripts/serve.mjs",
     "releases": "node scripts/releases.mjs"
   },
@@ -19,6 +21,7 @@
     "@fontsource/ibm-plex-mono": "5.3.0",
     "@fontsource/ibm-plex-sans": "5.3.0",
     "@fontsource/pixelify-sans": "5.3.0",
+    "@playwright/test": "1.63.0",
     "@tensorflow/tfjs": "4.22.0",
     "emoji-datasource-google": "16.0.0",
     "three": "0.128.0"

@@ -13,12 +13,12 @@ Read `docs/ARCHITECTURE.md` and `docs/ROADMAP.md` before changing code.
 
 ## Workflow
 
-- `npm ci --ignore-scripts`, then `npm test` (build + `scripts/verify.mjs`) must pass before every commit.
+- `npm ci --ignore-scripts`, then `npm test` (build + `scripts/verify.mjs` + unit tests) must pass before every commit. Run `npm run test:e2e` (Playwright, `tests/e2e/`) for any change to the app; CI runs it on every PR and deploys only when it passes.
 - `npm start` previews `dist/` at http://localhost:8080 with production caching rules.
 - Work on a branch and open a PR; `main` deploys to GitHub Pages automatically. Releases are signed `v<version>` tags matching `package.json`, with an entry in `CHANGELOG.md`. Every deploy also publishes each tag at `/v/<version>/` (see Releasing in the README).
 - GitHub Actions must stay pinned to full commit SHAs, with least-privilege `permissions:`.
 - For any user-visible change, test at phone width (~400 px) and desktop, in light and dark themes.
-- Browser tests: the CSP blocks string eval, so Playwright `wait_for_function` fails. Poll from the test side instead.
+- Browser tests: the CSP blocks string eval, so Playwright `wait_for_function` fails. Poll from the test side instead (`expect.poll`, locator assertions). Read app state with `window.posepopState()` (`?debug=1` only); extend `112-test-snapshot.js` rather than exposing internals any other way. Test photos are the NASA ones in `tests/fixtures/`; never commit guests' photos.
 
 ## Code map (`src/app/*.js`, one file per section, joined in name order into one `app.js`; markup and styles in `src/index.html`)
 

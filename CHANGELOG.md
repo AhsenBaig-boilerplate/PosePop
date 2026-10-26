@@ -2,6 +2,10 @@
 
 Versions follow [semantic versioning](https://semver.org): **major** for changes that break saved settings or the print workflow, **minor** for new features, **patch** for fixes. Each release is a signed `v<version>` tag and stays published at `/PosePop/v/<version>/`. See "Releasing" in the README.
 
+## 1.5.2 (26 October 2026)
+
+- **Tested before every release:** each change now runs automated browser tests on sample photos before it can go live. The tests find people, move, resize, erase, undo, save a 300 dpi sticker, update to a newer version and work offline. Nothing changes in how the app looks or works.
+
 ## 1.5.1 (26 October 2026)
 
 - **Faster with 3D worlds:** changing the detail, crop or border no longer redraws the 3D world. Each world is rendered once per size range and cropped to fit, so the "Placing blocks" pause with a world went from 1.2–10.2 s to 0.13–0.34 s in testing. The look is unchanged.
