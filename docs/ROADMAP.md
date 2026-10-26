@@ -14,7 +14,7 @@ Status: `[ ]` open · `[~]` in progress · `[x]` done. Priority: **P0** blocks e
 ## P1: quality and reliability
 
 - [ ] **Halve the people model download** with uint8 quantization (about 9.4 MB → 4.7 MB). The weights are already float16, so float16 conversion gains nothing. uint8 is lossier: compare detections on the single, group of 6 and seated test photos (the same ones the e2e tests need) before shipping.
-- [ ] **Move block conversion off the main thread.** After detection moved to a worker, "Placing blocks" (`convert` plus the first world render) is the only freeze left: about 5.6 s in headless Chromium, less on a real GPU. `convert` is pure pixel work and could join the worker; the world render needs WebGL on the page.
+- [~] **Make "Placing blocks" faster.** Measured: the pause was mostly the 3D world being re-rendered on every 1 px change in shape; worlds are now cached by size bucket (1.5.1). With a world: 1.2–10.2 s → 0.13–0.34 s in headless Chromium. Without one it was already 0.6–0.8 s. Still open: the first render of each world (about 7 s in software GL, far less on a GPU) could be warmed while people are being detected, and `convert` could move to the worker if real devices show it matters.
 - [~] **Improve cut-outs for seated or partly hidden people** (as in the car photo). Evaluate MediaPipe's multiclass selfie segmenter (Apache-2.0); it needs `'wasm-unsafe-eval'`, so weigh that against keeping the CSP strict. With a green or blue screen this is solved (1.4.0); without one it still needs a better model.
 - [ ] **Edge-aware cell sampling** ("Pixelated Image Abstraction", Gerstner et al. 2012): cells as superpixels that follow edges, so eyes and mouths stay sharp without dithering.
 - [ ] **Better detection on close-ups and big groups:** faces-only shots find nobody (the cut-out then falls back to colour), and big groups can be off by one (6 of 7, 10 of 9 in testing).
@@ -44,6 +44,7 @@ Status: `[ ]` open · `[~]` in progress · `[x]` done. Priority: **P0** blocks e
 
 ## Done
 
+- [x] World renders cached by size bucket: "Placing blocks" with a world 1.2–10.2 s → 0.13–0.34 s (1.5.1)
 - [x] Release notes in the app: headlines in the Version picker and a What's new panel, from `CHANGELOG.md` (1.5.0)
 - [x] Green or blue screen backdrop key, with despill and a clothes warning (1.4.0)
 - [x] Licence: Apache-2.0 (`LICENSE`, `NOTICE`, `package.json`)

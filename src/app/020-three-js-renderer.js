@@ -60,7 +60,19 @@ function drawSky(ctx,W,H,S,horizonY){
     ctx.fillStyle=S.sun.c;ctx.fillRect(Math.round(x-s/2),Math.round(y-s/2),s,s);ctx.fillStyle="rgba(255,255,255,.35)";const q=Math.round(s*.18);ctx.fillRect(Math.round(x-s/2)+q,Math.round(y-s/2)+q,s-2*q,s-2*q)}
 }
 const sceneCache=new Map();
+// Drawing a 3D world is the slowest step in the app, and the picture's exact shape changes with every detail or
+// crop change. So each world is rendered once per coarse size (long side rounded up to SCENE_BUCKET px, aspect to
+// SCENE_ASPECT_STEP) and cropped to the exact shape: bottom aligned so the ground stays under people's feet, at most
+// a few percent of sky or sides trimmed, never stretched. The preview and the 300 dpi print share a render too.
+const SCENE_BUCKET=256,SCENE_ASPECT_STEP=.08;
 function renderScene(kind,W,H){
+  const a=W/H,ab=Math.max(SCENE_ASPECT_STEP,Math.round(a/SCENE_ASPECT_STEP)*SCENE_ASPECT_STEP),L=Math.ceil(Math.max(W,H)/SCENE_BUCKET)*SCENE_BUCKET;
+  const Wb=ab>=1?L:Math.round(L*ab),Hb=ab>=1?Math.round(L/ab):L,full=renderSceneAt(kind,Wb,Hb);
+  // the exact shape inside the bucket render: wider than the bucket → trim the sky; taller → trim both sides
+  const sw=a>Wb/Hb?Wb:Hb*a,sh=a>Wb/Hb?Wb/a:Hb,sx=(Wb-sw)/2,sy=Hb-sh;
+  const c=document.createElement("canvas");c.width=W;c.height=H;const x=c.getContext("2d");x.imageSmoothingQuality="high";x.drawImage(full,sx,sy,sw,sh,0,0,W,H);return c;
+}
+function renderSceneAt(kind,W,H){
   const ck=kind+"|"+W+"|"+H;if(sceneCache.has(ck))return sceneCache.get(ck);
   const{scene,W:world}=buildScene(kind),S=world.S,rd=getRenderer();
   const aspect=W/H,fov=aspect>=1?52:64,cam=new THREE.PerspectiveCamera(fov,aspect,.1,400);
