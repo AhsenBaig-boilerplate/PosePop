@@ -20,7 +20,7 @@ Add `?kiosk=1` to the URL for events: a start screen, a live camera with a 3-2-1
 
 ## Releasing
 
-1. In a PR, bump `version` in `package.json` and move the "unreleased" heading in `CHANGELOG.md` to the version and date. Merge it.
+1. In a PR, bump `version` in `package.json` and add a `## <version> (<date>)` section to `CHANGELOG.md`. Start each bullet with a **bold headline:**; the first one becomes the version's headline in the app's picker, and all of them appear under **What's new**. Merge it.
 2. Tag that commit with a signed tag and push the tag: `git tag -s v1.2.0 -m "PosePop 1.2.0"`, then `git push origin v1.2.0`.
 3. Deploy: `gh workflow run "Build and deploy" --ref main`. Pages only accepts deploys from `main`, so a tag push doesn't deploy by itself. Every deploy also rebuilds all `v*` tags.
 4. The release is now at `/PosePop/v/1.2.0/` and in the Version picker. Optionally, add release notes with `gh release create v1.2.0 --notes-file …`.
