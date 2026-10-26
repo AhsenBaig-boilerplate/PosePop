@@ -8,6 +8,7 @@ import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } 
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { notesFor, readChangelog } from "./changelog.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const dist = join(root, "dist");
@@ -18,6 +19,8 @@ const semver = (t) => t.slice(1).split(".").map(Number);
 const tags = git("tag", "--list", "v*").split("\n").filter((t) => /^v\d+\.\d+\.\d+$/.test(t))
   .sort((a, b) => { const x = semver(a), y = semver(b); return y[0] - x[0] || y[1] - x[1] || y[2] - x[2]; });
 
+// release notes come from the current CHANGELOG.md, so later corrections reach older releases too
+const log = readChangelog(join(root, "CHANGELOG.md"));
 const releases = [];
 for (const tag of tags) {
   const version = tag.slice(1), commit = git("rev-list", "-n", "1", tag), date = git("log", "-1", "--format=%cs", tag);
@@ -29,7 +32,8 @@ for (const tag of tags) {
     const out = join(dist, "v", version);
     cpSync(join(tmp, "dist"), out, { recursive: true });
     const { build } = JSON.parse(readFileSync(join(out, "version.json"), "utf8"));
-    releases.push({ version, date, commit, build, path: `v/${version}/` });
+    const { headline, notes } = notesFor(log, version);
+    releases.push({ version, date, commit, build, path: `v/${version}/`, headline, notes });
     console.log(`release ${version} (${date}) → dist/v/${version}/ build ${build}`);
   } finally {
     try { git("worktree", "remove", "--force", tmp); } catch {}
@@ -37,5 +41,5 @@ for (const tag of tags) {
   }
 }
 const latest = JSON.parse(readFileSync(join(dist, "version.json"), "utf8"));
-writeFileSync(join(dist, "releases.json"), JSON.stringify({ latest: { version: latest.version, build: latest.build }, releases }, null, 2) + "\n");
+writeFileSync(join(dist, "releases.json"), JSON.stringify({ latest: { version: latest.version, build: latest.build, ...notesFor(log, latest.version) }, releases }, null, 2) + "\n");
 console.log(`releases.json: latest ${latest.version} and ${releases.length} release(s)`);

@@ -2,6 +2,10 @@
 
 Versions follow [semantic versioning](https://semver.org): **major** for changes that break saved settings or the print workflow, **minor** for new features, **patch** for fixes. Each release is a signed `v<version>` tag and stays published at `/PosePop/v/<version>/`. See "Releasing" in the README.
 
+## 1.5.0 (26 October 2026)
+
+- **Release notes in the app:** the Version picker shows each version's headline (for example "1.4.0 · 26 October 2026 — Green or blue screen"), and **What's new** next to it lists what changed in every version, with the one you're on highlighted. The notes come from this changelog.
+
 ## 1.4.0 (26 October 2026)
 
 - **Green or blue screen:** with "Green or blue screen behind people" on (Photo panel), the cut-out comes from keying out the screen colour, not the person detector. That gives sharp, complete cut-outs, including legs, seated people and unusual poses. The screen colour is found in each photo. Detection still finds and separates people, and anything outside their boxes is dropped. Screen-coloured fringes are removed, and **Screen removal** (1–10) tunes how much near-screen colour goes. If the people match the screen colour (clothes), a warning says so. No green or blue screen in the photo: the detector's cut-out is used as before.

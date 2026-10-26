@@ -44,6 +44,7 @@ Status: `[ ]` open · `[~]` in progress · `[x]` done. Priority: **P0** blocks e
 
 ## Done
 
+- [x] Release notes in the app: headlines in the Version picker and a What's new panel, from `CHANGELOG.md` (1.5.0)
 - [x] Green or blue screen backdrop key, with despill and a clothes warning (1.4.0)
 - [x] Licence: Apache-2.0 (`LICENSE`, `NOTICE`, `package.json`)
 - [x] Emoji style: 73 Noto Emoji, with skin from skin-tone hands and no animals, foods or double-meaning emoji on faces (1.3.0)

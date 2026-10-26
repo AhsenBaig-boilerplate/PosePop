@@ -8,6 +8,7 @@ import { execSync } from "node:child_process";
 import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { notesFor, readChangelog } from "./changelog.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const out = join(root, "dist");
@@ -157,7 +158,7 @@ writeFileSync(join(out, "sw.js"), readFileSync(join(root, "src/sw.js"), "utf8")
   .replace("__BUILD_ID__", build).replace("__PRECACHE__", JSON.stringify(precache)));
 writeFileSync(join(out, "version.json"), JSON.stringify({ version, build, commit, builtAt }, null, 2) + "\n");
 // Latest only; scripts/releases.mjs replaces it with the full list on deploys.
-writeFileSync(join(out, "releases.json"), JSON.stringify({ latest: { version, build }, releases: [] }, null, 2) + "\n");
+writeFileSync(join(out, "releases.json"), JSON.stringify({ latest: { version, build, ...notesFor(readChangelog(join(root, "CHANGELOG.md")), version) }, releases: [] }, null, 2) + "\n");
 writeFileSync(join(out, "asset-manifest.json"), JSON.stringify({ build, assets: manifest }, null, 2) + "\n");
 writeFileSync(join(out, ".nojekyll"), "");
 console.log(`Built ${build}: ${Object.keys(manifest).length} assets, ${scriptHashes.length} inline script, ${styleHashes.length} inline style`);
