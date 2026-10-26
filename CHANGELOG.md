@@ -2,6 +2,10 @@
 
 Versions follow [semantic versioning](https://semver.org): **major** for changes that break saved settings or the print workflow, **minor** for new features, **patch** for fixes. Each release is a signed `v<version>` tag and stays published at `/PosePop/v/<version>/`. See "Releasing" in the README.
 
+## 1.5.1 (26 October 2026)
+
+- **Faster with 3D worlds:** changing the detail, crop or border no longer redraws the 3D world. Each world is rendered once per size range and cropped to fit, so the "Placing blocks" pause with a world went from 1.2–10.2 s to 0.13–0.34 s in testing. The look is unchanged.
+
 ## 1.5.0 (26 October 2026)
 
 - **Release notes in the app:** the Version picker shows each version's headline (for example "1.4.0 · 26 October 2026 — Green or blue screen"), and **What's new** next to it lists what changed in every version, with the one you're on highlighted. The notes come from this changelog.
