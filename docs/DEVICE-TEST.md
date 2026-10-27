@@ -85,7 +85,7 @@ Use the Group of 6 photo and the **Plains** world, with the **Thin** border. Wit
 
 1. Under **Stickers per sheet**, choose the count. Record **Print → piece** (the width and height in inches) and **Print → sheet** (grid and rotation).
 2. Tap **Save full sheet** as well. It shows PosePop's intended layout to compare with Design Space's.
-3. **Save sticker PNG** and upload it to a new StickerPix Print + Cut project in Design Space.
+3. **Save sticker** and upload it to a new StickerPix Print + Cut project in Design Space.
 4. Check the size Design Space imports it at. The PNG is tagged at 300 dpi. If Design Space ignores that tag, the image arrives at a different size. Either way, set the width to the value from step 1 with the size lock on, and record what it imported at.
 5. Set the project quantity to the count.
    *Expect:* all copies fit on **one** sheet. If Design Space needs a second sheet, record how many fit on the first.

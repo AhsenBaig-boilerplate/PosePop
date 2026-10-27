@@ -2,6 +2,10 @@
 
 Versions follow [semantic versioning](https://semver.org): **major** for changes that break saved settings or the print workflow, **minor** for new features, **patch** for fixes. Each release is a signed `v<version>` tag and stays published at `/PosePop/v/<version>/`. See "Releasing" in the README.
 
+## 1.7.0 (27 October 2026)
+
+- **The picture stays in view:** the picture and the sheet preview now stay on screen while you change settings, so every change shows straight away without scrolling back up. On a phone the picture pins to the top, with a small sheet beside it, and the settings scroll underneath. Settings are grouped into four tabs: **Style**, **World**, **Edit** and **Print**. Less-used options (dithering, 3D edges, shadow, zoom and the grid) are under **More options**, and **Undo**, **Redo**, **Hold to compare** and **Save sticker** sit right under the picture. Kiosk guests still see the styles and worlds, without the tabs.
+
 ## 1.6.0 (27 October 2026)
 
 - **Keyboard and screen reader support:** press Tab once and choose "Skip to the picture". Then arrow keys move the group (hold Shift for bigger steps), + and − resize, and in Move each, [ and ] choose a person. Undo works as with a drag. Screen readers now hear how many people were found, when a sticker is saved, and each move, resize and undo, and the picture's description matches what it shows.

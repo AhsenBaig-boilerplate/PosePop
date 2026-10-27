@@ -1,5 +1,5 @@
 // Editing a detected group: move, resize, erase, undo and redo, then save the sticker.
-import { test, expect, watch, openApp, loadPhoto, state, dragOn, personCentre } from "./fixtures.mjs";
+import { test, expect, watch, openApp, loadPhoto, state, dragOn, personCentre, openTab } from "./fixtures.mjs";
 
 test.describe.configure({ mode: "serial" });
 // one page for the whole file: detecting the group once keeps the suite fast
@@ -10,6 +10,7 @@ test.beforeAll(async ({ browser }, info) => {
   problems = watch(page);
   await openApp(page);
   await loadPhoto(page, "group7.jpg");
+  await openTab(page, "edit");
 });
 test.afterEach(() => { expect(problems, "page errors, console errors or CSP violations").toEqual([]); });
 test.afterAll(async () => { await page.close(); });

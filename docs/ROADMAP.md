@@ -19,6 +19,7 @@ Status: `[ ]` open · `[~]` in progress · `[x]` done. Priority: **P0** blocks e
 - [ ] **Better detection on close-ups and big groups:** faces-only shots find nobody (the cut-out then falls back to colour), and big groups can be off by one (6 of 7, 10 of 9 in testing).
 - [x] **Unit tests** for the pure functions (refactor note 8), in `npm test` (1.5.3). The pure functions now live in `src/app/007-pure-functions.js`, which the tests load on its own in a bare `vm`, with no page, so the file can't quietly start depending on the DOM. They check `toLab` against reference colours, `deltaE00` against Sharma's published pairs, `kmeans`, `keyColor`, `errorDiffuse` and `sceneBucket`, plus the changelog parser (1.5.2). New pure helpers go in that file, with a test.
 - [ ] **Speed up the e2e suite.** Detection in CI runs without a GPU, so each photo takes 1.5–2.5 minutes and the suite about 8 minutes. If it grows, cache the Playwright browser and split the spec files across jobs.
+- [ ] **Emoji on the picture** (next, 1.8.0): add Noto Emoji as stickers on top of the picture (party hats, hearts, stars), then move, resize, rotate or remove each one, with undo. They print with the sticker, inside its cut line, and work with every style and world.
 - [~] **More styles beyond blocks**, picked next to the world picker. The `Style` interface (refactor note 7) and Retro pixel are done; each further style is one entry in `STYLES`. Every style is a generic look with original art: no game, toy or brand names, logos or characters. Candidates, roughly by appeal and effort:
   - ~~**Emoji mosaic**~~ done in 1.3.0 (73 Noto Emoji; skin from skin-tone hands).
   - ~~**Retro pixel (8-bit / 16-bit)**~~ done: DawnBringer 16 or 4 handheld greens, with ordered dithering. Still open: an optional scanline frame.
@@ -43,6 +44,7 @@ Status: `[ ]` open · `[~]` in progress · `[x]` done. Priority: **P0** blocks e
 
 ## Done
 
+- [x] **The picture stays in view (1.7.0):** the preview and sheet are sticky beside the settings on wide screens and pinned to the top on phones. The settings are in four tabs (Style, World, Edit, Print) with less-used options under More options, and Undo, Redo, Hold to compare and Save sticker sit under the picture.
 - [x] **Keyboard editing and announcements (1.6.0):**
   - a "Skip to the picture" link on the first Tab
   - a focusable preview with a visible focus outline

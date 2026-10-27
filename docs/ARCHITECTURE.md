@@ -108,7 +108,7 @@ A style decides what the people are made of. Detection, masks, editing, worlds a
 
 **Emoji curation** (the `EMOJI` list in `build.mjs`): the build copies each chosen PNG from the pinned `emoji-datasource-google` as a hashed asset, and writes the list into the app as `__EMOJI__`. The images load when the style is first picked (`loadEmoji`). Two rules apply, because every face at an event is drawn with them: **skin must come from neutral emoji** (raised hands in 5 skin tones, hearts, squares), so animals and foods whose colour falls in the skin-tone range are excluded; and **no emoji with well-known double meanings**. Check new candidates on several real photos across skin tones before adding them.
 
-**Look** (`S.look`, People panel) applies to every style:
+**Look** (`S.look`, Style tab) applies to every style:
 
 - **Clean** (default): a gentle contrast (`LOOK_STRETCH`) and saturation (`LOOK_SAT`) lift taken from the people's own 2nd–98th brightness percentiles. Then `LOOK_K` k-means clusters of the people's colours, each snapped to the closest block with a cost for grainy textures (`LOOK_SMOOTH`, using each block's `busy`). Colours further than `LOOK_KEEP` ΔE from every cluster, on at least `LOOK_KEEP_N` cells, keep their own block, which is what preserves eyes and mouths. Cells are then matched to that short palette. After that, **lone cells** (no neighbour with the same block, but 3 or more neighbours sharing another block) join that block if it is within `LOOK_SPECK` ΔE2000. That removes shading flips but keeps genuinely different 1-cell features such as pupils. Dithering is off by default, and the lone-cell pass is skipped when it's on.
 - **Detailed:** the full palette with dithering, byte-for-byte the previous behaviour.
@@ -168,6 +168,12 @@ Tested on a NASA green-screen photo (public domain, an unusual suspended pose): 
 - **Updates:** unchanged. The page still compares `version.json` with its own build and moves to `?v=<build>`, or shows the update bar mid-edit. With the page network-first, that navigation always gets the new HTML, and the new worker installs alongside.
 - **Status:** the footer adds "works offline" once this build's cache is complete (the people model, the largest file, is present), and `?debug=1` shows it under Build → offline.
 - **CSP:** none needed beyond the existing `worker-src 'self'`. The worker script isn't covered by the page's `<meta>` CSP (workers take their policy from response headers, which Pages can't set). It is our own code, and makes only same-origin requests.
+
+## Layout
+
+- **The picture first, and sticky:** `.stage` (the preview, the to-scale sheet, and Undo, Redo, Hold to compare, Save sticker) comes first in the page, so reading and Tab order match what's on screen. On wide screens it sits left of the settings rail with `position:sticky`, and `#out` is capped at the viewport height less the action rows, so it never scrolls away. On phones (≤ 900 px) it pins to the top at about 40 % of the screen height, with a 64 px sheet beside it, and the settings scroll underneath. Screens under 561 px tall (landscape phones) and kiosk mode keep it in the page flow, where pinning would leave no room for the settings.
+- **Settings tabs (`073-settings-tabs.js`):** the photo card stays above the tabs. **Style** (style, detail, look, palette, and More options), **World**, **Edit** (tools, move modes, brush, size, resets) and **Print** (media, count, border, the other saves, Design Space steps) are WAI-ARIA tabs: one Tab stop, arrows and Home and End move between tabs and open them, and closed panels are `hidden`. Controls keep their ids, so the code that drives them doesn't know about tabs. In kiosk mode the tab row is operator-only, and the guest panels (`.tabpanel.guest`: Style and World) are always shown.
+- **Tests:** `tests/e2e/layout.spec.mjs` checks the picture and Save stay on screen at the end of the Print settings on a 400 px phone and a 1280 px desktop, the tab keys, and the kiosk guest view. With `?debug=1` the diagnostics panel floats over the settings, so the tests' `closeDiag` (also called by `openTab`) collapses it first.
 
 ## Accessibility
 
