@@ -13,7 +13,6 @@ Status: `[ ]` open · `[~]` in progress · `[x]` done. Priority: **P0** blocks e
 
 ## P1: quality and reliability
 
-- [ ] **Halve the people model download** with uint8 quantization (about 9.4 MB → 4.7 MB). The weights are already float16, so float16 conversion gains nothing. uint8 is lossier: compare detections on the test photos in `tests/fixtures/` (`npm run test:e2e` checks the counts) before shipping.
 - [~] **Make "Placing blocks" faster.** Measured: the pause was mostly the 3D world being re-rendered on every 1 px change in shape; worlds are now cached by size bucket (1.5.1). With a world: 1.2–10.2 s → 0.13–0.34 s in headless Chromium. Without one it was already 0.6–0.8 s. Still open: the first render of each world (about 7 s in software GL, far less on a GPU) could be warmed while people are being detected, and `convert` could move to the worker if real devices show it matters.
 - [~] **Improve cut-outs for seated or partly hidden people** (as in the car photo). Evaluate MediaPipe's multiclass selfie segmenter (Apache-2.0); it needs `'wasm-unsafe-eval'`, so weigh that against keeping the CSP strict. With a green or blue screen this is solved (1.4.0); without one it still needs a better model.
 - [ ] **Edge-aware cell sampling** ("Pixelated Image Abstraction", Gerstner et al. 2012): cells as superpixels that follow edges, so eyes and mouths stay sharp without dithering.
@@ -44,6 +43,11 @@ Status: `[ ]` open · `[~]` in progress · `[x]` done. Priority: **P0** blocks e
 
 ## Done
 
+- [x] **uint8 people model: tried, not shipped (27 October 2026).** TF.js loads per-tensor uint8 weights natively, so the 9.45 MB MoveNet file could drop to 4.80 MB. Compared with float16 on the test photos, which give identical results run to run (box IoU 1.0, same cells):
+  - **All large tensors in uint8 (4.80 MB):** an extra person on `single.jpg` and `greenscreen.jpg` (whose cut-out lost 88 % of its cells), and one box on `group7.jpg` at IoU 0.30.
+  - **Kept the 5 depthwise kernels below 25 dB SNR in float16 (4.85 MB):** worse. 3 people instead of 1 on `greenscreen.jpg`, 4 instead of 3 on `group6.jpg`, and IoU 0.39 on `group7.jpg`.
+  - **Kept the 9 tensors below 30 dB in float16 (5.49 MB):** exact on `single.jpg` and close on `group6.jpg`, but still 3 people instead of 1 on `greenscreen.jpg`.
+  - **Verdict:** per-tensor uint8 is too coarse for this model, and the next threshold (35 dB) would save only 19 % (7.62 MB). The model downloads once and is then cached for offline use, so the risk isn't worth it. Revisit only with per-channel quantization (not in TF.js's weight format) or a smaller model, and measure the same way: people count, box IoU and filled cells against float16, before and after.
 - [x] End-to-end tests in CI (1.5.2): Playwright against `dist/` on four NASA photos (single, seated, group of 7, green screen). They cover detection counts and the worker, the backdrop key, move group and each, resize, erase, undo and redo, the 300 dpi save, the update flow (a newer `version.json`, with and without work in progress), the version picker and release notes (notes stay text), and offline reloads. Any page error, console error or CSP violation fails a test, and deploys wait for the suite
 - [x] World renders cached by size bucket: "Placing blocks" with a world 1.2–10.2 s → 0.13–0.34 s (1.5.1)
 - [x] Release notes in the app: headlines in the Version picker and a What's new panel, from `CHANGELOG.md` (1.5.0)
