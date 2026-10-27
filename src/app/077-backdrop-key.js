@@ -5,23 +5,10 @@
 // photo, so a white frame or a light stand doesn't confuse it. Screen-coloured fringes are removed from the edges
 // (despill). Like any chroma key, clothing in the screen's own colour is keyed out too.
 S.key={on:false,tol:5};
-const ycc=(r,g,b)=>[128-.168736*r-.331264*g+.5*b,128+.5*r-.418688*g-.081312*b];
-function keyColor(d){ // d: RGBA pixels → {cb, cr, rgb, main channel} or null when there's no green or blue screen
-  const bins=new Uint32Array(1024),sum=new Float64Array(3072);let seen=0;
-  for(let i=0;i<d.length;i+=16){const r=d[i],g=d[i+1],b=d[i+2],[cb,cr]=ycc(r,g,b);seen++;
-    if(Math.hypot(cb-128,cr-128)<24)continue; // greys, whites and other weak colours can't be a screen
-    const k=(Math.min(255,cb)>>3)*32+(Math.min(255,cr)>>3);bins[k]++;sum[k*3]+=r;sum[k*3+1]+=g;sum[k*3+2]+=b}
-  const order=[...bins.keys()].filter(k=>bins[k]).sort((a,b)=>bins[b]-bins[a]);
-  for(const k of order){const n=bins[k];if(n<seen*KEY_MIN_COVER)break;
-    const r=sum[k*3]/n,g=sum[k*3+1]/n,b=sum[k*3+2]/n;
-    // only clear greens and blues: a red or skin-coloured "screen" would cut into people
-    if((g>r*1.15&&g>b*1.05)||(b>r*1.15&&b>g*1.05)){const[cb,cr]=ycc(r,g,b);return{cb,cr,rgb:[r,g,b].map(Math.round),main:g>=b?1:2}}}
-  return null;
-}
-// KEY_MIN_COVER: share of the photo the screen colour must cover; tolerance 1–10 sets how much near-screen colour goes
+// KEY_MIN_COVER (in 007-pure-functions.js): share of the photo the screen colour must cover; tolerance 1–10 sets how much near-screen colour goes
 // KEY_CLOTHES: share of what the detector is sure is a person that the key would remove, above which the people
 // probably wear the screen's colour
-const KEY_MIN_COVER=.08,KEY_CLOTHES=.45;
+const KEY_CLOTHES=.45;
 function chromaKey(img,boxes,tol,mlMask){
   const W=img.naturalWidth||img.width,H=img.naturalHeight||img.height,c=document.createElement("canvas");c.width=W;c.height=H;
   const x=c.getContext("2d",{willReadFrequently:true});x.drawImage(img,0,0);const id=x.getImageData(0,0,W,H),d=id.data,k=keyColor(d);if(!k)return null;

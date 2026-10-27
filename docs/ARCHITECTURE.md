@@ -171,7 +171,9 @@ Tested on a NASA green-screen photo (public domain, an unusual suspended pose): 
 
 ## Tests
 
-- **Unit (`tests/unit/`, `node --test`):** run by `npm test`, so before every commit and in both CI jobs. They cover the release-notes parser and check that `CHANGELOG.md` has a dated entry for `package.json`'s version.
+- **Unit (`tests/unit/`, `node --test`):** run by `npm test`, so before every commit and in both CI jobs.
+  - **The app's pure functions:** colour conversion and difference, k-means, dithering, screen-colour detection and world-render sizing live in `src/app/007-pure-functions.js` (with `005-random-noise.js`). `tests/unit/pure.mjs` loads just those two files in a bare `vm` context, with no `window`, no `document` and no app state, so a DOM reference in them fails the tests. Results are passed back through `structuredClone`, so they compare as ordinary arrays. Reference values: `toLab` on sRGB primaries, and `deltaE00` on Sharma, Wu & Dalal's published test pairs.
+  - **The release-notes parser:** also checks that `CHANGELOG.md` has a dated entry for `package.json`'s version.
 - **End-to-end (`tests/e2e/`, Playwright):** run against the built `dist/`, served by `scripts/serve.mjs` with production caching, in their own CI job; deploys wait for it. `tests/e2e/fixtures.mjs` fails any test that sees a page error, a console error or a CSP violation.
 - **Reading state:** `app.js` is one closed scope, so with `?debug=1` only, `112-test-snapshot.js` adds `window.posepopState()`. It returns a plain-data copy: people found, filled cells, each person's centre on the preview, the group's move and size, and edit counts. Without `?debug=1` it doesn't exist, and nothing in it can change the app. Tests drive the app only through the UI.
 - **Waiting:** the CSP blocks string eval, so `page.waitForFunction` fails. Use `expect.poll` and locator assertions (polling from the test side). `page.evaluate` works, because it runs over the DevTools protocol.
