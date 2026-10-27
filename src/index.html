@@ -106,6 +106,10 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 #out.painting{cursor:crosshair}
 #out.moving{cursor:grab}
 #out{touch-action:none}
+#out:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.skip{position:absolute;left:8px;top:-60px;z-index:50;padding:10px 14px;border-radius:6px;background:var(--accent);color:var(--accent-fg);font-weight:600;text-decoration:none}
+.skip:focus{top:8px;outline:2px solid var(--fg);outline-offset:2px}
+.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}
 .btn[disabled]{opacity:.45;cursor:default}
 #orig{position:absolute;pointer-events:none}
 .busy{position:absolute;top:22px;right:22px;font:500 .8rem var(--f-mono);background:var(--surface);color:var(--fg);padding:4px 8px;border-radius:3px}
@@ -190,6 +194,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 </style>
 </head>
 <body>
+<a class="skip op" href="#out">Skip to the picture</a>
 <div class="wrap">
   <div class="top">
     <h1>Pose<span>Pop</span></h1>
@@ -324,7 +329,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
             <button class="btn" id="saveSheet">Save full sheet</button>
           </div>
           <button class="btn small self-start" id="saveCsv">Save block list (CSV)</button>
-          <p class="hint" id="saveMsg"></p>
+          <p class="hint" id="saveMsg" role="status"></p>
         </div>
       </section>
     </aside>
@@ -332,10 +337,12 @@ input[type=range]{width:100%;accent-color:var(--accent)}
     <section class="stage">
       <div class="view">
         <div class="frame" id="frame">
-          <canvas id="out" aria-label="People rebuilt from blocks in a 3D block world"></canvas>
+          <canvas id="out" tabindex="0" aria-label="People rebuilt from blocks in a 3D block world" aria-describedby="kbdHelp"></canvas>
           <canvas id="orig" hidden></canvas>
           <span class="busy" id="busy" hidden>Placing blocks…</span>
         </div>
+        <p class="sr" id="kbdHelp">With the Move tool: arrow keys move, Shift and an arrow moves further, plus and minus resize, and in Move each, the bracket keys choose a person.</p>
+        <p class="sr" id="announce" role="status" aria-live="polite"></p>
         <div class="sheetbox op">
           <span class="label" id="sheetLabel">Sticker sheet</span>
           <canvas id="sheet" aria-label="Sheet layout preview, to scale"></canvas>
@@ -348,7 +355,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
       </div>
       <div class="row op">
         <button class="btn" id="peek">Hold to compare with photo</button>
-        <span class="note" id="srcNote">Showing the built-in sample. Take or choose a photo to start.</span>
+        <span class="note" id="srcNote" role="status">Showing the built-in sample. Take or choose a photo to start.</span>
       </div>
       <div class="howto op">
         <h3>Printing in Design Space</h3>

@@ -39,7 +39,7 @@ function renderSteps(P){
 function previewSize(P){const long=1100,ar=P.win/P.hin;return ar>=1?[long,Math.round(long/ar)]:[Math.round(long*ar),long]}
 function redraw(){
   buildView(true);const P=frameSize(),[pw,ph]=previewSize(P),out=$("out");
-  compose(out,pw,ph,true);
+  compose(out,pw,ph,true);describeOut();
   const list=counts(),total=list.reduce((a,b)=>a+b[1],0);
   if(!ST().photo){const{w:vw,cells}=S.view;let pairs=0,diff=0;for(let i=0;i<cells.length;i++){if(cells[i]<0)continue;
     for(const j of[i%vw<vw-1?i+1:-1,i+vw])if(j>=0&&j<cells.length&&cells[j]>=0){pairs++;if(cells[j]!==cells[i])diff++}}
