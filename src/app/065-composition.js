@@ -24,6 +24,10 @@ function frameSize(){ // inches of the printed piece
   const layout=layoutFor(win,hin,S.count||null);
   return{media:"sticker",win,hin,capped,copies:layout.n,layout};
 }
+// Handles keep one size on screen whatever the canvas is scaled to (it is 1100 px wide but often shown at 300 px on a
+// phone), and are bigger on touch screens. Only the preview draws them.
+const HANDLE_CSS=matchMedia("(pointer:coarse)").matches?24:14;
+const handlePx=(canvas,css)=>{const w=canvas.getBoundingClientRect().width;return Math.round(css*(w?canvas.width/w:1))};
 function canMove(){return S.scene!=="none"||S.media==="photo"}
 // backgrounds that aren't 3D worlds: the photo's own background, a plain color, or the operator's own image
 const BACKDROPS={original:1,color:1,image:1},isWorld=k=>k!=="none"&&!BACKDROPS[k];
@@ -100,8 +104,11 @@ function compose(canvas,Wpx,Hpx,preview){
       st.drawCell(ctx,cells[i],x0,y0,bw,bh,bevel,t);
       if(boxing){ctx.fillStyle=BOXC[Lr.L%BOXC.length]+"55";ctx.fillRect(x0,y0,bw,bh);continue}
       if(preview&&S.grid&&c>=6){ctx.fillStyle="rgba(0,0,0,.3)";ctx.fillRect(x0,y0,1,bh);ctx.fillRect(x0,y0,bw,1)}}}
-  S.layout.sel=null;S.layout.boxes=null;
+  // emoji on top of everyone; on a cut-out sticker they get the people's white border
+  drawDeco(ctx,Wpx,Hpx,!hasScene&&S.media==="sticker"?S.border*cell:0);
+  S.layout.sel=null;S.layout.boxes=null;S.layout.deco=null;
   if(boxing)drawBoxes(ctx,ox,oy,cell,Wpx,Hpx);
+  else if(preview&&S.tool==="move"&&S.decoSel>=0)drawDecoSel(ctx,Wpx,Hpx); // a selected emoji takes over the handles
   else if(preview&&movable&&layers.length&&S.tool==="move"){const Lr=layers.find(l=>l.L===S.sel)||layers[0];if(Lr){S.sel=Lr.L;
     // the selection frames everyone in group mode, otherwise the selected person
     const group=S.moveMode==="group";let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
@@ -110,7 +117,7 @@ function compose(canvas,Wpx,Hpx,preview){
     ctx.save();ctx.setLineDash([8,6]);ctx.lineWidth=2;ctx.strokeStyle="rgba(255,255,255,.95)";
     ctx.strokeRect(...bx);ctx.strokeStyle="rgba(0,0,0,.6)";ctx.lineDashOffset=7;ctx.strokeRect(...bx);ctx.setLineDash([]);
     // corner handles for resizing
-    const hs=Math.max(12,Math.round(Wpx/60)),cxl=v=>Math.max(hs*.75,Math.min(Wpx-hs*.75,v)),cyl=v=>Math.max(hs*.75,Math.min(Hpx-hs*.75,v));
+    const hs=handlePx(canvas,HANDLE_CSS),cxl=v=>Math.max(hs*.75,Math.min(Wpx-hs*.75,v)),cyl=v=>Math.max(hs*.75,Math.min(Hpx-hs*.75,v));
     const corners=[[bx[0],bx[1]],[bx[0]+bx[2],bx[1]],[bx[0],bx[1]+bx[3]],[bx[0]+bx[2],bx[1]+bx[3]]].map(([x,y])=>[cxl(x),cyl(y)]);
     for(const[cx,cy]of corners){ctx.fillStyle="#ffffff";ctx.fillRect(cx-hs/2,cy-hs/2,hs,hs);ctx.lineWidth=2;ctx.strokeStyle="rgba(0,0,0,.75)";ctx.strokeRect(cx-hs/2,cy-hs/2,hs,hs)}
     ctx.restore();
@@ -121,7 +128,7 @@ function compose(canvas,Wpx,Hpx,preview){
 const BOXC=["#ff4d4d","#2f9bff","#ffc61a","#3ccf4e","#b86bff","#ff8a1f"];
 function drawBoxes(ctx,ox,oy,cell,Wpx,Hpx){ // each person's box in their color; the selected one has edge handles
   const C=S.crop,p=S.view.pad,R=S.result,tx=g=>ox+(g-C.x0+p)*cell,ty=g=>oy+(g-C.y0+p)*cell;
-  const hs=Math.max(14,Math.round(Wpx/55)),cl=(v,m)=>Math.max(2,Math.min(m-2,v));
+  const hs=handlePx(ctx.canvas,HANDLE_CSS+2),cl=(v,m)=>Math.max(2,Math.min(m-2,v));
   // kept on the canvas, so an edge beyond the picture can still be grabbed
   const rects=S.layout.boxes=effBoxes().map(b=>[cl(tx(b.x*R.w),Wpx),cl(ty(b.y*R.h),Hpx),cl(tx((b.x+b.w)*R.w),Wpx),cl(ty((b.y+b.h)*R.h),Hpx)]);
   ctx.save();ctx.font="600 "+hs+"px "+getComputedStyle(document.body).fontFamily;ctx.textBaseline="top";

@@ -9,4 +9,5 @@ function personCentre(Lr){const L=S.layout,{w,h,lay}=S.view,P=L.pl(Lr.L);let sx=
 if(DEBUG)Object.defineProperty(window,"posepopState",{value:()=>{const v=S.view,people=[];
   if(v&&S.layout)for(const Lr of S.layout.order)people[Lr.L]=personCentre(Lr);
   return JSON.parse(JSON.stringify({boxes:(S.boxes||[]).length,layers:v?v.layers.length:0,filled:v?v.cells.reduce((n,c)=>n+(c>=0),0):0,
-    people,group:S.gplace,place:S.place,fixes:S.fixes.length,keyed:!!S.srcRaw&&S.src!==S.srcRaw}))}});
+    people,group:S.gplace,place:S.place,fixes:S.fixes.length,keyed:!!S.srcRaw&&S.src!==S.srcRaw,
+    deco:S.deco.map(({k,x,y,s,r})=>({name:DECO_LIST[k][0],x,y,s,r})),decoSel:S.decoSel}))}});

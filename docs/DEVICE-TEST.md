@@ -95,6 +95,7 @@ Use the Group of 6 photo and the **Plains** world, with the **Thin** border. Wit
    - the smallest margin from a sticker to the sheet edge
    - the smallest gap between two stickers
    - how far the cut line is offset from the white border, and in which direction
+8. Once, with emoji (**Emoji** tab): add a crown, a heart and a party popper, overlapping the people, on a world and then as a cut-out (world **None**). Check that the emoji print sharp, and on the cut-out that the cut goes round them. Record whether the party popper's loose confetti bits cut as tiny separate pieces, and whether a **Thick** border joins them.
 
 ### Reference sizes from the current estimates
 

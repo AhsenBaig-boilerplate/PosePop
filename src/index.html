@@ -101,6 +101,12 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .tablist [role=tab]:hover{color:var(--fg)}
 .tablist [role=tab][aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent)}
 .tabpanel{padding:16px;display:flex;flex-direction:column;gap:14px}
+.emojis{display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:4px}
+.emo{display:flex;align-items:center;justify-content:center;aspect-ratio:1;min-height:44px;padding:4px;border:1px solid transparent;border-radius:6px;background:var(--bg);cursor:pointer}
+.emo:hover{border-color:var(--accent)}.emo:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.emo img{width:32px;height:32px;display:block}
+.deco-edit{border-top:1px solid var(--line);padding-top:12px}
+.deco-edit .label span{text-transform:none;letter-spacing:0;color:var(--fg)}
 .more summary{cursor:pointer;font-weight:600;font-size:.9rem;padding:4px 0}
 .more[open] summary{margin-bottom:8px}
 
@@ -289,6 +295,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
         <div class="tablist op" role="tablist" aria-label="Settings">
           <button role="tab" id="tab-style" aria-controls="p-style" aria-selected="true">Style</button>
           <button role="tab" id="tab-world" aria-controls="p-world" aria-selected="false" tabindex="-1">World</button>
+          <button role="tab" id="tab-emoji" aria-controls="p-emoji" aria-selected="false" tabindex="-1">Emoji</button>
           <button role="tab" id="tab-edit" aria-controls="p-edit" aria-selected="false" tabindex="-1">Edit</button>
           <button role="tab" id="tab-print" aria-controls="p-print" aria-selected="false" tabindex="-1">Print</button>
         </div>
@@ -331,6 +338,23 @@ input[type=range]{width:100%;accent-color:var(--accent)}
           </div>
           <input id="bgFile" type="file" accept="image/*" hidden aria-label="Choose a background image">
           <p class="hint" id="worldNote">Each world is a 3D scene built from blocks and rendered behind the people.</p>
+        </div>
+
+        <div class="tabpanel guest" role="tabpanel" id="p-emoji" aria-labelledby="tab-emoji" hidden>
+          <p class="hint">Tap an emoji to put it on the picture. Drag it to move it, drag its round handle to resize and turn it, or tap its × to remove it.</p>
+          <div class="emojis" id="decoPick" role="group" aria-label="Emoji to add"></div>
+          <div class="group deco-edit" id="decoEdit" hidden>
+            <span class="label">Selected: <span id="decoName"></span></span>
+            <div class="row between"><span class="label">Size</span><span class="readout" id="decoSizeRead">22%</span></div>
+            <input id="decoSize" type="range" min="4" max="120" step="1" value="22" aria-label="Size of the selected emoji">
+            <div class="row between"><span class="label">Turn</span><span class="readout" id="decoTurnRead">0°</span></div>
+            <input id="decoTurn" type="range" min="-180" max="180" step="5" value="0" aria-label="Turn the selected emoji">
+            <div class="row">
+              <button class="btn small" id="decoFront">Bring to front</button>
+              <button class="btn small" id="decoRemove">Remove</button>
+            </div>
+          </div>
+          <button class="btn small self-start" id="decoClear" hidden>Remove all emoji</button>
         </div>
 
         <div class="tabpanel op" role="tabpanel" id="p-edit" aria-labelledby="tab-edit" hidden>
