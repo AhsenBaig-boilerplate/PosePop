@@ -35,7 +35,4 @@ function makeTexture(b){
   const mL=b.avg[0]*.299+b.avg[1]*.587+b.avg[2]*.114;let v=0;for(let i=0;i<1024;i+=4){const L=d[i]*.299+d[i+1]*.587+d[i+2]*.114;v+=(L-mL)**2}
   b.busy=Math.sqrt(v/256)/Math.max(20,mL);
 }
-function lin(v){v/=255;return v<=.04045?v/12.92:Math.pow((v+.055)/1.055,2.4)}
-function toLab(r,g,b){r=lin(r);g=lin(g);b=lin(b);let X=(r*.4124+g*.3576+b*.1805)/.95047,Y=r*.2126+g*.7152+b*.0722,Z=(r*.0193+g*.1192+b*.9505)/1.08883;
-  const f=t=>t>.008856?Math.cbrt(t):7.787*t+16/116;X=f(X);Y=f(Y);Z=f(Z);return[116*Y-16,500*(X-Y),200*(Y-Z)]}
 BLOCKS.forEach(makeTexture);BLOCKS.forEach(b=>b.group=b.set);

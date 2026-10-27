@@ -64,12 +64,9 @@ const sceneCache=new Map();
 // crop change. So each world is rendered once per coarse size (long side rounded up to SCENE_BUCKET px, aspect to
 // SCENE_ASPECT_STEP) and cropped to the exact shape: bottom aligned so the ground stays under people's feet, at most
 // a few percent of sky or sides trimmed, never stretched. The preview and the 300 dpi print share a render too.
-const SCENE_BUCKET=256,SCENE_ASPECT_STEP=.08;
+// (the bucket and crop arithmetic is sceneBucket, in 007-pure-functions.js)
 function renderScene(kind,W,H){
-  const a=W/H,ab=Math.max(SCENE_ASPECT_STEP,Math.round(a/SCENE_ASPECT_STEP)*SCENE_ASPECT_STEP),L=Math.ceil(Math.max(W,H)/SCENE_BUCKET)*SCENE_BUCKET;
-  const Wb=ab>=1?L:Math.round(L*ab),Hb=ab>=1?Math.round(L/ab):L,full=renderSceneAt(kind,Wb,Hb);
-  // the exact shape inside the bucket render: wider than the bucket → trim the sky; taller → trim both sides
-  const sw=a>Wb/Hb?Wb:Hb*a,sh=a>Wb/Hb?Wb/a:Hb,sx=(Wb-sw)/2,sy=Hb-sh;
+  const{Wb,Hb,sx,sy,sw,sh}=sceneBucket(W,H),full=renderSceneAt(kind,Wb,Hb);
   const c=document.createElement("canvas");c.width=W;c.height=H;const x=c.getContext("2d");x.imageSmoothingQuality="high";x.drawImage(full,sx,sy,sw,sh,0,0,W,H);return c;
 }
 function renderSceneAt(kind,W,H){

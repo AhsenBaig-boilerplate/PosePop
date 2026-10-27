@@ -6,17 +6,6 @@
 //   drawCell(ctx, i, x, y, w, h, bevel, t): draws palette entry i into that rectangle
 //   textured: cells carry a texture (offers 3D edges, warns when cells print too small)
 //   unit/units/kinds/title/paletteLabel/listName: words for the labels; amount(n); csv(list) for the materials list
-function errorDiffuse(data,w,h,dither,near,pal){ // Floyd–Steinberg towards each cell's average colour
-  const grid=new Int16Array(w*h);
-  if(!dither){for(let i=0,p=0;i<data.length;i+=4,p++)grid[p]=near(data[i],data[i+1],data[i+2]);return grid}
-  const buf=new Float32Array(w*h*3);for(let i=0,j=0;i<data.length;i+=4,j+=3){buf[j]=data[i];buf[j+1]=data[i+1];buf[j+2]=data[i+2]}
-  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const j=(y*w+x)*3,r=buf[j],g=buf[j+1],b=buf[j+2];
-    const id=near(Math.round(r),Math.round(g),Math.round(b));grid[y*w+x]=id;
-    const a=pal[id].avg,er=(r-a[0])*.75,eg=(g-a[1])*.75,eb=(b-a[2])*.75;
-    const add=(dx,dy,f)=>{const xx=x+dx,yy=y+dy;if(xx<0||xx>=w||yy>=h)return;const o=(yy*w+xx)*3;buf[o]+=er*f;buf[o+1]+=eg*f;buf[o+2]+=eb*f};
-    add(1,0,7/16);add(-1,1,3/16);add(0,1,5/16);add(1,1,1/16)}
-  return grid;
-}
 // Retro pixel colors: DawnBringer's 16-color palette (free to use), and a 4-green handheld palette
 const PIXELS=[];
 [["retro",[["Black",20,12,28],["Plum",68,36,52],["Navy",48,52,109],["Slate",78,74,78],["Brown",133,76,48],["Forest",52,101,36],["Red",208,70,72],["Stone",117,113,97],

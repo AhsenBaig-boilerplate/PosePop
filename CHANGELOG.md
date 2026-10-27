@@ -2,6 +2,10 @@
 
 Versions follow [semantic versioning](https://semver.org): **major** for changes that break saved settings or the print workflow, **minor** for new features, **patch** for fixes. Each release is a signed `v<version>` tag and stays published at `/PosePop/v/<version>/`. See "Releasing" in the README.
 
+## 1.5.3 (27 October 2026)
+
+- **More checks under the hood:** the colour matching, block clustering, dithering, green-screen detection and 3D world sizing now have their own tests, checked against published reference values. Nothing changes in how the app looks or works.
+
 ## 1.5.2 (26 October 2026)
 
 - **Tested before every release:** each change now runs automated browser tests on sample photos before it can go live. The tests find people, move, resize, erase, undo, save a 300 dpi sticker, update to a newer version and work offline. Nothing changes in how the app looks or works.

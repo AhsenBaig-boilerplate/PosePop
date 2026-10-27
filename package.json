@@ -1,6 +1,6 @@
 {
   "name": "posepop",
-  "version": "1.5.2",
+  "version": "1.5.3",
   "private": true,
   "description": "Strike a pose, pop into a block world, and take home a sticker or photo print.",
   "license": "Apache-2.0",

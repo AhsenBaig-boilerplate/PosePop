@@ -10,16 +10,6 @@
 // LOOK_SPECK: a lone cell joins its neighbours' block when that block is this close (ΔE2000), so shading
 // flips disappear but genuinely different 1-cell features (pupils) stay
 const LOOK_K=14,LOOK_SMOOTH=30,LOOK_STRETCH=.6,LOOK_SAT=1.18,LOOK_KEEP=12,LOOK_KEEP_N=2,LOOK_SPECK=15;
-function kmeans(pts,k,iters){ // pts: n×3 Lab; deterministic k-means++ start
-  const n=pts.length/3;if(!n)return[];const r=rng(1),C=[],d2=new Float32Array(n).fill(1e18),j0=Math.floor(r()*n);C.push([pts[j0*3],pts[j0*3+1],pts[j0*3+2]]);
-  while(C.length<Math.min(k,n)){const c=C[C.length-1];let tot=0;
-    for(let i=0;i<n;i++){const a=pts[i*3]-c[0],b=pts[i*3+1]-c[1],e=pts[i*3+2]-c[2],d=a*a+b*b+e*e;if(d<d2[i])d2[i]=d;tot+=d2[i]}
-    if(!tot)break;let t=r()*tot,i=0;for(;i<n-1;i++){t-=d2[i];if(t<=0)break}C.push([pts[i*3],pts[i*3+1],pts[i*3+2]])}
-  for(let it=0;it<iters;it++){const acc=C.map(()=>[0,0,0,0]);
-    for(let i=0;i<n;i++){let bi=0,bd=1e18;for(let j=0;j<C.length;j++){const a=pts[i*3]-C[j][0],b=pts[i*3+1]-C[j][1],e=pts[i*3+2]-C[j][2],d=a*a+b*b+e*e;if(d<bd){bd=d;bi=j}}
-      const s=acc[bi];s[0]+=pts[i*3];s[1]+=pts[i*3+1];s[2]+=pts[i*3+2];s[3]++}
-    for(let j=0;j<C.length;j++)if(acc[j][3])C[j]=[acc[j][0]/acc[j][3],acc[j][1]/acc[j][3],acc[j][2]/acc[j][3]]}
-  return C}
 function cleanCells(data,w,h,alpha){ // data: the photo shrunk to one RGBA pixel per cell
   const d=new Uint8ClampedArray(data);
   // contrast and saturation from the people's own range (phone photos are often flat)
