@@ -28,7 +28,7 @@ Status: `[ ]` open · `[~]` in progress · `[x]` done. Priority: **P0** blocks e
   - **Neon outline:** glowing outlines on dark worlds.
   - **Cross-stitch:** a stitch grid with a thread list.
   - Matching worlds for each style where it fits, such as a pixel city or a brick plate.
-- [ ] **Accessibility:** keyboard move/resize for the selected person (arrow keys, +/−), visible focus on the canvas, and live-region announcements for "N people found" and saves.
+- [ ] **Accessibility, next steps:** a keyboard way to erase (for example, a movable brush cursor), keyboard edits for Adjust boxes, and a screen-reader pass on iOS VoiceOver and Android TalkBack on the event devices.
 
 ## P2: product growth
 
@@ -43,6 +43,12 @@ Status: `[ ]` open · `[~]` in progress · `[x]` done. Priority: **P0** blocks e
 
 ## Done
 
+- [x] **Keyboard editing and announcements (1.6.0):**
+  - a "Skip to the picture" link on the first Tab
+  - a focusable preview with a visible focus outline
+  - arrows move the group or the selected person (Shift for five blocks), + and − resize, and [ and ] choose a person in Move each, with each burst of keys as one undo step
+  - the preview's label matches what it shows (for example "7 people made of blocks, on plains")
+  - people found, saves, the selected person, size, undo and redo are announced to screen readers
 - [x] **uint8 people model: tried, not shipped (27 October 2026).** TF.js loads per-tensor uint8 weights natively, so the 9.45 MB MoveNet file could drop to 4.80 MB. Compared with float16 on the test photos, which give identical results run to run (box IoU 1.0, same cells):
   - **All large tensors in uint8 (4.80 MB):** an extra person on `single.jpg` and `greenscreen.jpg` (whose cut-out lost 88 % of its cells), and one box on `group7.jpg` at IoU 0.30.
   - **Kept the 5 depthwise kernels below 25 dB SNR in float16 (4.85 MB):** worse. 3 people instead of 1 on `greenscreen.jpg`, 4 instead of 3 on `group6.jpg`, and IoU 0.39 on `group7.jpg`.

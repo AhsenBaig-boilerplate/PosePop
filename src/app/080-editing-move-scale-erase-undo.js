@@ -4,8 +4,8 @@ const hist=[],redoStack=[];
 const snap=()=>JSON.stringify({fixes:S.fixes,place:S.place,sel:S.sel,gplace:S.gplace,edges:S.edges});
 function pushHist(){hist.push(snap());if(hist.length>80)hist.shift();redoStack.length=0;histUI()}
 function restoreSnap(js){const o=JSON.parse(js);S.fixes=o.fixes;S.place=o.place;S.sel=o.sel;S.gplace=o.gplace;S.edges=o.edges;syncScale();restyle()}
-function undo(){if(!hist.length)return;redoStack.push(snap());restoreSnap(hist.pop());histUI()}
-function redo(){if(!redoStack.length)return;hist.push(snap());restoreSnap(redoStack.pop());histUI()}
+function undo(){if(!hist.length)return;redoStack.push(snap());restoreSnap(hist.pop());histUI();say("Undone")}
+function redo(){if(!redoStack.length)return;hist.push(snap());restoreSnap(redoStack.pop());histUI();say("Redone")}
 function histUI(){$("undo").disabled=!hist.length;$("redo").disabled=!redoStack.length}
 function resetEdits(){hist.length=0;redoStack.length=0;S.fixes=[];S.place=[];S.sel=0;S.gplace={dx:0,dy:0,s:1};S.edges=[];S.boxSel=0;histUI();syncScale()}
 $("undo").addEventListener("click",undo);$("redo").addEventListener("click",redo);

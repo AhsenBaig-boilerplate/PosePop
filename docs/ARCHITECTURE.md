@@ -169,6 +169,19 @@ Tested on a NASA green-screen photo (public domain, an unusual suspended pose): 
 - **Status:** the footer adds "works offline" once this build's cache is complete (the people model, the largest file, is present), and `?debug=1` shows it under Build → offline.
 - **CSP:** none needed beyond the existing `worker-src 'self'`. The worker script isn't covered by the page's `<meta>` CSP (workers take their policy from response headers, which Pages can't set). It is our own code, and makes only same-origin requests.
 
+## Accessibility
+
+- **Keyboard (`082-keyboard-and-announcements.js`):**
+  - `#out` has `tabindex="0"` and a "Skip to the picture" link (`a.skip`, operator-only like other controls) as the first Tab stop.
+  - With the Move tool: arrows move `cur()` by one block (Shift: five), + and − scale it by 5 %, and [ and ] cycle `S.sel` in Move each. Keys go through `pushHist`/`quick`/`restyle` like a drag, and a burst (keys less than 600 ms apart) is one undo step.
+  - Erase and Adjust boxes stay pointer-only for now.
+  - Focusing the preview shows the keys in the `#hover` readout, and `aria-describedby="kbdHelp"` gives screen readers the same text.
+- **Announcements:**
+  - `#srcNote` ("N people found") and `#saveMsg` are `role="status"`.
+  - `say()` writes short updates (person selected, size, moved, undone and redone) to the polite live region `#announce`, clearing it first so a repeated message is read again.
+- **The preview's label:** `describeOut()` runs on every redraw, so the canvas's `aria-label` matches the style and backdrop, for example "7 people made of blocks, on plains".
+- **Tests:** `tests/e2e/keyboard.spec.mjs`.
+
 ## Tests
 
 - **Unit (`tests/unit/`, `node --test`):** run by `npm test`, so before every commit and in both CI jobs.

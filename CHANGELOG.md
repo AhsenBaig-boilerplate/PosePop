@@ -2,6 +2,10 @@
 
 Versions follow [semantic versioning](https://semver.org): **major** for changes that break saved settings or the print workflow, **minor** for new features, **patch** for fixes. Each release is a signed `v<version>` tag and stays published at `/PosePop/v/<version>/`. See "Releasing" in the README.
 
+## 1.6.0 (27 October 2026)
+
+- **Keyboard and screen reader support:** press Tab once and choose "Skip to the picture". Then arrow keys move the group (hold Shift for bigger steps), + and − resize, and in Move each, [ and ] choose a person. Undo works as with a drag. Screen readers now hear how many people were found, when a sticker is saved, and each move, resize and undo, and the picture's description matches what it shows.
+
 ## 1.5.3 (27 October 2026)
 
 - **More checks under the hood:** the colour matching, block clustering, dithering, green-screen detection and 3D world sizing now have their own tests, checked against published reference values. Nothing changes in how the app looks or works.
