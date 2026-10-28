@@ -6,8 +6,8 @@
 const MODEL_SRI={"__ASSET:models/selfie.json__":"__SRI:models/selfie.json__","__ASSET:models/selfie.bin__":"__SRI:models/selfie.bin__",
   "__ASSET:models/people.json__":"__SRI:models/people.json__","__ASSET:models/people.bin__":"__SRI:models/people.bin__",
   "__ASSET:models/bodypix.json__":"__SRI:models/bodypix.json__","__ASSET:models/bodypix.bin__":"__SRI:models/bodypix.bin__"};
-// ?debug=1&gate=1 runs the cut-out gate even without WebGL, so the tests (which have none) cover it
-const DETECT_OPTS={gate:DEBUG&&new URLSearchParams(location.search).get("gate")==="1"};
+// ?debug=1&gate=1 runs the cut-out gate even without WebGL, and gate=0 turns it off, so the tests can compare both
+const DETECT_OPTS={gate:DEBUG?{1:true,0:false}[new URLSearchParams(location.search).get("gate")]:undefined};
 const DETECT={tf:"__ASSET:vendor/tf.min.js__",tfSri:"__SRI:vendor/tf.min.js__",code:"__ASSET:detect.js__",codeSri:"__SRI:detect.js__",worker:"__ASSET:detect-worker.js__"};
 let detectWorker=null,jobSeq=0;const jobs=new Map();
 function setSeg(state,text){S.segMode=state;const el=$("segStatus");el.dataset.s=state;el.querySelector("span").textContent=text;mark("Detection","status",state)}

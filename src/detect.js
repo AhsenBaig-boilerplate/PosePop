@@ -3,15 +3,15 @@
 // The host calls start(models, report, opts) before loading tf.js, then load(), then segment() per photo.
 //   models: {url: SRI hash}, relative to this file's folder; every model file tf.js fetches must match its hash
 //   report(section, key, value): timings and facts for the ?debug=1 panel
-//   opts.gate: run the BodyPix gate even without WebGL (tests only, ?debug=1&gate=1)
+//   opts.gate: true runs the BodyPix gate even without WebGL, false turns it off (tests only, ?debug=1&gate=1 or 0)
 "use strict";
 self.PosePopDetect = (() => {
-let segModel=null,poseModel=null,bodyModel=null,forceGate=false,MODELS={},early=new Map(),report=()=>{},detectPasses=0;
+let segModel=null,poseModel=null,bodyModel=null,gateOpt,MODELS={},early=new Map(),report=()=>{},detectPasses=0;
 const mk=(w,h)=>{if(typeof OffscreenCanvas!=="undefined")return new OffscreenCanvas(w,h);const c=document.createElement("canvas");c.width=w;c.height=h;return c};
 const since=t=>Math.round(performance.now()-t)+" ms",mb=n=>(n/1048576).toFixed(1)+" MB";
 async function timed(key,p){const t=performance.now();try{return await p}finally{report("Detection",key,since(t))}}
 
-function start(models,rep,opts){MODELS=models;if(rep)report=rep;forceGate=!!(opts&&opts.gate);
+function start(models,rep,opts){MODELS=models;if(rep)report=rep;gateOpt=opts&&opts.gate;
   // Start downloading the models right away, so the 16 MB overlaps tf.js loading and starting up
   // instead of waiting for it. tf.js picks these responses up when it asks for the same files.
   early=new Map(Object.entries(models).map(([url,integrity])=>{const p=fetch(url,{integrity});p.catch(()=>{});return[url,p]}))}
@@ -30,8 +30,8 @@ async function load(){ // tf.js must already be loaded; resolves to {people: whe
   const gpu=tf.getBackend()==="webgl";
   [segModel,poseModel,bodyModel]=await Promise.all([timed("cut-out model",loadModel(json("selfie"))),
     timed("people model",loadModel(json("people"))).catch(e=>{report("Errors","people model",e.message||e);return null}),
-    gpu||forceGate?timed("body model",loadModel(json("bodypix"))).catch(e=>{report("Errors","body model",e.message||e);return null}):null]);
-  report("Detection","body gate",bodyModel?"on"+(gpu?"":" (forced without WebGL)"):gpu?"off (body model didn't load)":"off (no WebGL: it would add about 12 s per person)");
+    (gateOpt??gpu)?timed("body model",loadModel(json("bodypix"))).catch(e=>{report("Errors","body model",e.message||e);return null}):null]);
+  report("Detection","body gate",bodyModel?"on"+(gpu?"":" (forced without WebGL)"):gateOpt===false?"off (turned off)":gpu?"off (body model didn't load)":"off (no WebGL: it would add about 12 s per person)");
   // transferSize is 0 when a file came from the browser cache
   const res=performance.getEntriesByType("resource").filter(r=>/\/(models|vendor)\//.test(r.name)),got=res.reduce((a,r)=>a+(r.transferSize||0),0);
   report("Detection","downloaded",mb(got)+" of "+mb(res.reduce((a,r)=>a+(r.decodedBodySize||0),0))+(got?"":" (cached)"));

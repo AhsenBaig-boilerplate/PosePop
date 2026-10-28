@@ -23,7 +23,8 @@ test("detection runs in the worker and reports it", async ({ page }) => {
 
 test("the body gate trims what Selfie wrongly keeps (the car seat in seated.jpg)", async ({ page }) => {
   test.setTimeout(480_000);
-  await openApp(page);
+  await openApp(page, "?debug=1&gate=0");
+  await expect(page.locator('#diagList h4:text-is("Detection") + dl dt:text-is("body gate") + dd')).toHaveText("off (turned off)");
   const plain = await loadPhoto(page, "seated.jpg");
   await openApp(page, "?debug=1&gate=1");
   await expect(page.locator('#diagList h4:text-is("Detection") + dl dt:text-is("body gate") + dd')).toHaveText(/^on/);
