@@ -1,17 +1,18 @@
-// Person detection and cut-out (MoveNet MultiPose + MediaPipe Selfie Segmentation, Apache-2.0, via TensorFlow.js).
+// Person detection and cut-out (MoveNet MultiPose + MediaPipe Selfie Segmentation + BodyPix, Apache-2.0, via TensorFlow.js).
 // Runs inside the Web Worker (detect-worker.js) where the browser has OffscreenCanvas, otherwise on the page.
-// The host calls start(models, report) before loading tf.js, then load(), then segment() per photo.
+// The host calls start(models, report, opts) before loading tf.js, then load(), then segment() per photo.
 //   models: {url: SRI hash}, relative to this file's folder; every model file tf.js fetches must match its hash
 //   report(section, key, value): timings and facts for the ?debug=1 panel
+//   opts.gate: run the BodyPix gate even without WebGL (tests only, ?debug=1&gate=1)
 "use strict";
 self.PosePopDetect = (() => {
-let segModel=null,poseModel=null,MODELS={},early=new Map(),report=()=>{},detectPasses=0;
+let segModel=null,poseModel=null,bodyModel=null,forceGate=false,MODELS={},early=new Map(),report=()=>{},detectPasses=0;
 const mk=(w,h)=>{if(typeof OffscreenCanvas!=="undefined")return new OffscreenCanvas(w,h);const c=document.createElement("canvas");c.width=w;c.height=h;return c};
 const since=t=>Math.round(performance.now()-t)+" ms",mb=n=>(n/1048576).toFixed(1)+" MB";
 async function timed(key,p){const t=performance.now();try{return await p}finally{report("Detection",key,since(t))}}
 
-function start(models,rep){MODELS=models;if(rep)report=rep;
-  // Start downloading the models right away, so the 9 MB overlaps tf.js loading and starting up
+function start(models,rep,opts){MODELS=models;if(rep)report=rep;forceGate=!!(opts&&opts.gate);
+  // Start downloading the models right away, so the 16 MB overlaps tf.js loading and starting up
   // instead of waiting for it. tf.js picks these responses up when it asks for the same files.
   early=new Map(Object.entries(models).map(([url,integrity])=>{const p=fetch(url,{integrity});p.catch(()=>{});return[url,p]}))}
 function loadModel(json){
@@ -24,8 +25,13 @@ async function load(){ // tf.js must already be loaded; resolves to {people: whe
   await timed("backend start",(async()=>{try{await tf.setBackend("webgl")}catch(e){}await tf.ready()})());
   report("Detection","backend",tf.getBackend()==="webgl"?"webgl "+tf.env().getNumber("WEBGL_VERSION"):tf.getBackend()+" (WebGL unavailable to tf.js: detection will be slow)");
   const json=k=>Object.keys(MODELS).find(u=>new RegExp("models/"+k+"\\.[0-9a-f]+\\.json$").test(u));
-  [segModel,poseModel]=await Promise.all([timed("cut-out model",loadModel(json("selfie"))),
-    timed("people model",loadModel(json("people"))).catch(e=>{report("Errors","people model",e.message||e);return null})]);
+  // The people and body models are optional: without them the cut-out falls back to Selfie alone. The body model (the
+  // cut-out gate) only runs on WebGL: on the CPU it takes about 12 s per person, against 0.4 s for Selfie.
+  const gpu=tf.getBackend()==="webgl";
+  [segModel,poseModel,bodyModel]=await Promise.all([timed("cut-out model",loadModel(json("selfie"))),
+    timed("people model",loadModel(json("people"))).catch(e=>{report("Errors","people model",e.message||e);return null}),
+    gpu||forceGate?timed("body model",loadModel(json("bodypix"))).catch(e=>{report("Errors","body model",e.message||e);return null}):null]);
+  report("Detection","body gate",bodyModel?"on"+(gpu?"":" (forced without WebGL)"):gpu?"off (body model didn't load)":"off (no WebGL: it would add about 12 s per person)");
   // transferSize is 0 when a file came from the browser cache
   const res=performance.getEntriesByType("resource").filter(r=>/\/(models|vendor)\//.test(r.name)),got=res.reduce((a,r)=>a+(r.transferSize||0),0);
   report("Detection","downloaded",mb(got)+" of "+mb(res.reduce((a,r)=>a+(r.decodedBodySize||0),0))+(got?"":" (cached)"));
@@ -88,6 +94,25 @@ async function selfieMask(c,sx,sy,side){ // returns 256×256 mask canvas for a s
   for(let i=0;i<65536;i++){const v=Math.max(0,Math.min(255,d[i]*255));id.data[i*4]=id.data[i*4+1]=id.data[i*4+2]=v;id.data[i*4+3]=255}
   mx.putImageData(id,0,0);return m;
 }
+// Where a person's body is, from BodyPix (MobileNet 1.0, full body), for the same square region: a 256×256 gate canvas.
+// Selfie Segmentation has sharp edges but is tuned for head-and-shoulders shots, so on a seated or full-length person
+// it also keeps chairs, car seats, flags and smudges. Multiplying its mask by this gate keeps Selfie's edges only where
+// BodyPix agrees a person is near. The gate is BodyPix blurred by GATE_GROW (the blur's spread, as a fraction of the
+// region; a box blur 3.5× as wide spreads like a Gaussian of that size), so it reaches a little past BodyPix's coarse
+// edge and doesn't cut into hair or fingers Selfie found; GATE_LO is the blurred probability below which it closes.
+// Tuned on the NASA test photos: it drops the car seat in seated.jpg, the chair in single.jpg and the flags in group7.jpg.
+const BODY_IN=513,GATE_GROW=.025,GATE_LO=.22;
+async function bodyGate(c,sx,sy,side){
+  const crop=mk(BODY_IN,BODY_IN),cx=crop.getContext("2d");cx.imageSmoothingQuality="high";
+  cx.fillStyle="#808080";cx.fillRect(0,0,BODY_IN,BODY_IN);cx.drawImage(c,sx,sy,side,side,0,0,BODY_IN,BODY_IN);
+  const k=Math.max(3,Math.round(256*GATE_GROW*3.5)|1);
+  const t=tf.tidy(()=>{const x=tf.browser.fromPixels(crop).toFloat().div(127.5).sub(1).expandDims(0);
+    const p=tf.image.resizeBilinear(tf.sigmoid(bodyModel.execute(x,"float_segments")),[256,256]);
+    return tf.avgPool(p,k,1,"same").sub(GATE_LO).div(.25).clipByValue(0,1).squeeze()});
+  const d=await t.data();t.dispose();const m=mk(256,256),mx=m.getContext("2d"),id=mx.createImageData(256,256);
+  for(let i=0;i<65536;i++){const v=Math.round(d[i]*255);id.data[i*4]=id.data[i*4+1]=id.data[i*4+2]=v;id.data[i*4+3]=255}
+  mx.putImageData(id,0,0);return m;
+}
 // img: canvas or ImageBitmap. progress(text) labels each step; cancelled() lets a newer photo stop this one.
 async function segment(img,{progress=()=>{},cancelled=()=>false}={}){
   const say=t=>{if(cancelled())throw new Error("cancelled");progress(t)};
@@ -110,6 +135,7 @@ async function segment(img,{progress=()=>{},cancelled=()=>false}={}){
       const ls=p.kp[5],rs=p.kp[6],face=[0,1,2,3,4].map(i=>p.kp[i]).filter(q=>q.s>.2);
       if(ls.s>.2&&rs.s>.2){const sw=Math.max(Math.hypot(ls.x-rs.x,ls.y-rs.y),...face.length>1?[Math.max(...face.map(q=>q.x))-Math.min(...face.map(q=>q.x))]:[0])*1;
         const hx=(ls.x+rs.x)/2,hy=(ls.y+rs.y)/2-sw*.45,hs=sw*2.9;kx.drawImage(await selfieMask(c,hx-hs/2,hy-hs/2,hs),hx-hs/2,hy-hs/2,hs,hs)}
+      if(bodyModel){kx.globalCompositeOperation="multiply";kx.drawImage(await bodyGate(c,sx,sy,side),sx,sy,side,side)}
       kx.globalCompositeOperation="source-over";kx.globalCompositeOperation="destination-in";kx.fillStyle="#fff";kx.fillRect(p.x0,p.y0,bw,bh);
       ax.drawImage(clip,0,0);
     }

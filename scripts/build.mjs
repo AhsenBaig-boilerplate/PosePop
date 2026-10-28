@@ -37,6 +37,7 @@ const ASSETS = [
   ["src/detect-worker.js", "detect-worker.js"],
   ...model("selfie"),
   ...model("people"),
+  ...model("bodypix"),
   ["src/favicon.svg", "favicon.svg"],
   ["src/thumbs/plains.jpg", "thumbs/plains.jpg"],
   ["src/thumbs/village.jpg", "thumbs/village.jpg"],

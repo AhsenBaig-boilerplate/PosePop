@@ -2,6 +2,12 @@
 
 Versions follow [semantic versioning](https://semver.org): **major** for changes that break saved settings or the print workflow, **minor** for new features, **patch** for fixes. Each release is a signed `v<version>` tag and stays published at `/PosePop/v/<version>/`. See "Releasing" in the README.
 
+## 1.10.0 (28 October 2026)
+
+- **Cleaner cut-outs:** a second, full-body model (BodyPix, Apache-2.0) now checks each person's cut-out, so chairs, car seats, flags and the smudges between legs no longer get cut out with the people. Hair and edges stay as sharp as before. It runs on devices with graphics acceleration (WebGL), which is nearly all of them; without it the cut-out works as before, because the check would take about 12 seconds per person. The first visit downloads 6.8 MB more, once; after that it works offline as before.
+- **Fix, Restore in the Photo style:** restoring part of a person now brings back the photo itself. Before, only its shadow appeared where the cut-out had missed.
+- **Fix, emoji handles:** adding an emoji now switches to the **Move** tool, so it can be dragged, resized and turned straight away. Before, if Erase or Restore was on, the emoji had no handles.
+
 ## 1.9.0 (28 October 2026)
 
 - **Fuse beads style:** a new **Fuse beads** style makes the people out of round ironing beads, each drawn with its hole. There are 36 bead colors in four groups: **Basics**, **Skin & hair**, **Pastels** and **Neons** (off at first). The materials list counts the beads of each color and how many 29 × 29 pegboards the design takes, and **Save bead list (CSV)** gives the counts, each color's RGB and the pegboard layout, so you can make the real thing.

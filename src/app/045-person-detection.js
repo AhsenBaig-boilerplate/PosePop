@@ -4,7 +4,10 @@
 // ?worker=0, the same code runs here on the page.
 // Every model file tf.js fetches must match its Subresource Integrity hash; anything else is refused.
 const MODEL_SRI={"__ASSET:models/selfie.json__":"__SRI:models/selfie.json__","__ASSET:models/selfie.bin__":"__SRI:models/selfie.bin__",
-  "__ASSET:models/people.json__":"__SRI:models/people.json__","__ASSET:models/people.bin__":"__SRI:models/people.bin__"};
+  "__ASSET:models/people.json__":"__SRI:models/people.json__","__ASSET:models/people.bin__":"__SRI:models/people.bin__",
+  "__ASSET:models/bodypix.json__":"__SRI:models/bodypix.json__","__ASSET:models/bodypix.bin__":"__SRI:models/bodypix.bin__"};
+// ?debug=1&gate=1 runs the cut-out gate even without WebGL, so the tests (which have none) cover it
+const DETECT_OPTS={gate:DEBUG&&new URLSearchParams(location.search).get("gate")==="1"};
 const DETECT={tf:"__ASSET:vendor/tf.min.js__",tfSri:"__SRI:vendor/tf.min.js__",code:"__ASSET:detect.js__",codeSri:"__SRI:detect.js__",worker:"__ASSET:detect-worker.js__"};
 let detectWorker=null,jobSeq=0;const jobs=new Map();
 function setSeg(state,text){S.segMode=state;const el=$("segStatus");el.dataset.s=state;el.querySelector("span").textContent=text;mark("Detection","status",state)}
@@ -20,7 +23,7 @@ function startWorker(){return new Promise((res,rej)=>{
     else{const j=jobs.get(m.id);if(!j)return;if(m.type==="progress"){j.progress(m.text);return}
       jobs.delete(m.id);if(m.type==="result")j.res(m);else j.rej(new Error(m.error))}};
   w.onerror=e=>{e.preventDefault();mark("Errors","detection worker",e.message||"worker error");fail(new Error(e.message||"worker error"))};
-  w.postMessage({type:"init",tf:DETECT.tf,detect:DETECT.code,models:MODEL_SRI});
+  w.postMessage({type:"init",tf:DETECT.tf,detect:DETECT.code,models:MODEL_SRI,opts:DETECT_OPTS});
 })}
 // asked the way tf.js asks: software-only WebGL counts as none
 function pageHasWebGL(){try{const gl=document.createElement("canvas").getContext("webgl",{failIfMajorPerformanceCaveat:true});gl?.getExtension("WEBGL_lose_context")?.loseContext();return!!gl}catch(e){return false}}
@@ -28,7 +31,7 @@ async function startHere(){
   // TF.js bundles regenerator-runtime, which falls back to eval when this global is missing.
   // Declaring it keeps the page working under a CSP without 'unsafe-eval'.
   if(!("regeneratorRuntime" in window))window.regeneratorRuntime=undefined;
-  await loadScript(DETECT.code,DETECT.codeSri);PosePopDetect.start(MODEL_SRI,mark);
+  await loadScript(DETECT.code,DETECT.codeSri);PosePopDetect.start(MODEL_SRI,mark,DETECT_OPTS);
   await timed("Detection","tf.js script",loadScript(DETECT.tf,DETECT.tfSri));
   return PosePopDetect.load();
 }

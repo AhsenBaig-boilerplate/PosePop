@@ -14,7 +14,8 @@ DECO_LIST.forEach(([name,label,file],k)=>{const b=document.createElement("button
 // an image that isn't loaded yet (lazy in a closed tab) is drawn as soon as it arrives
 function decoImg(k){const im=decoImgs[k];if(im.complete&&im.naturalWidth)return im;
   if(!im._wait){im._wait=1;im.loading="eager";im.addEventListener("load",()=>restyle(),{once:true})}return null}
-function addDeco(k){pushHist();const n=S.deco.length,a=n*2.4,f=Math.min(1,n); // later ones spiral out from the first
+// adding one switches to the Move tool: its handles (and dragging it) only work there
+function addDeco(k){if(S.tool!=="move")$("tool").querySelector('[data-v="move"]').click();pushHist();const n=S.deco.length,a=n*2.4,f=Math.min(1,n); // later ones spiral out from the first
   S.deco.push({k,x:.5+.2*f*Math.cos(a),y:.28+.14*f*Math.sin(a),s:DECO_START,r:0});S.decoSel=S.deco.length-1;
   decoUI();restyle();say(DECO_LIST[k][1]+" added")}
 function removeDeco(i){const d=S.deco[i];if(!d)return;pushHist();S.deco.splice(i,1);S.decoSel=-1;decoUI();restyle();say(DECO_LIST[d.k][1]+" removed")}
