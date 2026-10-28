@@ -4,8 +4,9 @@
 //   palette: [{name, avg:[r,g,b], lab, canvas (16×16 icon), group}]; groups {key: chip label}; on: groups on by default
 //   toCells(pixels, w, h, dither, nearest): photo pixels (RGBA) → Int16Array of palette indices
 //   drawCell(ctx, i, x, y, w, h, bevel, t): draws palette entry i into that rectangle
-//   textured: cells carry a texture (offers 3D edges, warns when cells print too small)
-//   unit/units/kinds/title/paletteLabel/listName: words for the labels; amount(n); csv(list) for the materials list
+//   textured: cells carry a texture (offers 3D edges); minPx: warns when cells print smaller than this
+//   unit/units/kinds/title/paletteLabel/listName: words for the labels; amount(n); extra(total): more in the summary;
+//   csv(list) for the materials list
 // Retro pixel colors: DawnBringer's 16-color palette (free to use), and a 4-green handheld palette
 const PIXELS=[];
 [["retro",[["Black",20,12,28],["Plum",68,36,52],["Navy",48,52,109],["Slate",78,74,78],["Brown",133,76,48],["Forest",52,101,36],["Red",208,70,72],["Stone",117,113,97],
@@ -13,15 +14,34 @@ const PIXELS=[];
  ["handheld",[["Darkest Green",15,56,15],["Dark Green",48,98,48],["Light Green",139,172,15],["Pale Green",155,188,15]]]
 ].forEach(([group,cols])=>cols.forEach(([name,r,g,b])=>{const cv=document.createElement("canvas");cv.width=cv.height=16;const x=cv.getContext("2d");
   const hex="rgb("+r+","+g+","+b+")";x.fillStyle=hex;x.fillRect(0,0,16,16);PIXELS.push({name,group,avg:[r,g,b],lab:toLab(r,g,b),hex,canvas:cv})}));
+// Fuse beads: generic bead colours (no maker's names), with the skin and hair shades photos of people need.
+// Each bead is drawn as a ring with its hole, on a darker shade of its own colour, so the people still read as colour.
+const BEADS=[],PEG=29; // the usual large square pegboard
+const beadShade=([r,g,b],f)=>"rgb("+[r,g,b].map(v=>Math.round(v*f)).join(",")+")";
+function drawBead(ctx,e,x0,y0,bw,bh){ctx.fillStyle=e.gap;ctx.fillRect(x0,y0,bw,bh);
+  if(bw<5){ctx.fillStyle=e.hex;ctx.fillRect(x0,y0,bw,bh);return} // too small to show the ring
+  const cx=x0+bw/2,cy=y0+bh/2,r=Math.min(bw,bh)*.49,hr=r*.4,mid=(r+hr)/2,lw=(r-hr)*.38;
+  ctx.beginPath();ctx.arc(cx,cy,r,0,2*Math.PI);ctx.arc(cx,cy,hr,0,2*Math.PI,true);ctx.fillStyle=e.hex;ctx.fill();
+  ctx.lineWidth=lw;ctx.lineCap="round";
+  ctx.beginPath();ctx.arc(cx,cy,mid,3.5,4.6);ctx.strokeStyle="rgba(255,255,255,.4)";ctx.stroke();
+  ctx.beginPath();ctx.arc(cx,cy,mid,.3,1.4);ctx.strokeStyle="rgba(0,0,0,.16)";ctx.stroke()}
+[["basic",[["White",241,241,239],["Light grey",190,192,194],["Grey",138,141,145],["Dark grey",84,86,90],["Black",34,34,36],
+  ["Red",191,38,48],["Dark red",125,30,38],["Orange",237,108,40],["Gold",240,166,50],["Yellow",247,210,40],["Light green",120,190,80],["Green",30,140,70],
+  ["Dark green",30,85,55],["Light blue",110,170,225],["Blue",30,90,180],["Navy",35,45,95],["Purple",110,60,145],["Pink",230,110,160],["Magenta",200,45,120]]],
+ ["skin",[["Cream",238,225,190],["Light peach",245,205,175],["Peach",230,170,135],["Tan",200,145,100],["Light brown",160,105,70],["Brown",110,70,45],["Dark brown",70,45,30]]],
+ ["pastel",[["Pastel pink",245,190,205],["Pastel yellow",250,235,160],["Mint",170,225,195],["Pastel blue",175,210,240],["Lavender",195,175,225],["Pastel orange",250,200,150]]],
+ ["neon",[["Neon yellow",225,240,50],["Neon orange",255,120,50],["Neon pink",255,70,150],["Neon green",80,230,90]]]
+].forEach(([group,cols])=>cols.forEach(([name,r,g,b])=>{const avg=[r,g,b],e={name,group,avg,lab:toLab(r,g,b),hex:beadShade(avg,1),gap:beadShade(avg,.55)};
+  e.canvas=document.createElement("canvas");e.canvas.width=e.canvas.height=16;drawBead(e.canvas.getContext("2d"),e,0,0,16,16);BEADS.push(e)}));
 const BAYER=[0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5]; // 4×4 ordered dithering: the checkerboard look of old consoles
 const STYLES={
   blocks:{name:"Blocks",palette:BLOCKS,groups:SETS,on:Object.keys(SETS),textured:true,
-    unit:"block",units:"blocks",kinds:"block types",title:"Blocks in the people",paletteLabel:"Block palette",listName:"block list",
+    unit:"block",units:"blocks",kinds:"block types",title:"Blocks in the people",paletteLabel:"Block palette",listName:"block list",minPx:6,
     toCells:(d,w,h,dither,near)=>errorDiffuse(d,w,h,dither,near,BLOCKS),
     drawCell(ctx,i,x0,y0,bw,bh,bevel,t){ctx.drawImage(BLOCKS[i].canvas,0,0,16,16,x0,y0,bw,bh);
       if(bevel){ctx.fillStyle="rgba(255,255,255,.2)";ctx.fillRect(x0,y0,bw,t);ctx.fillRect(x0,y0+t,t,bh-t);
         ctx.fillStyle="rgba(0,0,0,.26)";ctx.fillRect(x0+t,y0+bh-t,bw-t,t);ctx.fillRect(x0+bw-t,y0+t,t,bh-2*t)}},
-    amount:n=>stacks(n),
+    amount:n=>stacks(n),extra:total=>stacks(total),
     csv:list=>[["Block","Count","Stacks of 64","Remainder"],...list.map(([id,n])=>[BLOCKS[id].name,n,Math.floor(n/64),n%64])]},
   pixel:{name:"Retro pixel",palette:PIXELS,groups:{retro:"16 colors",handheld:"4 greens"},on:["retro"],textured:false,
     unit:"pixel",units:"pixels",kinds:"colors",title:"Colors in the people",paletteLabel:"Pixel palette",listName:"color list",
@@ -30,6 +50,15 @@ const STYLES={
     drawCell(ctx,i,x0,y0,bw,bh){ctx.fillStyle=PIXELS[i].hex;ctx.fillRect(x0,y0,bw,bh)},
     amount:n=>fmt(n)+(n===1?" pixel":" pixels"),
     csv:list=>[["Color","Count","RGB"],...list.map(([id,n])=>[PIXELS[id].name,n,PIXELS[id].avg.join(" ")])]},
+  beads:{name:"Fuse beads",palette:BEADS,groups:{basic:"Basics",skin:"Skin & hair",pastel:"Pastels",neon:"Neons"},on:["basic","skin","pastel"],textured:false,
+    unit:"bead",units:"beads",kinds:"colors",title:"Beads in the people",paletteLabel:"Bead colors",listName:"bead list",minPx:8,
+    toCells:(d,w,h,dither,near)=>errorDiffuse(d,w,h,dither,near,BEADS),
+    drawCell(ctx,i,x0,y0,bw,bh){drawBead(ctx,BEADS[i],x0,y0,bw,bh)},
+    amount:n=>fmt(n)+(n===1?" bead":" beads"),
+    extra:()=>{const b=pegboards(S.view.cells,S.view.w,S.view.h,PEG).boards;return b+(b===1?" pegboard":" pegboards")+" ("+PEG+" × "+PEG+")"},
+    csv:list=>{const p=pegboards(S.view.cells,S.view.w,S.view.h,PEG);
+      return[["Bead color","Count","RGB"],...list.map(([id,n])=>[BEADS[id].name,n,BEADS[id].avg.join(" ")]),[],
+        ["Pegboards "+PEG+" × "+PEG,p.boards,p.cols+" across × "+p.rows+" down"]]}},
 };
 // Photo: no cells drawn at all. compose() draws each person as the real photo, cut out (see photoLayer);
 // the cells still exist, so moving, resizing, boxes, erasing and print work exactly as for the other styles.

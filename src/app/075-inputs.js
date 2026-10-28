@@ -75,7 +75,7 @@ function setStyle(k){
   // block-only controls step aside for the Photo style
   for(const el of[$("sets").closest(".group"),$("look").closest(".group"),$("dither").closest("label"),$("saveCsv"),document.querySelector(".materials")])el.hidden=!!st.photo;
   $("setsLabel").textContent=st.paletteLabel;$("wRead").textContent=S.width+" "+st.units+" wide";$("saveCsv").textContent="Save "+st.listName+" (CSV)";
-  $("bevel").closest("label").hidden=!st.textured;$("hover").textContent="Hover a person to name "+(st.unit==="block"?"a block":st.unit==="emoji"?"an emoji":"a color");run()}
+  $("bevel").closest("label").hidden=!st.textured;$("hover").textContent="Hover a person to name "+({block:"a block",emoji:"an emoji",bead:"a bead"}[st.unit]||"a color");run()}
 Object.entries(STYLES).forEach(([k,st])=>{const b=document.createElement("button");b.dataset.v=k;b.textContent=st.name;b.setAttribute("aria-pressed",String(k===S.style));$("style").append(b)});
 seg("style",setStyle);renderGroups();
 

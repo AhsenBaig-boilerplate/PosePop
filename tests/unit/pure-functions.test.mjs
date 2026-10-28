@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { pure } from "./pure.mjs";
 
-const { rng, toLab, deltaE00, kmeans, keyColor, errorDiffuse, sceneBucket, SCENE_BUCKET, SCENE_ASPECT_STEP } = pure;
+const { rng, toLab, deltaE00, kmeans, keyColor, errorDiffuse, sceneBucket, SCENE_BUCKET, SCENE_ASPECT_STEP, pegboards } = pure;
 const close = (a, b, tol, what) => assert.ok(Math.abs(a - b) <= tol, `${what}: ${a} is not within ${tol} of ${b}`);
 
 test("rng is seeded and repeatable, in [0, 1)", () => {
@@ -86,4 +86,20 @@ test("sceneBucket: coarse render sizes, bottom-aligned crops, never stretched", 
   const a = sceneBucket(1095, 2304), b = sceneBucket(1110, 2290);
   assert.deepEqual([a.Wb, a.Hb], [b.Wb, b.Hb]);
   assert.ok(SCENE_ASPECT_STEP > 0);
+});
+
+test("pegboards: boards tiled from the beads' corner, empty ones not counted", () => {
+  const grid = (w, h, on) => { const c = new Array(w * h).fill(-1); for (const [x, y] of on) c[y * w + x] = 3; return c; };
+  assert.deepEqual(pegboards(grid(10, 10, []), 10, 10, 4), { cols: 0, rows: 0, boards: 0 });
+  // one bead anywhere: one board
+  assert.deepEqual(pegboards(grid(10, 10, [[7, 2]]), 10, 10, 4), { cols: 1, rows: 1, boards: 1 });
+  // 4 × 4 beads starting at (3, 5) fit one 4-peg board exactly; one more bead to the right needs a second
+  const sq = []; for (let y = 5; y < 9; y++) for (let x = 3; x < 7; x++) sq.push([x, y]);
+  assert.deepEqual(pegboards(grid(12, 12, sq), 12, 12, 4), { cols: 1, rows: 1, boards: 1 });
+  assert.deepEqual(pegboards(grid(12, 12, [...sq, [7, 5]]), 12, 12, 4), { cols: 2, rows: 1, boards: 2 });
+  // opposite corners of a 3 × 3 tiling: two boards used out of nine
+  assert.deepEqual(pegboards(grid(9, 9, [[0, 0], [8, 8]]), 9, 9, 3), { cols: 3, rows: 3, boards: 2 });
+  // a typical figure: 40 wide × 70 tall on 29-peg boards → 2 × 3
+  const fig = []; for (let y = 0; y < 70; y++) for (let x = 0; x < 40; x++) fig.push([x + 5, y + 2]);
+  assert.deepEqual(pegboards(grid(64, 80, fig), 64, 80, 29), { cols: 2, rows: 3, boards: 6 });
 });

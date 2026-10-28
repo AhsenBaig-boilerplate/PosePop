@@ -5,7 +5,7 @@ import vm from "node:vm";
 
 const FILES = ["005-random-noise.js", "007-pure-functions.js"];
 const NAMES = ["rng", "hash", "fbm", "ramp", "lin", "toLab", "deltaE00", "kmeans", "ycc", "keyColor", "KEY_MIN_COVER", "errorDiffuse",
-  "sceneBucket", "SCENE_BUCKET", "SCENE_ASPECT_STEP"];
+  "sceneBucket", "SCENE_BUCKET", "SCENE_ASPECT_STEP", "pegboards"];
 
 const src = FILES.map(f => readFileSync(new URL(`../../src/app/${f}`, import.meta.url), "utf8")).join("\n");
 const context = vm.createContext({});
