@@ -63,3 +63,11 @@ function sceneBucket(W,H){
   const Wb=ab>=1?L:Math.round(L*ab),Hb=ab>=1?Math.round(L/ab):L;
   const sw=a>Wb/Hb?Wb:Hb*a,sh=a>Wb/Hb?Wb/a:Hb;
   return{Wb,Hb,sx:(Wb-sw)/2,sy:Hb-sh,sw,sh}}
+// Fuse beads: the n×n pegboards it takes to make the people, tiled from the top-left of the beads' bounding box.
+// cells: palette index per cell, -1 where there's no bead. Boards with no bead on them aren't counted.
+function pegboards(cells,w,h,n){let x0=w,y0=h,x1=-1,y1=-1;
+  for(let i=0;i<w*h;i++)if(cells[i]>=0){const x=i%w,y=i/w|0;if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y}
+  if(x1<0)return{cols:0,rows:0,boards:0};
+  const cols=Math.ceil((x1-x0+1)/n),rows=Math.ceil((y1-y0+1)/n),used=new Uint8Array(cols*rows);
+  for(let i=0;i<w*h;i++)if(cells[i]>=0)used[Math.floor((((i/w|0)-y0))/n)*cols+Math.floor(((i%w)-x0)/n)]=1;
+  return{cols,rows,boards:used.reduce((a,b)=>a+b,0)}}

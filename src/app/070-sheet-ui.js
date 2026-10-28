@@ -4,7 +4,7 @@ function stacks(n){const s=Math.floor(n/64),r=n%64;if(!s)return r+" blocks";retu
 function counts(){const m=new Map();for(const v of S.view.cells)if(v>=0)m.set(v,(m.get(v)||0)+1);return[...m.entries()].sort((a,b)=>b[1]-a[1])}
 function renderMaterials(list,total){
   const st=ST(),inv=$("inv");inv.textContent="";$("mTitle").textContent=st.title;
-  $("mSum").textContent=list.length+" "+st.kinds+" · "+fmt(total)+" "+st.units+(st.unit==="block"?" · "+stacks(total):"");
+  $("mSum").textContent=list.length+" "+st.kinds+" · "+fmt(total)+" "+st.units+(st.extra?" · "+st.extra(total):"");
   for(const[id,n]of list){const b=st.palette[id],it=document.createElement("div");it.className="item";
     const slot=document.createElement("div");slot.className="slot";const c=document.createElement("canvas");c.width=c.height=16;c.getContext("2d").drawImage(b.canvas,0,0);
     const badge=document.createElement("b");badge.textContent=n>999?Math.round(n/100)/10+"k":n;slot.append(c,badge);
@@ -53,7 +53,8 @@ function redraw(){
   $("printRead").textContent=P.win.toFixed(2)+" × "+P.hin.toFixed(2)+" in · "+Math.round(P.win*DPI)+" × "+Math.round(P.hin*DPI)+" px\neach person "+ST().unit+" "+(bpx/DPI*25.4).toFixed(2)+" mm ("+bpx.toFixed(1)+" px)";
   $("inRead").textContent=P.win.toFixed(2)+" in";
   const warns=[];if(P.capped)warns.push("This picture is tall, so its width was reduced to fit the 7.68 in sheet.");
-  if(ST().textured&&bpx<6)warns.push("Blocks under 6 px lose their texture in print. Lower the detail or make the sticker wider.");
+  const st=ST();if(st.minPx&&bpx<st.minPx)warns.push(st.units[0].toUpperCase()+st.units.slice(1)+" under "+st.minPx+" px lose their "+(st.textured?"texture":"shape")+
+    " in print. Lower the detail or make the sticker wider.");
   $("printWarn").hidden=!warns.length;$("printWarn").textContent=warns.join(" ");
   const n=renderSheet(P,$("sheet"),40,out,true);
   $("sheetLabel").textContent=P.media==="sticker"?"Sheet 3.94 × 7.68 in":"Photo "+P.win+" × "+P.hin+" in";

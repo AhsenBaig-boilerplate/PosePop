@@ -23,7 +23,7 @@ Status: `[ ]` open · `[~]` in progress · `[x]` done. Priority: **P0** blocks e
   - ~~**Emoji mosaic**~~ done in 1.3.0 (73 Noto Emoji; skin from skin-tone hands).
   - ~~**Retro pixel (8-bit / 16-bit)**~~ done: DawnBringer 16 or 4 handheld greens, with ordered dithering. Still open: an optional scanline frame.
   - **Plastic bricks:** studded brick tops with soft shading; also works as a build guide with a parts list, like the block CSV.
-  - **Fuse beads:** round beads on a pegboard grid, with a bead-count list for making the real thing.
+  - ~~**Fuse beads**~~ done in 1.9.0: 36 generic bead colors in 4 groups, each bead drawn as a ring, with a bead list and the 29 × 29 pegboard count. Still open: a pegboard world, and pegboard lines on the grid overlay.
   - **Comic / pop art:** halftone dots, bold outlines and an optional speech bubble.
   - **Neon outline:** glowing outlines on dark worlds.
   - **Cross-stitch:** a stitch grid with a thread list.
@@ -43,6 +43,7 @@ Status: `[ ]` open · `[~]` in progress · `[x]` done. Priority: **P0** blocks e
 
 ## Done
 
+- [x] **Fuse beads style (1.9.0):** one new `STYLES` entry. Bead colors use generic names (no maker's), with a Skin & hair group for faces. The bead list (CSV) has each color's count and RGB, and the pegboards it takes (`pegboards()`, a unit-tested pure function). The small-cell print warning now comes from each style's `minPx`, and the materials summary from `extra()`.
 - [x] **Emoji on the picture (1.8.0):** 51 Noto Emoji as vector SVG (sharp at 300 dpi) to put on top of the picture, with move, resize and turn (handle, pinch, wheel, sliders, keys), bring to front, remove and undo. On a cut-out sticker the white cut border goes round them. Kiosk guests can add them. Handles keep one size on screen and are bigger on touch screens. Still open: choosing an existing emoji from the keyboard (today a keyboard user can move the one just added), and on cut-out stickers, emoji with loose bits (confetti) leave small separate cut pieces; check them on a test print.
 - [x] **The picture stays in view (1.7.0):** the preview and sheet are sticky beside the settings on wide screens and pinned to the top on phones. The settings are in four tabs (Style, World, Edit, Print) with less-used options under More options, and Undo, Redo, Hold to compare and Save sticker sit under the picture.
 - [x] **Keyboard editing and announcements (1.6.0):**

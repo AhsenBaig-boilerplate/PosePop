@@ -2,6 +2,10 @@
 
 Versions follow [semantic versioning](https://semver.org): **major** for changes that break saved settings or the print workflow, **minor** for new features, **patch** for fixes. Each release is a signed `v<version>` tag and stays published at `/PosePop/v/<version>/`. See "Releasing" in the README.
 
+## 1.9.0 (28 October 2026)
+
+- **Fuse beads style:** a new **Fuse beads** style makes the people out of round ironing beads, each drawn with its hole. There are 36 bead colors in four groups: **Basics**, **Skin & hair**, **Pastels** and **Neons** (off at first). The materials list counts the beads of each color and how many 29 × 29 pegboards the design takes, and **Save bead list (CSV)** gives the counts, each color's RGB and the pegboard layout, so you can make the real thing.
+
 ## 1.8.0 (27 October 2026)
 
 - **Emoji on the picture:** the new **Emoji** tab puts emoji stickers on top of the picture: party poppers, crowns, hearts, stars and 47 more. Tap one to add it, drag it to move it, drag its round handle to resize and turn it, or tap its × to remove it. **Size**, **Turn**, **Bring to front** and **Remove all** are in the tab, and Undo covers every change. They print sharp at 300 dpi with every style and world, and on a cut-out sticker the white cut border goes around them too. Kiosk guests can add them as well. A new photo starts without emoji.
