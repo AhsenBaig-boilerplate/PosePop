@@ -85,7 +85,7 @@ Use the Group of 6 photo and the **Plains** world, with the **Thin** border. Wit
 
 1. Under **Stickers per sheet**, choose the count. Record **Print → piece** (the width and height in inches) and **Print → sheet** (grid and rotation).
 2. Tap **Save full sheet** as well. It shows PosePop's intended layout to compare with Design Space's.
-3. **Save sticker PNG** and upload it to a new StickerPix Print + Cut project in Design Space.
+3. **Save sticker** and upload it to a new StickerPix Print + Cut project in Design Space.
 4. Check the size Design Space imports it at. The PNG is tagged at 300 dpi. If Design Space ignores that tag, the image arrives at a different size. Either way, set the width to the value from step 1 with the size lock on, and record what it imported at.
 5. Set the project quantity to the count.
    *Expect:* all copies fit on **one** sheet. If Design Space needs a second sheet, record how many fit on the first.
@@ -95,6 +95,7 @@ Use the Group of 6 photo and the **Plains** world, with the **Thin** border. Wit
    - the smallest margin from a sticker to the sheet edge
    - the smallest gap between two stickers
    - how far the cut line is offset from the white border, and in which direction
+8. Once, with emoji (**Emoji** tab): add a crown, a heart and a party popper, overlapping the people, on a world and then as a cut-out (world **None**). Check that the emoji print sharp, and on the cut-out that the cut goes round them. Record whether the party popper's loose confetti bits cut as tiny separate pieces, and whether a **Thick** border joins them.
 
 ### Reference sizes from the current estimates
 

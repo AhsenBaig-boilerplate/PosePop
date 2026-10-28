@@ -1,7 +1,7 @@
 // ================= State =================
 const S={width:64,style:"blocks",look:"clean",groups:Object.fromEntries(Object.entries(STYLES).map(([k,st])=>[k,new Set(st.on)])),dither:false,bevel:true,shadow:true,grid:false,
   scene:"plains",media:"sticker",inches:3,count:2,zoom:true,focus:null,border:1,tool:"move",brushSize:2,fixes:[],place:[],sel:0,boxes:[],boxesFull:[],
-  moveMode:"group",gplace:{dx:0,dy:0,s:1},edges:[],boxSel:0,bgColor:"#ffffff",bgImage:null,
+  moveMode:"group",gplace:{dx:0,dy:0,s:1},edges:[],boxSel:0,deco:[],decoSel:-1,bgColor:"#ffffff",bgImage:null,
   src:null,alpha:null,segMode:"loading",result:null,view:null,layout:null};
 let palette=[],palEntries=BLOCKS,nearest=()=>0;
 function buildPalette(){const st=ST(),on=S.groups[S.style];palEntries=st.palette;palette=st.palette.map((b,i)=>i).filter(i=>on.has(st.palette[i].group));nearest=makeNearest(palette,0)}

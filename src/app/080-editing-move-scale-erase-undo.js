@@ -1,13 +1,13 @@
 // ================= Editing: move, scale, erase, undo =================
 const out=$("out");
 const hist=[],redoStack=[];
-const snap=()=>JSON.stringify({fixes:S.fixes,place:S.place,sel:S.sel,gplace:S.gplace,edges:S.edges});
+const snap=()=>JSON.stringify({fixes:S.fixes,place:S.place,sel:S.sel,gplace:S.gplace,edges:S.edges,deco:S.deco,decoSel:S.decoSel});
 function pushHist(){hist.push(snap());if(hist.length>80)hist.shift();redoStack.length=0;histUI()}
-function restoreSnap(js){const o=JSON.parse(js);S.fixes=o.fixes;S.place=o.place;S.sel=o.sel;S.gplace=o.gplace;S.edges=o.edges;syncScale();restyle()}
+function restoreSnap(js){const o=JSON.parse(js);S.fixes=o.fixes;S.place=o.place;S.sel=o.sel;S.gplace=o.gplace;S.edges=o.edges;S.deco=o.deco;S.decoSel=o.decoSel;decoUI();syncScale();restyle()}
 function undo(){if(!hist.length)return;redoStack.push(snap());restoreSnap(hist.pop());histUI();say("Undone")}
 function redo(){if(!redoStack.length)return;hist.push(snap());restoreSnap(redoStack.pop());histUI();say("Redone")}
 function histUI(){$("undo").disabled=!hist.length;$("redo").disabled=!redoStack.length}
-function resetEdits(){hist.length=0;redoStack.length=0;S.fixes=[];S.place=[];S.sel=0;S.gplace={dx:0,dy:0,s:1};S.edges=[];S.boxSel=0;histUI();syncScale()}
+function resetEdits(){hist.length=0;redoStack.length=0;S.fixes=[];S.place=[];S.sel=0;S.gplace={dx:0,dy:0,s:1};S.edges=[];S.boxSel=0;S.deco=[];S.decoSel=-1;decoUI();histUI();syncScale()}
 $("undo").addEventListener("click",undo);$("redo").addEventListener("click",redo);
 document.addEventListener("keydown",e=>{if(!(e.ctrlKey||e.metaKey))return;const k=e.key.toLowerCase();
   if(k==="z"&&!e.shiftKey){e.preventDefault();undo()}else if(k==="y"||(k==="z"&&e.shiftKey)){e.preventDefault();redo()}});
@@ -68,6 +68,9 @@ out.addEventListener("pointerdown",e=>{
   if(S.tool==="move"){
     if(S.moveMode==="boxes"){if(pointers.size>1)return;const hit=boxHit(pt.X,pt.Y,e.pointerType==="touch");drag=null;if(!hit)return;
       S.boxSel=hit.k;if(hit.ed)drag={box:true,k:hit.k,ed:hit.ed,pushed:false};quick();return}
+    if(pointers.size===2&&drag&&(drag.deco||drag.decoTurn)){const[a,b]=[...pointers.values()],d=selDeco();if(!d)return;if(!drag.pushed)pushHist();
+      drag={decoPinch:true,d0:Math.max(10,Math.hypot(a.X-b.X,a.Y-b.Y)),a0:Math.atan2(b.Y-a.Y,b.X-a.X),s0:d.s,r0:d.r,pushed:true};return}
+    if(pointers.size===1){const dd=decoDown(pt);if(dd){drag=dd.done?null:dd;return}}
     if(!canMove())return;
     if(pointers.size===2){const[a,b]=[...pointers.values()];const pushed=!!(drag&&drag.pushed);if(!pushed)pushHist();drag={pinch:true,d0:Math.hypot(a.X-b.X,a.Y-b.Y),s0:cur().s,pushed:true};return}
     const sel=S.layout.sel,tol=sel?sel.hs*1.4:0;
@@ -83,6 +86,8 @@ out.addEventListener("pointerdown",e=>{
 out.addEventListener("pointermove",e=>{
   const pt=canvasPt(e);
   if(pointers.has(e.pointerId))pointers.set(e.pointerId,pt);
+  if(drag&&(drag.deco||drag.decoTurn)&&pointers.size<2){decoMove(drag,pt);return}
+  if(drag&&drag.decoPinch&&pointers.size===2){const[a,b]=[...pointers.values()],d=selDeco();if(d){d.s=drag.s0*Math.hypot(a.X-b.X,a.Y-b.Y)/drag.d0;d.r=drag.r0+Math.atan2(b.Y-a.Y,b.X-a.X)-drag.a0;clampDeco(d);decoUI();quick()}return}
   if(drag&&drag.box){if(!drag.pushed){pushHist();drag.pushed=true}dragEdge(pt.X,pt.Y,drag.k,drag.ed);rebuildQuick();return}
   if(drag&&drag.pinch&&pointers.size===2){const[a,b]=[...pointers.values()];cur().s=Math.max(.25,Math.min(2.5,drag.s0*Math.hypot(a.X-b.X,a.Y-b.Y)/Math.max(10,drag.d0)));syncScale();quick();return}
   if(drag&&drag.resize){cur().s=Math.max(.25,Math.min(2.5,drag.s0*Math.hypot(pt.X-drag.anchor[0],pt.Y-drag.anchor[1])/drag.d0));syncScale();quick();return}
@@ -91,15 +96,21 @@ out.addEventListener("pointermove",e=>{
     const p=cur();p.dx=drag.dx+(pt.X-drag.X)/S.layout.Wpx;p.dy=drag.dy+(pt.Y-drag.Y)/S.layout.Hpx;quick();return}
   if(!S.view||!S.layout)return;
   if(S.tool==="move"&&S.moveMode==="boxes"){const hit=boxHit(pt.X,pt.Y,e.pointerType==="touch");out.style.cursor=hit&&hit.ed?(hit.ed==="l"||hit.ed==="r"?"ew-resize":"ns-resize"):""}
+  else if(S.tool==="move"&&S.layout.deco&&[S.layout.deco.turn,S.layout.deco.del].some(p=>Math.hypot(pt.X-p[0],pt.Y-p[1])<=S.layout.deco.hs*1.2))out.style.cursor="pointer";
+  else if(S.tool==="move"&&decoAt(pt.X,pt.Y)>=0)out.style.cursor="move";
   else if(S.tool==="move"){const sel=S.layout.sel,tol=sel?sel.hs*1.4:0,k=sel?sel.corners.findIndex(([cx,cy])=>Math.abs(pt.X-cx)<=tol&&Math.abs(pt.Y-cy)<=tol):-1;
     out.style.cursor=k<0?"":(k===0||k===3?"nwse-resize":"nesw-resize")}
+  const di=decoAt(pt.X,pt.Y);if(di>=0){$("hover").textContent=DECO_LIST[S.deco[di].k][1];return}
   const Lr=hitLayer(pt.X,pt.Y);
   if(!Lr){$("hover").textContent="";return}const g=toGrid(pt.X,pt.Y,Lr),v=S.view.cells[Math.floor(g.gy)*S.view.w+Math.floor(g.gx)];
   $("hover").innerHTML=v>=0?"<strong>"+ST().palette[v].name+"</strong>"+(S.view.layers.length>1?" · person "+(Lr.L+1):""):"";
 });
 function endPointer(e){pointers.delete(e.pointerId);if(pointers.size)return;if(drag){const was=drag;drag=null;if(was.pushed||was.stroke||was.pinch)restyle()}}
 ["pointerup","pointercancel"].forEach(t=>out.addEventListener(t,endPointer));
-out.addEventListener("wheel",e=>{if(S.tool!=="move"||S.moveMode==="boxes"||!canMove()||!S.view)return;e.preventDefault();const pt=canvasPt(e),Lr=hitLayer(pt.X,pt.Y);if(Lr)S.sel=Lr.L;
+out.addEventListener("wheel",e=>{if(S.tool!=="move"||S.moveMode==="boxes"||!S.view)return;const pt=canvasPt(e),di=decoAt(pt.X,pt.Y);
+  if(di>=0&&di===S.decoSel){e.preventDefault();if(!scaling){pushHist();scaling=true}clearTimeout(out._wt);out._wt=setTimeout(()=>{scaling=false;restyle()},350);
+    const d=selDeco();d.s*=Math.exp(-e.deltaY*.0015);clampDeco(d);decoUI();quick();return}
+  if(!canMove())return;e.preventDefault();const Lr=hitLayer(pt.X,pt.Y);if(Lr)S.sel=Lr.L;
   if(!scaling){pushHist();scaling=true}clearTimeout(out._wt);out._wt=setTimeout(()=>{scaling=false;restyle()},350);
   const p=cur();p.s=Math.max(.25,Math.min(2.5,p.s*Math.exp(-e.deltaY*.0015)));syncScale();quick()},{passive:false});
 

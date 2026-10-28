@@ -58,7 +58,7 @@ function redraw(){
   const n=renderSheet(P,$("sheet"),40,out,true);
   $("sheetLabel").textContent=P.media==="sticker"?"Sheet 3.94 × 7.68 in":"Photo "+P.win+" × "+P.hin+" in";
   $("sheetRead").textContent=P.media==="sticker"?n+(n===1?" sticker":" stickers")+" per sheet":"1 photo";
-  $("saveSticker").textContent=P.media==="sticker"?"Save sticker PNG":"Save 4 × 6 photo PNG";$("saveSheet").hidden=P.media!=="sticker";
+  $("saveSticker").textContent=P.media==="sticker"?"Save sticker":"Save 4 × 6 photo";$("saveSheet").hidden=P.media!=="sticker";
   renderSteps(P);syncScale();backdropThumbs();
   mark("Print","piece",P.media+" "+P.win.toFixed(2)+" × "+P.hin.toFixed(2)+" in · "+Math.round(P.win*DPI)+" × "+Math.round(P.hin*DPI)+" px");
   if(P.media==="sticker")mark("Print","sheet",n+" up · "+P.layout.cols+" × "+P.layout.rows+(P.layout.rot?" rotated":"")+" · margin "+SHEET.margin+" in, gap "+SHEET.gap+" in");

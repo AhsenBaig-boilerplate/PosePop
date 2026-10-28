@@ -1,5 +1,5 @@
 // Keyboard editing on the preview and screen-reader announcements, on the group of seven.
-import { test, expect, watch, openApp, loadPhoto, state, personCentre } from "./fixtures.mjs";
+import { test, expect, watch, openApp, loadPhoto, state, personCentre, openTab } from "./fixtures.mjs";
 
 test.describe.configure({ mode: "serial" });
 let page, problems;
@@ -9,6 +9,7 @@ test.beforeAll(async ({ browser }, info) => {
   problems = watch(page);
   await openApp(page);
   await loadPhoto(page, "group7.jpg");
+  await openTab(page, "edit");
 });
 test.afterEach(() => { expect(problems, "page errors, console errors or CSP violations").toEqual([]); });
 test.afterAll(async () => { await page.close(); });

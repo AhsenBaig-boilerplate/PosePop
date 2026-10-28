@@ -32,6 +32,16 @@ export async function openApp(page, path = "?debug=1") {
   await expect(page.locator("#segStatus")).toHaveAttribute("data-s", "ready", { timeout: 180_000 });
 }
 
+// with ?debug=1 the diagnostics panel floats over the top of the settings rail; collapse it before using the settings
+export async function closeDiag(page) {
+  const diag = page.locator("#diagToggle[aria-expanded=true]");
+  if (await diag.count()) await diag.click();
+}
+export async function openTab(page, name) {
+  await closeDiag(page);
+  await page.click("#tab-" + name);
+}
+
 // choose a photo and wait until people are found and the blocks are placed
 export async function loadPhoto(page, name) {
   await page.locator("#pick").setInputFiles(fixture(name));

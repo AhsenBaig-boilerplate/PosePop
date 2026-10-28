@@ -1,5 +1,5 @@
 // Person detection on the committed NASA photos (tests/fixtures/README.md), plus the backdrop key.
-import { test, expect, openApp, loadPhoto, state } from "./fixtures.mjs";
+import { test, expect, openApp, loadPhoto, state, closeDiag } from "./fixtures.mjs";
 
 for (const [file, people] of [["single.jpg", 1], ["seated.jpg", 1], ["group7.jpg", 7]]) {
   test(`finds ${people} ${people === 1 ? "person" : "people"} in ${file}`, async ({ page }) => {
@@ -21,6 +21,7 @@ test("detection runs in the worker and reports it", async ({ page }) => {
 test("green screen key removes the backdrop and can be switched off", async ({ page }) => {
   await openApp(page);
   const before = await loadPhoto(page, "greenscreen.jpg");
+  await closeDiag(page);
   await page.locator("#keyOn").check();
   await expect(page.locator("#keyNote")).toContainText(/Screen colour found .*% of the photo removed/);
   await expect(page.locator("#busy")).toBeHidden({ timeout: 60_000 });

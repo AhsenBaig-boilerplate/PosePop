@@ -28,7 +28,7 @@ const model = (name) => [
   }],
 ];
 
-// [source path, logical path used in src/index.html, optional transform]
+// [source path (or null when the transform makes the file), logical path used in src/index.html, optional transform]
 const ASSETS = [
   ["node_modules/three/build/three.min.js", "vendor/three.min.js"],
   ["node_modules/@tensorflow/tfjs/dist/tf.min.js", "vendor/tf.min.js"],
@@ -79,6 +79,22 @@ for (const [group, names] of Object.entries(EMOJI)) for (const name of names.spl
   if (name === "hand") for (const [k, v] of Object.entries(e.skin_variations || {})) if (v.has_img_google) add(`${name}_${k.toLowerCase()}`, v.image, `${e.name.toLowerCase()} (${{ "1F3FB": "light", "1F3FC": "medium-light", "1F3FD": "medium", "1F3FE": "medium-dark", "1F3FF": "dark" }[k] || k} skin tone)`);
 }
 
+// Emoji to put on the picture: Noto Emoji as vector SVG (Apache-2.0, via the pinned @iconify-json/noto), so they stay
+// sharp at 300 dpi. The same rules as the emoji style: party and event themes, no brands, no double meanings, nothing
+// that would be unkind on top of a guest's face. Hands use the default yellow. Written into the app as __DECO__.
+const DECO = "party-popper confetti-ball balloon birthday-cake wrapped-gift crown top-hat graduation-cap ribbon partying-face star-struck smiling-face-with-sunglasses smiling-face-with-heart-eyes face-blowing-a-kiss grinning-squinting-face winking-face red-heart sparkling-heart heart-with-arrow heart-hands thumbs-up victory-hand waving-hand flexed-biceps star glowing-star sparkles collision dizzy high-voltage fire hundred-points rainbow sun snowflake musical-notes rocket trophy camera-with-flash unicorn butterfly teddy-bear cat-face dog-face rose sunflower cherry-blossom four-leaf-clover jack-o-lantern ghost christmas-tree";
+const noto = JSON.parse(readFileSync(join(root, "node_modules/@iconify-json/noto/icons.json"), "utf8"));
+const decoList = [];
+for (const name of DECO.split(" ")) {
+  const icon = noto.icons[name];
+  if (!icon) throw new Error(`emoji "${name}" isn't in @iconify-json/noto`);
+  // images can't run code, but check anyway: plain shapes and gradients, references only inside the file
+  if (/<script|<style|<foreignObject|<image|\son\w+=|style=|href="(?!#)|url\((?!#)/i.test(icon.body)) throw new Error(`emoji "${name}" has active or external content`);
+  const w = icon.width || noto.width, h = icon.height || noto.height;
+  decoList.push({ name, label: name.replaceAll("-", " "), logical: `deco/${name}.svg` });
+  ASSETS.push([null, `deco/${name}.svg`, () => Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${icon.body}</svg>`)]);
+}
+
 const digest = (alg, data, enc) => createHash(alg).update(data).digest(enc);
 const hashedName = (path, hash) => path.replace(/(\.[^./]+)$/, `.${hash}$1`);
 
@@ -87,7 +103,7 @@ mkdirSync(out, { recursive: true });
 
 const manifest = {};
 for (const [src, logical, transform] of ASSETS) {
-  const raw = readFileSync(join(root, src)), buf = transform ? transform(raw) : raw;
+  const raw = src && readFileSync(join(root, src)), buf = transform ? transform(raw) : raw;
   const file = hashedName(logical, digest("sha256", buf, "hex").slice(0, 12));
   mkdirSync(dirname(join(out, file)), { recursive: true });
   writeFileSync(join(out, file), buf);
@@ -106,7 +122,8 @@ const fill = (text, where) => text.replace(/__ASSET:([A-Za-z0-9._/-]+)__/g, look
 // only changes when the code does.
 const parts = readdirSync(join(root, "src/app")).filter((f) => /^\d{3}-[a-z0-9-]+\.js$/.test(f)).sort();
 const emojiJson = () => JSON.stringify(emojiList.map(({ name, group, label, logical }) => [name, group, label, manifest[logical].file]));
-const app = Buffer.from(fill(`(() => {\n"use strict";\n${parts.map((f) => readFileSync(join(root, "src/app", f), "utf8")).join("")}})();\n`, "src/app").replace("__EMOJI__", emojiJson));
+const decoJson = () => JSON.stringify(decoList.map(({ name, label, logical }) => [name, label, manifest[logical].file]));
+const app = Buffer.from(fill(`(() => {\n"use strict";\n${parts.map((f) => readFileSync(join(root, "src/app", f), "utf8")).join("")}})();\n`, "src/app").replace("__EMOJI__", emojiJson).replace("__DECO__", decoJson));
 {
   const file = hashedName("app.js", digest("sha256", app, "hex").slice(0, 12));
   writeFileSync(join(out, file), app);
