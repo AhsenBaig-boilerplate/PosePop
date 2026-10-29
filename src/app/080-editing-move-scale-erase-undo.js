@@ -23,8 +23,9 @@ function syncMoveUI(){const n=S.view?S.view.layers.length:1,nb=(S.boxes||[]).len
   m.querySelector('[data-v="each"]').hidden=n<2;m.querySelector('[data-v="boxes"]').hidden=!nb;
   if((S.moveMode==="each"&&n<2)||(S.moveMode==="boxes"&&!nb)){setMoveMode("group");return}
   m.hidden=S.tool!=="move"||(n<2&&!nb);$("resetBoxes").hidden=S.tool!=="move"||S.moveMode!=="boxes"}
+const brush=$("brush");let brushTimer=0; // the Erase and Restore brush ring (see brushShow)
 function setMoveMode(v){S.moveMode=v;$("moveMode").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.v===v)));syncScale();setTool(S.tool)}
-function setTool(v){S.tool=v;out.classList.toggle("painting",v!=="move");out.classList.toggle("moving",v==="move");const mv=S.moveMode;
+function setTool(v){S.tool=v;brushHide();out.classList.toggle("painting",v!=="move");out.classList.toggle("moving",v==="move");const mv=S.moveMode;
   $("brushGroup").hidden=!(v==="erase"||v==="keep");$("sizeGroup").hidden=v!=="move"||mv==="boxes";
   $("toolHint").textContent=v==="move"?(mv==="boxes"?"Drag a box edge to choose which blocks belong to each person. Blocks outside every box are cropped away.":
       !canMove()?"Pick a world or the 4 × 6 photo to move people around.":
@@ -33,7 +34,7 @@ function setTool(v){S.tool=v;out.classList.toggle("painting",v!=="move");out.cla
     v==="erase"?"Drag over anything that isn't part of a person.":v==="area"?"Tap a leftover patch, like a car seat or a wall, to remove all of it at once.":"Drag over parts of a person that were cut away.";
   syncMoveUI();if(S.result)quick()}
 seg("tool",setTool);seg("moveMode",setMoveMode);
-$("brushSize").addEventListener("input",e=>{S.brushSize=+e.target.value;$("brushRead").textContent=S.brushSize+(S.brushSize===1?" block":" blocks")});
+$("brushSize").addEventListener("input",e=>{S.brushSize=+e.target.value;$("brushRead").textContent=S.brushSize+(S.brushSize===1?" block":" blocks");brushPreview()});
 let scaling=false;
 $("scale").addEventListener("input",e=>{if(!canMove()||!S.view)return;if(!scaling){pushHist();scaling=true}cur().s=+e.target.value/100;$("sizeRead").textContent=e.target.value+"%";quick()});
 $("scale").addEventListener("change",()=>{scaling=false;restyle()});
@@ -105,7 +106,20 @@ out.addEventListener("pointermove",e=>{
   if(!Lr){$("hover").textContent="";return}const g=toGrid(pt.X,pt.Y,Lr),v=S.view.cells[Math.floor(g.gy)*S.view.w+Math.floor(g.gx)];
   $("hover").innerHTML=v>=0?"<strong>"+ST().palette[v].name+"</strong>"+(S.view.layers.length>1?" · person "+(Lr.L+1):""):"";
 });
-function endPointer(e){pointers.delete(e.pointerId);if(pointers.size)return;if(drag){const was=drag;drag=null;if(was.pushed||was.stroke||was.pinch)restyle()}}
+// The brush ring: where an Erase or Restore stroke will go, and how big it is. Its radius is the stroke's (brushSize × .75
+// cells of the person it lands on, at that person's size). Mouse and pen show it while hovering; touch while painting.
+const brushTool=()=>S.tool==="erase"||S.tool==="keep";
+function brushHide(){clearTimeout(brushTimer);brush.hidden=true;out.classList.remove("brushing")}
+function brushShow(cx,cy,X,Y){const L=S.layout;if(!brushTool()||!L||!S.view){brushHide();return}
+  const Lr=hitLayer(X,Y)||L.order.find(l=>l.L===S.sel)||L.order[0];if(!Lr){brushHide();return}
+  const r=out.getBoundingClientRect(),f=frame.getBoundingClientRect(),d=2*S.brushSize*.75*L.cell*L.pl(Lr.L).s*r.width/out.width;
+  brush.classList.toggle("keep",S.tool==="keep");Object.assign(brush.style,{left:(cx-f.left)+"px",top:(cy-f.top)+"px",width:d+"px",height:d+"px"});brush.hidden=false}
+function brushAt(e){if(e.pointerType==="touch"&&!pointers.has(e.pointerId)){brushHide();return}clearTimeout(brushTimer);const pt=canvasPt(e);brushShow(e.clientX,e.clientY,pt.X,pt.Y);
+  out.classList.toggle("brushing",!brush.hidden&&e.pointerType!=="touch")}
+// moving the Brush slider shows the new size in the middle of the picture for a moment
+function brushPreview(){const r=out.getBoundingClientRect();brushShow(r.left+r.width/2,r.top+r.height/2,out.width/2,out.height/2);clearTimeout(brushTimer);brushTimer=setTimeout(brushHide,1200)}
+out.addEventListener("pointerdown",brushAt);out.addEventListener("pointermove",brushAt);out.addEventListener("pointerleave",brushHide);
+function endPointer(e){pointers.delete(e.pointerId);if(e.pointerType==="touch")brushHide();if(pointers.size)return;if(drag){const was=drag;drag=null;if(was.pushed||was.stroke||was.pinch)restyle()}}
 ["pointerup","pointercancel"].forEach(t=>out.addEventListener(t,endPointer));
 out.addEventListener("wheel",e=>{if(S.tool!=="move"||S.moveMode==="boxes"||!S.view)return;const pt=canvasPt(e),di=decoAt(pt.X,pt.Y);
   if(di>=0&&di===S.decoSel){e.preventDefault();if(!scaling){pushHist();scaling=true}clearTimeout(out._wt);out._wt=setTimeout(()=>{scaling=false;restyle()},350);
