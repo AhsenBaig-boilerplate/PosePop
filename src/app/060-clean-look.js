@@ -86,35 +86,36 @@ function personMask(){
     const order=sz.map((n,i)=>[n,i]).sort((a,b)=>b[0]-a[0]).slice(0,6).map(x=>x[1]),map=new Map(order.map((c,k)=>[c,k]));
     for(let i=0;i<w*h;i++)if(keep[i])layer[i]=map.has(comp2[i])?map.get(comp2[i]):0}
   // edit strokes, in the order they were made
-  const de=(a,b)=>Math.hypot(lab[a*3]-lab[b*3],lab[a*3+1]-lab[b*3+1],lab[a*3+2]-lab[b*3+2]);
+  // restored: cells brought back by Restore strokes, which the Photo style draws even where the detector's mask is empty
+  const de=(a,b)=>Math.hypot(lab[a*3]-lab[b*3],lab[a*3+1]-lab[b*3+1],lab[a*3+2]-lab[b*3+2]),restored=new Uint8Array(w*h);
   for(const f of S.fixes){
     if(f.t==="area"){const sx=Math.floor(f.x*w),sy=Math.floor(f.y*h),s0=sy*w+sx;if(sx<0||sy<0||sx>=w||sy>=h||!keep[s0])continue;
       const L=layer[s0],st3=[s0],seen=new Uint8Array(w*h);seen[s0]=1;
-      while(st3.length){const i=st3.pop();keep[i]=0;layer[i]=-1;for(const m of N4(i,w,h))if(m>=0&&!seen[m]&&keep[m]&&layer[m]===L&&de(m,s0)<26){seen[m]=1;st3.push(m)}}
+      while(st3.length){const i=st3.pop();keep[i]=0;layer[i]=-1;restored[i]=0;for(const m of N4(i,w,h))if(m>=0&&!seen[m]&&keep[m]&&layer[m]===L&&de(m,s0)<26){seen[m]=1;st3.push(m)}}
       continue}
     for(const pt of f.pts){const cx=pt[0]*w,cy=pt[1]*h,rr=f.r;
       for(let y=Math.floor(cy-rr);y<=Math.ceil(cy+rr);y++)for(let x=Math.floor(cx-rr);x<=Math.ceil(cx+rr);x++){
         if(x<0||y<0||x>=w||y>=h)continue;if(Math.hypot(x+.5-cx,y+.5-cy)>rr)continue;const i=y*w+x;
-        if(f.t==="erase"){keep[i]=0;layer[i]=-1}else if(!keep[i]){keep[i]=1;layer[i]=f.L}}}
+        if(f.t==="erase"){keep[i]=0;layer[i]=-1;restored[i]=0}else if(!keep[i]){keep[i]=1;layer[i]=f.L;restored[i]=1}}}
   }
-  return{keep,layer};
+  return{keep,layer,restored};
 }
 // view cells: -1 empty, -2 white border, >=0 block id
 function buildView(fresh){
-  const{w:gw,h:gh,grid}=S.result,{keep,layer}=personMask(),cut=S.scene==="none";
+  const{w:gw,h:gh,grid}=S.result,{keep,layer,restored}=personMask(),cut=S.scene==="none";
   // trim to the people so they stand on the bottom edge and fill the sticker
   if(fresh||!S.crop){let x0=gw,y0=gh,x1=-1,y1=-1;for(let i=0;i<gw*gh;i++)if(keep[i]){const x=i%gw,y=i/gw|0;if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y}
     if(x1<0){x0=0;y0=0;x1=gw-1;y1=gh-1}const m=Math.max(1,Math.round((x1-x0)*.04));
     S.crop={x0:Math.max(0,x0-m),y0:Math.max(0,y0-m),x1:Math.min(gw-1,x1+m),y1:y1}}
   const C=S.crop,w=C.x1-C.x0+1,h=C.y1-C.y0+1;
   const b=cut&&S.media==="sticker"?S.border:0,W=w+2*b,H=h+2*b,cells=new Int16Array(W*H).fill(-1);
-  const lay=new Int8Array(W*H).fill(-1);
-  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=(y+C.y0)*gw+x+C.x0;if(keep[i]){cells[(y+b)*W+x+b]=grid[i];lay[(y+b)*W+x+b]=Math.max(0,layer[i])}}
+  const lay=new Int8Array(W*H).fill(-1),back=new Uint8Array(W*H);
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=(y+C.y0)*gw+x+C.x0;if(keep[i]){const j=(y+b)*W+x+b;cells[j]=grid[i];lay[j]=Math.max(0,layer[i]);back[j]=restored[i]}}
   if(b){const src=cells.slice();for(let y=0;y<H;y++)for(let x=0;x<W;x++){if(src[y*W+x]!==-1)continue;
     let near=false;for(let dy=-b;dy<=b&&!near;dy++)for(let dx=-b;dx<=b;dx++){const xx=x+dx,yy=y+dy;if(xx>=0&&yy>=0&&xx<W&&yy<H&&src[yy*W+xx]>=0&&dx*dx+dy*dy<=b*b+1){near=true;break}}
     if(near)cells[y*W+x]=-2}}
   const ext=[];for(let i=0;i<W*H;i++){const L=lay[i];if(L<0)continue;const x=i%W,y=i/W|0;const e=ext[L]||(ext[L]={x0:x,x1:x,y0:y,y1:y});
     if(x<e.x0)e.x0=x;if(x>e.x1)e.x1=x;if(y<e.y0)e.y0=y;if(y>e.y1)e.y1=y}
   const layers=[];ext.forEach((e,L)=>{if(e)layers.push({L,ax:(e.x0+e.x1+1)/2,ay:e.y1+1,e})});
-  S.view={w:W,h:H,cells,lay,layers,pad:b};
+  S.view={w:W,h:H,cells,lay,layers,pad:b,restored:back};
 }

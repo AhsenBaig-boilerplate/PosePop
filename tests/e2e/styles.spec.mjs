@@ -48,3 +48,27 @@ test("Fuse beads: bead colours, the pegboard count, and a bead list that adds up
   await expect(page.locator("#busy")).toBeHidden({ timeout: 60_000 });
   await expect(page.locator("#mSum")).toHaveText(/pegboards? \(29 × 29\)$/);
 });
+
+test("Photo: Restore brings back the photo itself, not just a shadow", async ({ page }) => {
+  await ready(page);
+  await pick(page, "photo");
+  await page.click("#tab-world");
+  await page.click('.scene[data-k="none"]');
+  await expect(page.locator("#busy")).toBeHidden({ timeout: 60_000 });
+  // an empty spot inside the picture: the widest see-through gap on the row a third of the way down, away from the edges
+  const alphaAt = (fx, fy) => page.evaluate(([fx, fy]) => { const c = document.getElementById("out");
+    return c.getContext("2d").getImageData(Math.round(fx * (c.width - 1)), Math.round(fy * (c.height - 1)), 1, 1).data[3]; }, [fx, fy]);
+  const gap = await page.evaluate(() => { const c = document.getElementById("out"), y = Math.round(c.height * .33), d = c.getContext("2d").getImageData(0, y, c.width, 1).data;
+    let best = [0, 0], run = 0; for (let x = Math.round(c.width * .15); x < c.width * .85; x++) { run = d[x * 4 + 3] === 0 ? run + 1 : 0; if (run > best[1]) best = [x - run / 2, run]; }
+    return { x: best[0] / (c.width - 1), y: y / (c.height - 1), width: best[1] }; });
+  expect(gap.width, "there is a gap between the people").toBeGreaterThan(20);
+  expect(await alphaAt(gap.x, gap.y)).toBe(0);
+  await page.click("#tab-edit");
+  await page.click("#tool [data-v=keep]");
+  const r = await page.locator("#out").boundingBox(), X = r.x + gap.x * r.width, Y = r.y + gap.y * r.height;
+  await page.mouse.move(X - 6, Y); await page.mouse.down();
+  for (let i = 1; i <= 6; i++) await page.mouse.move(X - 6 + i * 2, Y);
+  await page.mouse.up();
+  await expect(page.locator("#busy")).toBeHidden({ timeout: 60_000 });
+  await expect.poll(() => alphaAt(gap.x, gap.y), { message: "the restored spot shows the photo" }).toBeGreaterThan(200);
+});

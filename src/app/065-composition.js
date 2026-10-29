@@ -61,6 +61,13 @@ function photoLayer(Lr){
   const c=document.createElement("canvas");c.width=ow;c.height=oh;const x=c.getContext("2d");x.imageSmoothingQuality="high";
   x.drawImage(im,sx,sy,sw,sh,0,0,ow,oh);x.globalCompositeOperation="destination-in";x.imageSmoothingEnabled=true;x.drawImage(mc,0,0,ow,oh);
   const A=alphaMask(Wk);if(A){const k=A.width/iw;x.drawImage(A,sx*k,sy*k,sw*k,sh*k,0,0,ow,oh)}
+  // cells brought back with Restore show the photo whatever the detector thought, or only their shadow would appear
+  const rd=mx.createImageData(mw,mh);let any=false;
+  for(let y=0;y<mh;y++)for(let x2=0;x2<mw;x2++){const i=(y0+y)*vw+x0+x2;if(own(i)&&S.view.restored[i]){rd.data[(y*mw+x2)*4+3]=255;any=true}}
+  if(any){const rm=document.createElement("canvas");rm.width=mw;rm.height=mh;rm.getContext("2d").putImageData(rd,0,0);
+    const r=document.createElement("canvas");r.width=ow;r.height=oh;const rx=r.getContext("2d");rx.imageSmoothingQuality="high";
+    rx.drawImage(im,sx,sy,sw,sh,0,0,ow,oh);rx.globalCompositeOperation="destination-in";rx.imageSmoothingEnabled=true;rx.drawImage(rm,0,0,ow,oh);
+    x.globalCompositeOperation="source-over";x.drawImage(r,0,0)}
   const sil=document.createElement("canvas");sil.width=ow;sil.height=oh;const sx2=sil.getContext("2d");sx2.drawImage(c,0,0);sx2.globalCompositeOperation="source-in";sx2.fillStyle="#fff";sx2.fillRect(0,0,ow,oh);
   const L={c,sil,x0,y0,mw,mh};photoCache.m.set(Lr.L,L);return L}
 function compose(canvas,Wpx,Hpx,preview){

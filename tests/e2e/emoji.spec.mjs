@@ -121,3 +121,17 @@ test("kiosk guests can add emoji too", async ({ page }) => {
   await page.click('#decoPick [aria-label="Add party popper"]');
   await expect(page.locator("#out")).toHaveAttribute("aria-label", /, with 1 emoji$/);
 });
+
+test("adding an emoji while erasing switches to Move, so its handles work", async ({ page }) => {
+  await ready(page);
+  await page.click("#tab-edit");
+  await page.click("#tool [data-v=erase]");
+  await page.click("#tab-emoji");
+  await page.click('#decoPick [aria-label="Add crown"]');
+  await expect(page.locator("#tool [data-v=move]")).toHaveAttribute("aria-pressed", "true");
+  const d = (await snap(page)).deco[0], r = await page.locator("#out").boundingBox();
+  const half = d.s * Math.min(r.width, r.height) / 2 + 8, [cx, cy] = await at(page, d.x, d.y);
+  await drag(page, [cx + half, cy + half], [30, 30]);
+  expect((await snap(page)).deco[0].s, "the handle resized it").toBeGreaterThan(d.s);
+  expect((await snap(page)).fixes, "and nothing was erased").toBe(0);
+});
