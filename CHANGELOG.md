@@ -2,6 +2,10 @@
 
 Versions follow [semantic versioning](https://semver.org): **major** for changes that break saved settings or the print workflow, **minor** for new features, **patch** for fixes. Each release is a signed `v<version>` tag and stays published at `/PosePop/v/<version>/`. See "Releasing" in the README.
 
+## 1.12.0 (29 October 2026)
+
+- **See what the brush covers:** with **Erase** or **Restore**, a ring the size of the brush now follows the pointer over the picture in place of the crosshair. It's red and dashed for Erase and green and solid for Restore, so it's clear which one is on and exactly what a stroke will take away or bring back. On phones and tablets it shows under your finger while you paint. Moving the **Brush** slider shows the new size in the middle of the picture for a moment.
+
 ## 1.11.1 (29 October 2026)
 
 - **Fix, Restore in the Photo style:** restoring a part of a person that the cut-out had made faint or see-through, often the legs, now brings the photo back there in full. Before, Restore only worked where the cut-out had removed the part completely, so faint parts stayed faint.

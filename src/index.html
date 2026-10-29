@@ -135,6 +135,12 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}
 .btn[disabled]{opacity:.45;cursor:default}
 #orig{position:absolute;pointer-events:none}
+/* the Erase and Restore brush: a ring the size of what a stroke covers, red and dashed for Erase, green and solid for Restore,
+   outlined dark inside and out so it shows on any picture */
+.brush{position:absolute;pointer-events:none;border-radius:50%;box-sizing:border-box;transform:translate(-50%,-50%);border:2px dashed #ff5a5a;background:rgba(255,90,90,.14);
+  box-shadow:0 0 0 1px rgba(0,0,0,.6),inset 0 0 0 1px rgba(0,0,0,.6)}
+.brush.keep{border-style:solid;border-color:#46d07a;background:rgba(70,208,122,.14)}
+#out.brushing{cursor:none}
 .busy{position:absolute;top:22px;right:22px;font:500 .8rem var(--f-mono);background:var(--surface);color:var(--fg);padding:4px 8px;border-radius:3px}
 .sheetbox{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px;display:flex;flex-direction:column;gap:8px;align-items:center;align-self:start}
 #sheet{width:100%;max-width:150px;height:auto;display:block;border:1px solid var(--sheet-edge);background:var(--sheet)}
@@ -249,6 +255,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
         <div class="frame" id="frame">
           <canvas id="out" tabindex="0" aria-label="People rebuilt from blocks in a 3D block world" aria-describedby="kbdHelp"></canvas>
           <canvas id="orig" hidden></canvas>
+          <div id="brush" class="brush" hidden aria-hidden="true"></div>
           <span class="busy" id="busy" hidden>Placing blocks…</span>
         </div>
         <p class="sr" id="kbdHelp">With the Move tool: arrow keys move, Shift and an arrow moves further, plus and minus resize, and in Move each, the bracket keys choose a person.</p>
