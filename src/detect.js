@@ -57,6 +57,20 @@ async function detectIn(c,rx,ry,rw,rh,step){ // MoveNet MultiPose on one region;
     found.push({x0,x1,y0,y1,score,kp,area:Math.max(1,(x1-x0)*(y1-y0))})}
   return found;
 }
+// In a group, someone whose legs weren't found (dark trousers on a dark backdrop, say) gets a box that stops at the
+// waist, and each cut-out is clipped to its box, so a gap opens between their neighbours. When the people whose legs
+// were found reach lower, and nobody stands in front of this person's legs, their box is extended down to that floor.
+// people: tight boxes {x0, x1, y0, y1, kp (17 MoveNet keypoints {x, y, s})}; pure, so it's unit-tested.
+const LEG_KP=[13,14,15,16],KP_SEEN=.2,FRONT_COVER=.5;
+function extendLegs(people){
+  const legs=p=>LEG_KP.some(i=>p.kp[i].s>KP_SEEN),withLegs=people.filter(legs);
+  if(!withLegs.length||withLegs.length===people.length)return people;
+  const floor=Math.max(...withLegs.map(p=>p.y1));
+  return people.map(p=>{if(legs(p)||p.y1>=floor)return p;
+    // the legs would be below the shoulders (or the middle of the box when they weren't found)
+    const ls=p.kp[5],rs=p.kp[6],w=p.x1-p.x0,[a,b]=ls.s>KP_SEEN&&rs.s>KP_SEEN?[Math.min(ls.x,rs.x),Math.max(ls.x,rs.x)]:[p.x0+w*.2,p.x1-w*.2];
+    const inFront=people.some(q=>q!==p&&q.y1>p.y1&&q.y0<floor&&(Math.min(b,q.x1)-Math.max(a,q.x0))>(b-a)*FRONT_COVER);
+    return inFront?p:{...p,y1:floor,h0:p.y1-p.y0}})} // h0: the found height, which sets the head margin
 async function findPeople(c,progress){
   if(!poseModel)return[];
   const W=c.width,H=c.height,ar=W/H,wide=ar>1.15||ar<.87,side=Math.min(W,H),len=Math.max(W,H),n=wide?Math.max(2,Math.ceil((len-side)/(side*.5))+1):0;
@@ -81,9 +95,9 @@ async function findPeople(c,progress){
   for(const p of all)if(!kept.some(k=>same(k,p)))kept.push(p);
   if(!kept.length){report("Photo","detections",all.length+" raw → 0");return kept}
   // drop tiny people far behind the main subjects (crowds)
-  const big=Math.max(...kept.map(p=>p.y1-p.y0)),front=kept.filter(p=>(p.y1-p.y0)>=big*.35);
+  const big=Math.max(...kept.map(p=>p.y1-p.y0)),front=extendLegs(kept.filter(p=>(p.y1-p.y0)>=big*.35));
   report("Photo","detections",all.length+" raw → "+kept.length+" merged → "+front.length+" after crowd filter");
-  return front.map(p=>{const bw=p.x1-p.x0,bh=p.y1-p.y0,head=Math.max(bw*.35,bh*.16);
+  return front.map(p=>{const bw=p.x1-p.x0,bh=p.y1-p.y0,head=Math.max(bw*.35,(p.h0||bh)*.16);
     return{x0:Math.max(0,p.x0-bw*.22-head*.3),x1:Math.min(W,p.x1+bw*.22+head*.3),y0:Math.max(0,p.y0-head*.95),y1:Math.min(H,p.y1+bh*.08),score:p.score,kp:p.kp}});
 }
 async function selfieMask(c,sx,sy,side){ // returns 256×256 mask canvas for a square region
@@ -154,5 +168,5 @@ async function segment(img,{progress=()=>{},cancelled=()=>false}={}){
     return{x:x0/W,y:y0/H,w:(x1-x0)/W,h:(y1-y0)/H}})():null;
   return{alpha:ac,people:people.length,focus,boxes:people.map(p=>({x:p.x0/W,y:p.y0/H,w:(p.x1-p.x0)/W,h:(p.y1-p.y0)/H}))};
 }
-return{start,load,segment};
+return{start,load,segment,extendLegs};
 })();

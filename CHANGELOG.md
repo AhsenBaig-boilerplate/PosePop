@@ -2,6 +2,10 @@
 
 Versions follow [semantic versioning](https://semver.org): **major** for changes that break saved settings or the print workflow, **minor** for new features, **patch** for fixes. Each release is a signed `v<version>` tag and stays published at `/PosePop/v/<version>/`. See "Releasing" in the README.
 
+## 1.10.1 (29 October 2026)
+
+- **Fix, gaps in group cut-outs:** when a person's legs weren't detected (dark trousers on a dark backdrop, say), their cut-out stopped at the waist and left a square gap between the people beside them. Their cut-out now reaches the same floor as their neighbours, unless someone is standing in front of them.
+
 ## 1.10.0 (28 October 2026)
 
 - **Cleaner cut-outs:** a second, full-body model (BodyPix, Apache-2.0) now checks each person's cut-out, so chairs, car seats, flags and the smudges between legs no longer get cut out with the people. Hair and edges stay as sharp as before. It runs on devices with graphics acceleration (WebGL), which is nearly all of them; without it the cut-out works as before, because the check would take about 12 seconds per person. The first visit downloads 6.8 MB more, once; after that it works offline as before.
