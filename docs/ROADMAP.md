@@ -22,7 +22,7 @@ Status: `[ ]` open · `[~]` in progress · `[x]` done. Priority: **P0** blocks e
 - [~] **More styles beyond blocks**, picked next to the world picker. The `Style` interface (refactor note 7) and Retro pixel are done; each further style is one entry in `STYLES`. Every style is a generic look with original art: no game, toy or brand names, logos or characters. Candidates, roughly by appeal and effort:
   - ~~**Emoji mosaic**~~ done in 1.3.0 (73 Noto Emoji; skin from skin-tone hands).
   - ~~**Retro pixel (8-bit / 16-bit)**~~ done: DawnBringer 16 or 4 handheld greens, with ordered dithering. Still open: an optional scanline frame.
-  - **Plastic bricks:** studded brick tops with soft shading; also works as a build guide with a parts list, like the block CSV.
+  - ~~**Plastic bricks**~~ done in 1.11.0 as **Bricks**: 33 generic brick colors in 3 groups, each cell a stud, with a brick list (1 × 1 to 1 × 8 per color) and the 32 × 32 baseplate count. Still open: a brick plate world.
   - ~~**Fuse beads**~~ done in 1.9.0: 36 generic bead colors in 4 groups, each bead drawn as a ring, with a bead list and the 29 × 29 pegboard count. Still open: a pegboard world, and pegboard lines on the grid overlay.
   - **Comic / pop art:** halftone dots, bold outlines and an optional speech bubble.
   - **Neon outline:** glowing outlines on dark worlds.
@@ -43,6 +43,7 @@ Status: `[ ]` open · `[~]` in progress · `[x]` done. Priority: **P0** blocks e
 
 ## Done
 
+- [x] **Bricks style (1.11.0):** one new `STYLES` entry, with generic color names. The brick list (CSV) has each color's studs, RGB and 1 × n bricks (`brickRuns()`, a unit-tested pure function), and the baseplates (`pegboards()`). A new optional `material` field names what the people are made of when that isn't the unit counted.
 - [x] **Fuse beads style (1.9.0):** one new `STYLES` entry. Bead colors use generic names (no maker's), with a Skin & hair group for faces. The bead list (CSV) has each color's count and RGB, and the pegboards it takes (`pegboards()`, a unit-tested pure function). The small-cell print warning now comes from each style's `minPx`, and the materials summary from `extra()`.
 - [x] **Emoji on the picture (1.8.0):** 51 Noto Emoji as vector SVG (sharp at 300 dpi) to put on top of the picture, with move, resize and turn (handle, pinch, wheel, sliders, keys), bring to front, remove and undo. On a cut-out sticker the white cut border goes round them. Kiosk guests can add them. Handles keep one size on screen and are bigger on touch screens. Still open: choosing an existing emoji from the keyboard (today a keyboard user can move the one just added), and on cut-out stickers, emoji with loose bits (confetti) leave small separate cut pieces; check them on a test print.
 - [x] **The picture stays in view (1.7.0):** the preview and sheet are sticky beside the settings on wide screens and pinned to the top on phones. The settings are in four tabs (Style, World, Edit, Print) with less-used options under More options, and Undo, Redo, Hold to compare and Save sticker sit under the picture.

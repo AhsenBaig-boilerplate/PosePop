@@ -2,6 +2,10 @@
 
 Versions follow [semantic versioning](https://semver.org): **major** for changes that break saved settings or the print workflow, **minor** for new features, **patch** for fixes. Each release is a signed `v<version>` tag and stays published at `/PosePop/v/<version>/`. See "Releasing" in the README.
 
+## 1.11.0 (29 October 2026)
+
+- **Bricks style:** a new **Bricks** style builds the people out of studded plastic bricks, seen from above. There are 33 brick colors in three groups: **Basics**, **Skin & hair** and **Brights** (off at first). The materials list counts the studs of each color, the 1 × 1 to 1 × 8 bricks that build each row and how many 32 × 32 baseplates the design takes. **Save brick list (CSV)** gives, for each color, its studs, its RGB and how many bricks of each length, so you can build it for real.
+
 ## 1.10.1 (29 October 2026)
 
 - **Fix, gaps in group cut-outs:** when a person's legs weren't detected (dark trousers on a dark backdrop, say), their cut-out stopped at the waist and left a square gap between the people beside them. Their cut-out now reaches the same floor as their neighbours, unless someone is standing in front of them.

@@ -97,6 +97,7 @@ Use the Group of 6 photo and the **Plains** world, with the **Thin** border. Wit
    - how far the cut line is offset from the white border, and in which direction
 8. Once, with emoji (**Emoji** tab): add a crown, a heart and a party popper, overlapping the people, on a world and then as a cut-out (world **None**). Check that the emoji print sharp, and on the cut-out that the cut goes round them. Record whether the party popper's loose confetti bits cut as tiny separate pieces, and whether a **Thick** border joins them.
 9. Once, in **Fuse beads** at the default detail: check that each bead's hole shows in print, and that no small-bead warning appears. Save the bead list (CSV) and check that it opens in a spreadsheet with a count per color and a pegboard row.
+10. Once, in **Bricks** at the default detail: check that each stud shows in print, and that no small-stud warning appears. Save the brick list (CSV) and check that it opens in a spreadsheet with the studs and brick counts for each color and a baseplate row.
 
 ### Reference sizes from the current estimates
 

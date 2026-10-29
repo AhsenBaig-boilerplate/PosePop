@@ -10,7 +10,7 @@ const KEY_STEP=1,KEY_STEP_BIG=5,KEY_SCALE=1.05,KEY_IDLE=600; // blocks, blocks, 
 let sayTimer=0;
 function say(t){clearTimeout(sayTimer);const a=$("announce");a.textContent="";sayTimer=setTimeout(()=>{a.textContent=t},60)} // re-set so repeats are read
 function describeOut(){const st=ST(),n=S.view?S.view.layers.length:0,sc=SCENES.find(s=>s.k===S.scene),who=n?n+(n===1?" person":" people"):"The picture";
-  out.setAttribute("aria-label",(st.photo?who+" cut out of the photo":who+" made of "+st.units)+(sc&&sc.k!=="none"?", on "+sc.label.toLowerCase():"")+
+  out.setAttribute("aria-label",(st.photo?who+" cut out of the photo":who+" made of "+(st.material||st.units))+(sc&&sc.k!=="none"?", on "+sc.label.toLowerCase():"")+
     (S.deco.length?", with "+S.deco.length+" emoji":""))}
 const keyHelp=()=>S.tool==="move"&&S.moveMode!=="boxes"&&selDeco()?"Keys: arrows move the emoji (Shift for bigger steps), + and − resize, [ and ] turn, Delete removes, Escape goes back to the people.":
   S.tool!=="move"||S.moveMode==="boxes"||!canMove()?"":

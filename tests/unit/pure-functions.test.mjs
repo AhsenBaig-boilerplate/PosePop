@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { pure } from "./pure.mjs";
 
-const { rng, toLab, deltaE00, kmeans, keyColor, errorDiffuse, sceneBucket, SCENE_BUCKET, SCENE_ASPECT_STEP, pegboards } = pure;
+const { rng, toLab, deltaE00, kmeans, keyColor, errorDiffuse, sceneBucket, SCENE_BUCKET, SCENE_ASPECT_STEP, pegboards, brickRuns } = pure;
 const close = (a, b, tol, what) => assert.ok(Math.abs(a - b) <= tol, `${what}: ${a} is not within ${tol} of ${b}`);
 
 test("rng is seeded and repeatable, in [0, 1)", () => {
@@ -102,4 +102,21 @@ test("pegboards: boards tiled from the beads' corner, empty ones not counted", (
   // a typical figure: 40 wide × 70 tall on 29-peg boards → 2 × 3
   const fig = []; for (let y = 0; y < 70; y++) for (let x = 0; x < 40; x++) fig.push([x + 5, y + 2]);
   assert.deepEqual(pegboards(grid(64, 80, fig), 64, 80, 29), { cols: 2, rows: 3, boards: 6 });
+});
+
+test("brickRuns: each row's runs of one colour as the fewest 1 × n bricks", () => {
+  const S = [8, 6, 4, 3, 2, 1];
+  // one row: 5 reds, an empty cell, 9 reds, then 2 blues; a run ends at the row's end and never wraps to the next row
+  const row = [0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1];
+  assert.deepEqual(brickRuns(row, 17, 1, S), { 0: [1, 0, 1, 0, 0, 2], 1: [0, 0, 0, 0, 1, 0] });
+  assert.deepEqual(brickRuns([2, 2, 2, 2], 2, 2, S), { 2: [0, 0, 0, 0, 2, 0] });
+  // the white border (-2) and empty cells (-1) take no bricks
+  assert.deepEqual(brickRuns([-2, -1, -2], 3, 1, S), {});
+  // longest first is the fewest bricks for every run length up to 64 (checked against a search over all cuts)
+  const best = [0]; for (let n = 1; n <= 64; n++) best[n] = Math.min(...S.filter(s => s <= n).map(s => best[n - s] + 1));
+  for (let n = 1; n <= 64; n++) {
+    const k = brickRuns(new Array(n).fill(4), n, 1, S)[4];
+    assert.equal(k.reduce((a, b, i) => a + b * S[i], 0), n, `a run of ${n} is covered exactly`);
+    assert.equal(k.reduce((a, b) => a + b, 0), best[n], `a run of ${n} takes ${best[n]} bricks`);
+  }
 });

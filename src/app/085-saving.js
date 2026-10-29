@@ -15,5 +15,5 @@ $("saveSticker").addEventListener("click",async()=>{if(!S.view)return;msg("Rende
 $("saveSheet").addEventListener("click",async()=>{if(!S.view)return;msg("Rendering at 300 dpi…");const{P,c}=printCanvas(),s=document.createElement("canvas"),n=renderSheet(P,s,DPI,c,false);
   save("posepop-sheet-"+n+"-up.png",await pngAt300(s))});
 $("saveCsv").addEventListener("click",()=>{if(!S.view)return;const st=ST();
-  save("posepop-"+st.units+".csv",st.csv(counts()).map(r=>r.join(",")).join("\n"))});
+  save("posepop-"+(st.material||st.units)+".csv",st.csv(counts()).map(r=>r.join(",")).join("\n"))});
 (async()=>{try{downloads=window.claude?.use?await window.claude.use("downloads"):null}catch(e){downloads=null}})();

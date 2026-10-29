@@ -63,11 +63,17 @@ function sceneBucket(W,H){
   const Wb=ab>=1?L:Math.round(L*ab),Hb=ab>=1?Math.round(L/ab):L;
   const sw=a>Wb/Hb?Wb:Hb*a,sh=a>Wb/Hb?Wb/a:Hb;
   return{Wb,Hb,sx:(Wb-sw)/2,sy:Hb-sh,sw,sh}}
-// Fuse beads: the n×n pegboards it takes to make the people, tiled from the top-left of the beads' bounding box.
-// cells: palette index per cell, -1 where there's no bead. Boards with no bead on them aren't counted.
+// Fuse beads and bricks: the n×n pegboards (or baseplates) it takes to make the people, tiled from the top-left of the
+// cells' bounding box. cells: palette index per cell, -1 where there's nothing. Boards with nothing on them aren't counted.
 function pegboards(cells,w,h,n){let x0=w,y0=h,x1=-1,y1=-1;
   for(let i=0;i<w*h;i++)if(cells[i]>=0){const x=i%w,y=i/w|0;if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y}
   if(x1<0)return{cols:0,rows:0,boards:0};
   const cols=Math.ceil((x1-x0+1)/n),rows=Math.ceil((y1-y0+1)/n),used=new Uint8Array(cols*rows);
   for(let i=0;i<w*h;i++)if(cells[i]>=0)used[Math.floor((((i/w|0)-y0))/n)*cols+Math.floor(((i%w)-x0)/n)]=1;
   return{cols,rows,boards:used.reduce((a,b)=>a+b,0)}}
+// Bricks: each row's runs of one colour, cut into 1 × n bricks, longest first (sizes in descending order, ending with 1).
+// Returns {colour: [count of each size]}; greedy is the fewest bricks for the usual 8, 6, 4, 3, 2, 1.
+function brickRuns(cells,w,h,sizes){const out={};
+  for(let y=0;y<h;y++)for(let x=0;x<w;){const c=cells[y*w+x];let n=1;while(x+n<w&&cells[y*w+x+n]===c)n++;x+=n;if(c<0)continue;
+    const k=out[c]||(out[c]=sizes.map(()=>0));sizes.forEach((s,i)=>{k[i]+=Math.floor(n/s);n%=s})}
+  return out}

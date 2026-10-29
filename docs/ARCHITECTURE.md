@@ -104,13 +104,15 @@ A style decides what the people are made of. Detection, masks, editing, worlds a
 | `textured` | Offers "3D block edges". |
 | `minPx` | Optional. Warns when a cell prints smaller than this many pixels at 300 dpi. |
 | `unit`, `units`, `kinds`, `title`, `paletteLabel`, `listName`, `amount(n)`, `csv(list)` | The words and counts in the controls, the materials list and the CSV. |
-| `extra(total)` | Optional. More in the materials summary: stacks for Blocks, pegboards for Fuse beads. |
+| `material` | Optional. What the people are "made of" in the picture's label, and the CSV's file name, when that isn't `units` (Bricks counts studs but is made of bricks). |
+| `extra(total)` | Optional. More in the materials summary: stacks for Blocks, pegboards for Fuse beads, bricks and baseplates for Bricks. |
 
 | Style | Palette | `toCells` | `drawCell` |
 |---|---|---|---|
 | Blocks | 83 textured blocks in 4 groups | Floyd–Steinberg error diffusion | 16×16 texture plus optional bevel |
 | Retro pixel | DawnBringer 16 (free to use), or 4 handheld greens | 4×4 ordered (Bayer) dithering, for the checkerboard look of old consoles | Flat colour |
 | Fuse beads | 36 generic bead colors in 4 groups (Basics, Skin & hair, Pastels, Neons) | Floyd–Steinberg error diffusion | A ring with its hole and a soft highlight, on a darker shade of the same color; a plain square below 5 px |
+| Bricks | 33 generic brick colors in 3 groups (Basics, Skin & hair, Brights) | Floyd–Steinberg error diffusion | A brick top with its stud, a soft shadow and highlight, and a faint seam; a plain square below 6 px. The build list cuts each row's runs of one color into 1 × 8, 6, 4, 3, 2 and 1 bricks, longest first (`brickRuns()`, which a unit test checks is always the fewest bricks), and counts 32 × 32 baseplates with `pegboards()`. |
 | Emoji | 73 Noto Emoji (Apache-2.0), in 3 groups | Floyd–Steinberg, matched on each emoji's average opaque colour | A tile of that colour with the emoji on top |
 
 **Emoji curation** (the `EMOJI` list in `build.mjs`): the build copies each chosen PNG from the pinned `emoji-datasource-google` as a hashed asset, and writes the list into the app as `__EMOJI__`. The images load when the style is first picked (`loadEmoji`). Two rules apply, because every face at an event is drawn with them: **skin must come from neutral emoji** (raised hands in 5 skin tones, hearts, squares), so animals and foods whose colour falls in the skin-tone range are excluded; and **no emoji with well-known double meanings**. Check new candidates on several real photos across skin tones before adding them.

@@ -5,7 +5,8 @@
 //   toCells(pixels, w, h, dither, nearest): photo pixels (RGBA) → Int16Array of palette indices
 //   drawCell(ctx, i, x, y, w, h, bevel, t): draws palette entry i into that rectangle
 //   textured: cells carry a texture (offers 3D edges); minPx: warns when cells print smaller than this
-//   unit/units/kinds/title/paletteLabel/listName: words for the labels; amount(n); extra(total): more in the summary;
+//   unit/units/kinds/title/paletteLabel/listName: words for the labels; material: what the people are "made of" when
+//   that isn't units (also the CSV's file name); amount(n); extra(total): more in the summary;
 //   csv(list) for the materials list
 // Retro pixel colors: DawnBringer's 16-color palette (free to use), and a 4-green handheld palette
 const PIXELS=[];
@@ -33,6 +34,25 @@ function drawBead(ctx,e,x0,y0,bw,bh){ctx.fillStyle=e.gap;ctx.fillRect(x0,y0,bw,b
  ["neon",[["Neon yellow",225,240,50],["Neon orange",255,120,50],["Neon pink",255,70,150],["Neon green",80,230,90]]]
 ].forEach(([group,cols])=>cols.forEach(([name,r,g,b])=>{const avg=[r,g,b],e={name,group,avg,lab:toLab(r,g,b),hex:beadShade(avg,1),gap:beadShade(avg,.55)};
   e.canvas=document.createElement("canvas");e.canvas.width=e.canvas.height=16;drawBead(e.canvas.getContext("2d"),e,0,0,16,16);BEADS.push(e)}));
+// Bricks: a mosaic of studded brick tops, seen from above, in generic plastic brick colours (no maker's names).
+// Each cell is one stud; the build list cuts each row into 1 × n bricks and counts the baseplates.
+const BRICKS=[],PLATE=32,BRICK_SIZES=[8,6,4,3,2,1];
+function drawBrick(ctx,e,x0,y0,bw,bh){ctx.fillStyle=e.hex;ctx.fillRect(x0,y0,bw,bh);
+  if(bw<6)return; // too small to show the stud
+  const cx=x0+bw/2,cy=y0+bh/2,r=Math.min(bw,bh)*.3,lw=Math.max(1,bw*.04);
+  ctx.fillStyle="rgba(0,0,0,.12)";ctx.fillRect(x0,y0+bh-lw,bw,lw);ctx.fillRect(x0+bw-lw,y0,lw,bh-lw); // the seam to the next stud
+  ctx.beginPath();ctx.arc(cx+r*.14,cy+r*.2,r,0,2*Math.PI);ctx.fillStyle=e.shade;ctx.fill();
+  ctx.beginPath();ctx.arc(cx,cy,r,0,2*Math.PI);ctx.fillStyle=e.hex;ctx.fill();
+  ctx.lineWidth=r*.22;ctx.lineCap="round";ctx.beginPath();ctx.arc(cx,cy,r*.72,3.4,4.9);ctx.strokeStyle="rgba(255,255,255,.45)";ctx.stroke()}
+[["basic",[["White",244,244,242],["Light grey",160,165,169],["Dark grey",99,95,98],["Black",33,37,41],["Red",196,30,30],["Dark red",120,25,25],
+  ["Orange",245,130,30],["Yellow",245,205,50],["Lime",165,200,40],["Green",40,125,65],["Dark green",25,70,45],["Light blue",100,160,220],["Blue",20,85,180],
+  ["Navy",20,45,90],["Purple",115,40,125],["Pink",230,165,195],["Sand",220,200,155],["Olive",135,130,85]]],
+ ["skin",[["Light peach",246,215,180],["Peach",225,170,130],["Caramel",200,140,100],["Medium brown",165,115,80],["Reddish brown",105,62,40],["Dark brown",60,38,20]]],
+ ["bright",[["Hot pink",235,80,150],["Magenta",180,45,130],["Turquoise",40,170,185],["Bright green",80,190,70],["Coral",250,115,100],["Lavender",190,160,220],["Gold",230,165,40],
+  ["Sky blue",140,205,240],["Lemon",250,240,120]]]
+].forEach(([group,cols])=>cols.forEach(([name,r,g,b])=>{const avg=[r,g,b],e={name,group,avg,lab:toLab(r,g,b),hex:beadShade(avg,1),shade:beadShade(avg,.68)};
+  e.canvas=document.createElement("canvas");e.canvas.width=e.canvas.height=16;drawBrick(e.canvas.getContext("2d"),e,0,0,16,16);BRICKS.push(e)}));
+const brickCount=()=>Object.values(brickRuns(S.view.cells,S.view.w,S.view.h,BRICK_SIZES)).reduce((a,k)=>a+k.reduce((x,y)=>x+y,0),0);
 const BAYER=[0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5]; // 4×4 ordered dithering: the checkerboard look of old consoles
 const STYLES={
   blocks:{name:"Blocks",palette:BLOCKS,groups:SETS,on:Object.keys(SETS),textured:true,
@@ -59,6 +79,17 @@ const STYLES={
     csv:list=>{const p=pegboards(S.view.cells,S.view.w,S.view.h,PEG);
       return[["Bead color","Count","RGB"],...list.map(([id,n])=>[BEADS[id].name,n,BEADS[id].avg.join(" ")]),[],
         ["Pegboards "+PEG+" × "+PEG,p.boards,p.cols+" across × "+p.rows+" down"]]}},
+  bricks:{name:"Bricks",palette:BRICKS,groups:{basic:"Basics",skin:"Skin & hair",bright:"Brights"},on:["basic","skin"],textured:false,
+    unit:"stud",units:"studs",kinds:"colors",title:"Studs in the people",paletteLabel:"Brick colors",listName:"brick list",material:"bricks",minPx:8,
+    toCells:(d,w,h,dither,near)=>errorDiffuse(d,w,h,dither,near,BRICKS),
+    drawCell(ctx,i,x0,y0,bw,bh){drawBrick(ctx,BRICKS[i],x0,y0,bw,bh)},
+    amount:n=>fmt(n)+(n===1?" stud":" studs"),
+    extra:()=>{const n=brickCount(),b=pegboards(S.view.cells,S.view.w,S.view.h,PLATE).boards;
+      return fmt(n)+(n===1?" brick":" bricks")+" · "+b+(b===1?" baseplate":" baseplates")+" ("+PLATE+" × "+PLATE+")"},
+    // one row per colour: its studs, and the 1 × n bricks that build its rows
+    csv:list=>{const runs=brickRuns(S.view.cells,S.view.w,S.view.h,BRICK_SIZES),p=pegboards(S.view.cells,S.view.w,S.view.h,PLATE);
+      return[["Brick color","Studs","RGB",...BRICK_SIZES.map(n=>"1 × "+n)],...list.map(([id,n])=>[BRICKS[id].name,n,BRICKS[id].avg.join(" "),...runs[id]]),[],
+        ["Baseplates "+PLATE+" × "+PLATE,p.boards,p.cols+" across × "+p.rows+" down"]]}},
 };
 // Photo: no cells drawn at all. compose() draws each person as the real photo, cut out (see photoLayer);
 // the cells still exist, so moving, resizing, boxes, erasing and print work exactly as for the other styles.

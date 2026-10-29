@@ -1,4 +1,5 @@
-// Styles: every style draws without errors, and Fuse beads lists its beads and the pegboards they take.
+// Styles: every style draws without errors, Fuse beads lists its beads and the pegboards they take, and Bricks its
+// studs, the 1 × n bricks per color and the baseplates.
 // Uses the built-in sample, so no detection is needed.
 import { test, expect, closeDiag } from "./fixtures.mjs";
 
@@ -16,7 +17,7 @@ async function pick(page, style) {
 
 test("every style draws the people", async ({ page }) => {
   await ready(page);
-  for (const [style, units] of [["pixel", "pixels"], ["beads", "beads"], ["photo", null], ["emoji", "emoji"], ["blocks", "blocks"]]) {
+  for (const [style, units] of [["pixel", "pixels"], ["beads", "beads"], ["bricks", "bricks"], ["photo", null], ["emoji", "emoji"], ["blocks", "blocks"]]) {
     await pick(page, style);
     await expect(page.locator("#out")).toHaveAttribute("aria-label", units ? new RegExp(`made of ${units}`) : /cut out of the photo/);
     expect((await snap(page)).filled, style).toBeGreaterThan(100);
@@ -47,6 +48,32 @@ test("Fuse beads: bead colours, the pegboard count, and a bead list that adds up
   await expect(page.locator("#sets .chip", { hasText: "Neons" })).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator("#busy")).toBeHidden({ timeout: 60_000 });
   await expect(page.locator("#mSum")).toHaveText(/pegboards? \(29 × 29\)$/);
+});
+
+test("Bricks: studs, a brick list per color that builds every stud, and baseplates", async ({ page }) => {
+  await ready(page);
+  await pick(page, "bricks");
+  await expect(page.locator("#wRead")).toHaveText(/studs wide$/);
+  await expect(page.locator("#setsLabel")).toHaveText("Brick colors");
+  await expect(page.locator("#mSum")).toHaveText(/^\d+ colors · [\d,]+ studs · [\d,]+ bricks · \d+ baseplates? \(32 × 32\)$/);
+  const sum = await page.locator("#mSum").textContent(), num = re => Number(sum.match(re)[1].replace(/,/g, ""));
+  const studs = num(/([\d,]+) studs/), bricks = num(/([\d,]+) bricks/), plates = num(/(\d+) baseplates?/);
+  expect(studs).toBe((await snap(page)).filled);
+  expect(bricks, "bricks join studs in a row").toBeLessThan(studs);
+  expect(plates).toBeGreaterThan(0);
+  await page.click("#tab-print");
+  const [download] = await Promise.all([page.waitForEvent("download"), page.click("#saveCsv")]);
+  expect(download.suggestedFilename()).toBe("posepop-bricks.csv");
+  const rows = Buffer.concat(await (await download.createReadStream()).toArray()).toString().split("\n").map(r => r.split(","));
+  const sizes = [8, 6, 4, 3, 2, 1];
+  expect(rows[0]).toEqual(["Brick color", "Studs", "RGB", ...sizes.map(n => `1 × ${n}`)]);
+  const colors = rows.slice(1).filter(r => r.length === 9);
+  for (const r of colors) expect(r.slice(3).reduce((a, n, i) => a + Number(n) * sizes[i], 0), `${r[0]}: the bricks cover its studs`).toBe(Number(r[1]));
+  expect(colors.reduce((a, r) => a + Number(r[1]), 0)).toBe(studs);
+  expect(colors.reduce((a, r) => a + r.slice(3).reduce((x, n) => x + Number(n), 0), 0)).toBe(bricks);
+  const plate = rows.find(r => r[0] === "Baseplates 32 × 32");
+  expect(plate && Number(plate[1])).toBe(plates);
+  expect(plate[2]).toMatch(/^\d+ across × \d+ down$/);
 });
 
 test("Photo: Restore brings back the photo itself, not just a shadow", async ({ page }) => {
