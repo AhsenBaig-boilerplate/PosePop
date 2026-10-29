@@ -2,6 +2,10 @@
 
 Versions follow [semantic versioning](https://semver.org): **major** for changes that break saved settings or the print workflow, **minor** for new features, **patch** for fixes. Each release is a signed `v<version>` tag and stays published at `/PosePop/v/<version>/`. See "Releasing" in the README.
 
+## 1.11.1 (29 October 2026)
+
+- **Fix, Restore in the Photo style:** restoring a part of a person that the cut-out had made faint or see-through, often the legs, now brings the photo back there in full. Before, Restore only worked where the cut-out had removed the part completely, so faint parts stayed faint.
+
 ## 1.11.0 (29 October 2026)
 
 - **Bricks style:** a new **Bricks** style builds the people out of studded plastic bricks, seen from above. There are 33 brick colors in three groups: **Basics**, **Skin & hair** and **Brights** (off at first). The materials list counts the studs of each color, the 1 × 1 to 1 × 8 bricks that build each row and how many 32 × 32 baseplates the design takes. **Save brick list (CSV)** gives, for each color, its studs, its RGB and how many bricks of each length, so you can build it for real.

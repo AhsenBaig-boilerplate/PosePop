@@ -96,7 +96,8 @@ function personMask(){
     for(const pt of f.pts){const cx=pt[0]*w,cy=pt[1]*h,rr=f.r;
       for(let y=Math.floor(cy-rr);y<=Math.ceil(cy+rr);y++)for(let x=Math.floor(cx-rr);x<=Math.ceil(cx+rr);x++){
         if(x<0||y<0||x>=w||y>=h)continue;if(Math.hypot(x+.5-cx,y+.5-cy)>rr)continue;const i=y*w+x;
-        if(f.t==="erase"){keep[i]=0;layer[i]=-1;restored[i]=0}else if(!keep[i]){keep[i]=1;layer[i]=f.L;restored[i]=1}}}
+        // Restore also marks cells that were kept but that the detector's mask left faint (often legs), so the photo shows there in full
+        if(f.t==="erase"){keep[i]=0;layer[i]=-1;restored[i]=0}else{if(!keep[i]){keep[i]=1;layer[i]=f.L}restored[i]=1}}}
   }
   return{keep,layer,restored};
 }

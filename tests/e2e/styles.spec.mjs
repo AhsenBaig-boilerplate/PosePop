@@ -1,7 +1,7 @@
 // Styles: every style draws without errors, Fuse beads lists its beads and the pegboards they take, and Bricks its
 // studs, the 1 × n bricks per color and the baseplates.
 // Uses the built-in sample, so no detection is needed.
-import { test, expect, closeDiag } from "./fixtures.mjs";
+import { test, expect, closeDiag, openApp, loadPhoto, openTab } from "./fixtures.mjs";
 
 const snap = page => page.evaluate(() => window.posepopState());
 async function ready(page) {
@@ -98,4 +98,37 @@ test("Photo: Restore brings back the photo itself, not just a shadow", async ({ 
   await page.mouse.up();
   await expect(page.locator("#busy")).toBeHidden({ timeout: 60_000 });
   await expect.poll(() => alphaAt(gap.x, gap.y), { message: "the restored spot shows the photo" }).toBeGreaterThan(200);
+});
+
+test("Photo: Restore brings back a part the detector's mask left faint, in full", async ({ page }) => {
+  await openApp(page);
+  await loadPhoto(page, "single.jpg");
+  await openTab(page, "style");
+  await pick(page, "photo");
+  await openTab(page, "world");
+  await page.click('.scene[data-k="none"]');
+  await expect(page.locator("#busy")).toBeHidden({ timeout: 60_000 });
+  // a cell that is part of the person but drawn faint, because the detector's soft mask (and the body gate) is unsure there
+  const alphaAt = (x, y) => page.evaluate(([x, y]) => document.getElementById("out").getContext("2d").getImageData(x, y, 1, 1).data[3], [x, y]);
+  const spot = await page.evaluate(() => { const c = document.getElementById("out"), d = c.getContext("2d").getImageData(0, 0, c.width, c.height).data,
+      { w, h, ox, oy, cell, kept } = window.posepopState().grid; let best = null;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (kept[y * w + x] === "1") {
+      const X = Math.round(ox + (x + .5) * cell), Y = Math.round(oy + (y + .5) * cell), a = d[(Y * c.width + X) * 4 + 3];
+      if (a < 200 && (!best || a < best.a)) best = { X, Y, a, cell, W: c.width, H: c.height }; }
+    return best; });
+  expect(spot, "single.jpg has a kept cell the mask draws faint").not.toBeNull();
+  const filled = (await page.evaluate(() => window.posepopState())).filled;
+  await openTab(page, "edit");
+  await page.click("#tool [data-v=keep]");
+  // a small stroke, as a guest would paint: the restored edge blends over a cell, so a lone one-cell dab isn't quite solid
+  await page.locator("#brushSize").fill("2");
+  const r = await page.locator("#out").boundingBox(), X = r.x + spot.X / spot.W * r.width, Y = r.y + spot.Y / spot.H * r.height, d = spot.cell / spot.W * r.width;
+  await page.mouse.move(X - d, Y); await page.mouse.down();
+  for (let i = 1; i <= 4; i++) await page.mouse.move(X - d + i * d / 2, Y);
+  await page.mouse.up();
+  await expect(page.locator("#busy")).toBeHidden({ timeout: 60_000 });
+  await expect.poll(() => alphaAt(spot.X, spot.Y), { message: `the restored cell is solid photo (it was ${spot.a})` }).toBeGreaterThan(240);
+  await page.click("#undo");
+  await expect.poll(() => alphaAt(spot.X, spot.Y)).toBe(spot.a);
+  expect((await page.evaluate(() => window.posepopState())).filled).toBe(filled);
 });
