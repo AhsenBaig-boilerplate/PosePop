@@ -41,7 +41,7 @@ photo ──► decodeFile ──► findPeople ──► segment ──► work
 | Stage | Function(s) | Notes |
 |---|---|---|
 | Load | `loadFile`, `decodeFile` | `createImageBitmap` with orientation, `<img>` fallback, downscale to 2200 px for mobile memory |
-| Find people | `findPeople`, `detectIn` (`src/detect.js`) | Full frame, padded frame (edge people), overlapping windows for wide/tall photos; duplicates merged by head/shoulder position; crowd filter at 35 % of tallest person |
+| Find people | `findPeople`, `detectIn` (`src/detect.js`) | Full frame, padded frame (edge people), overlapping windows for wide/tall photos; duplicates merged by head/shoulder position; crowd filter at 35 % of tallest person; `extendLegs` (unit-tested) extends a person whose legs weren't found down to the floor of those whose legs were, unless someone overlaps half their shoulder span below them (in front) |
 | Cut out | `segment`, `selfieMask`, `bodyGate` (`src/detect.js`) | Square crop per person + tighter head-and-shoulders pass, multiplied by the BodyPix gate, clipped to the person's box; tiled fallback (no gate) when nobody is found |
 | Zoom | `work` | Crops source + alpha to the union of people boxes |
 | Style | `convert`, `nearest`, `STYLES` | CIELAB nearest-colour with a 64³ cache. The current style (`S.style`) supplies the palette, `toCells` (its dithering) and `drawCell`; see "Styles" below. |
