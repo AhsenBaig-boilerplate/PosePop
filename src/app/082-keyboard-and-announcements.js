@@ -2,7 +2,8 @@
 // The preview takes focus (Tab), and then, with the Move tool: arrows move the group or the selected person by one
 // block (Shift: five), + and − resize by 5 %, [ and ] pick the previous or next person in Move each. A burst of keys
 // is one undo step, like one drag. Erasing stays pointer-only: it needs a position on the picture.
-// With an emoji selected (one just added, or tapped), the keys act on it instead: arrows move, + and − resize,
+// E chooses an emoji already on the picture: the frontmost first, then each one behind it (Shift+E goes the other way).
+// With an emoji selected (chosen with E, just added, or tapped), the keys act on it instead: arrows move, + and − resize,
 // [ and ] turn it by 15°, Delete removes it and Escape goes back to the people.
 // say() reads short updates to screen readers through a polite live region (#announce); people found and saves are
 // announced by #srcNote and #saveMsg themselves (role="status").
@@ -12,16 +13,22 @@ function say(t){clearTimeout(sayTimer);const a=$("announce");a.textContent="";sa
 function describeOut(){const st=ST(),n=S.view?S.view.layers.length:0,sc=SCENES.find(s=>s.k===S.scene),who=n?n+(n===1?" person":" people"):"The picture";
   out.setAttribute("aria-label",(st.photo?who+" cut out of the photo":who+" made of "+(st.material||st.units))+(sc&&sc.k!=="none"?", on "+sc.label.toLowerCase():"")+
     (S.deco.length?", with "+S.deco.length+" emoji":""))}
-const keyHelp=()=>S.tool==="move"&&S.moveMode!=="boxes"&&selDeco()?"Keys: arrows move the emoji (Shift for bigger steps), + and − resize, [ and ] turn, Delete removes, Escape goes back to the people.":
-  S.tool!=="move"||S.moveMode==="boxes"||!canMove()?"":
-  "Keys: arrows move "+(S.moveMode==="each"?"the selected person":"the group")+" (Shift for bigger steps), + and − resize"+(S.moveMode==="each"?", [ and ] choose a person":"")+".";
+const keyHelp=()=>S.tool==="move"&&S.moveMode!=="boxes"&&selDeco()?"Keys: arrows move the emoji (Shift for bigger steps), + and − resize, [ and ] turn, Delete removes, "+
+    (S.deco.length>1?"E chooses the next emoji, ":"")+"Escape goes back to the people.":
+  S.tool!=="move"||S.moveMode==="boxes"||!canMove()?(S.tool==="move"&&S.moveMode!=="boxes"&&S.deco.length?"Keys: E chooses an emoji.":""):
+  "Keys: arrows move "+(S.moveMode==="each"?"the selected person":"the group")+" (Shift for bigger steps), + and − resize"+(S.moveMode==="each"?", [ and ] choose a person":"")+
+    (S.deco.length?", E chooses an emoji":"")+".";
+// E and Shift+E: the next emoji back from the front, or the next one forward; announced with its place, front first
+function pickDeco(back){const n=S.deco.length;endBurst();
+  S.decoSel=S.decoSel<0?(back?n-1:0):back?(S.decoSel+n-1)%n:(S.decoSel+1)%n;decoUI();quick();
+  $("hover").textContent=keyHelp();say(DECO_LIST[S.deco[S.decoSel].k][1]+" selected, "+(n-S.decoSel)+" of "+n)}
 out.addEventListener("focus",()=>{const h=keyHelp();if(h)$("hover").textContent=h});
 let keyBurst=null;
 function endBurst(){if(!keyBurst)return;const b=keyBurst;keyBurst=null;restyle();
   if(b.moved)say(b.deco?"Emoji moved":S.moveMode==="each"?"Person "+(S.sel+1)+" moved":"Group moved")}
 function burst(deco){if(!keyBurst){pushHist();keyBurst={moved:false,deco}}clearTimeout(keyBurst.t);keyBurst.t=setTimeout(endBurst,KEY_IDLE)}
 function decoKey(e){const d=selDeco(),k=e.key,name=DECO_LIST[d.k][1],L=S.layout,m=Math.min(L.Wpx,L.Hpx);
-  if(k==="Escape"){e.preventDefault();endBurst();S.decoSel=-1;decoUI();quick();say(name+" deselected");return}
+  if(k==="Escape"){e.preventDefault();endBurst();S.decoSel=-1;decoUI();quick();$("hover").textContent=keyHelp();say(name+" deselected");return}
   if(k==="Delete"||k==="Backspace"){e.preventDefault();endBurst();removeDeco(S.decoSel);return}
   const arrows={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]},grow=k==="+"||k==="="?KEY_SCALE:k==="-"||k==="_"?1/KEY_SCALE:0,turn=k==="]"?1:k==="["?-1:0;
   if(!arrows[k]&&!grow&&!turn)return;
@@ -31,6 +38,7 @@ function decoKey(e){const d=selDeco(),k=e.key,name=DECO_LIST[d.k][1],L=S.layout,
   clampDeco(d);decoUI();quick();
   if(grow)say("Size "+Math.round(d.s*100)+" percent");else if(turn)say("Turned to "+Math.round(d.r*180/Math.PI)+" degrees")}
 out.addEventListener("keydown",e=>{
+  if((e.key==="e"||e.key==="E")&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&S.tool==="move"&&S.moveMode!=="boxes"&&S.deco.length&&S.layout){e.preventDefault();pickDeco(!e.shiftKey);return}
   if(!e.ctrlKey&&!e.metaKey&&!e.altKey&&S.tool==="move"&&S.moveMode!=="boxes"&&selDeco()&&S.layout){decoKey(e);return}
   if(e.ctrlKey||e.metaKey||e.altKey||S.tool!=="move"||S.moveMode==="boxes"||!canMove()||!S.view||!S.layout)return;
   const n=S.view.layers.length,k=e.key;
