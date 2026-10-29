@@ -28,7 +28,7 @@ Status: `[ ]` open · `[~]` in progress · `[x]` done. Priority: **P0** blocks e
   - **Neon outline:** glowing outlines on dark worlds.
   - **Cross-stitch:** a stitch grid with a thread list.
   - Matching worlds for each style where it fits, such as a pixel city or a brick plate.
-- [ ] **Accessibility, next steps:** a keyboard way to choose an existing emoji on the picture, a keyboard way to erase (for example, a movable brush cursor), keyboard edits for Adjust boxes, and a screen-reader pass on iOS VoiceOver and Android TalkBack on the event devices.
+- [ ] **Accessibility, next steps:** a keyboard way to erase (for example, a movable brush cursor), keyboard edits for Adjust boxes, and a screen-reader pass on iOS VoiceOver and Android TalkBack on the event devices.
 
 ## P2: product growth
 
@@ -43,10 +43,11 @@ Status: `[ ]` open · `[~]` in progress · `[x]` done. Priority: **P0** blocks e
 
 ## Done
 
+- [x] **Choose an emoji from the keyboard (1.13.0):** E and Shift+E cycle through the emoji on the picture, front first (`pickDeco` in `082`), announced with their place; the emoji keys then act on the chosen one.
 - [x] **Brush ring (1.12.0):** Erase and Restore show a ring the size of the stroke (`brushShow` in `080`; red and dashed for Erase, green and solid for Restore) in place of the crosshair. Mouse and pen show it while hovering, touch while painting. The Brush slider previews the size in the middle of the picture.
 - [x] **Bricks style (1.11.0):** one new `STYLES` entry, with generic color names. The brick list (CSV) has each color's studs, RGB and 1 × n bricks (`brickRuns()`, a unit-tested pure function), and the baseplates (`pegboards()`). A new optional `material` field names what the people are made of when that isn't the unit counted.
 - [x] **Fuse beads style (1.9.0):** one new `STYLES` entry. Bead colors use generic names (no maker's), with a Skin & hair group for faces. The bead list (CSV) has each color's count and RGB, and the pegboards it takes (`pegboards()`, a unit-tested pure function). The small-cell print warning now comes from each style's `minPx`, and the materials summary from `extra()`.
-- [x] **Emoji on the picture (1.8.0):** 51 Noto Emoji as vector SVG (sharp at 300 dpi) to put on top of the picture, with move, resize and turn (handle, pinch, wheel, sliders, keys), bring to front, remove and undo. On a cut-out sticker the white cut border goes round them. Kiosk guests can add them. Handles keep one size on screen and are bigger on touch screens. Still open: choosing an existing emoji from the keyboard (today a keyboard user can move the one just added), and on cut-out stickers, emoji with loose bits (confetti) leave small separate cut pieces; check them on a test print.
+- [x] **Emoji on the picture (1.8.0):** 51 Noto Emoji as vector SVG (sharp at 300 dpi) to put on top of the picture, with move, resize and turn (handle, pinch, wheel, sliders, keys), bring to front, remove and undo. On a cut-out sticker the white cut border goes round them. Kiosk guests can add them. Handles keep one size on screen and are bigger on touch screens. Since 1.13.0, **E** chooses an existing emoji from the keyboard. Still open: on cut-out stickers, emoji with loose bits (confetti) leave small separate cut pieces; check them on a test print.
 - [x] **The picture stays in view (1.7.0):** the preview and sheet are sticky beside the settings on wide screens and pinned to the top on phones. The settings are in four tabs (Style, World, Edit, Print) with less-used options under More options, and Undo, Redo, Hold to compare and Save sticker sit under the picture.
 - [x] **Keyboard editing and announcements (1.6.0):**
   - a "Skip to the picture" link on the first Tab

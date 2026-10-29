@@ -1,4 +1,5 @@
-// Emoji on the picture: add, select, drag, turn and resize with the handle, keys, undo, remove, and the kiosk guest view.
+// Emoji on the picture: add, select, drag, turn and resize with the handle, keys (including choosing one with E), undo,
+// remove, and the kiosk guest view.
 // Uses the built-in sample, so no detection is needed.
 import { test, expect, openTab } from "./fixtures.mjs";
 
@@ -102,6 +103,36 @@ test("keys move, resize, turn and remove the selected emoji, announced, as one u
   await page.keyboard.press("Delete");
   await expect.poll(async () => (await snap(page)).deco.length).toBe(1);
   await expect(page.locator("#announce")).toHaveText("balloon removed");
+});
+
+test("E chooses an emoji already on the picture, front first, and the keys then act on it alone", async ({ page }) => {
+  await ready(page);
+  for (const name of ["balloon", "crown", "star"]) await page.click(`#decoPick [aria-label="Add ${name}"]`);
+  await expect.poll(async () => (await snap(page)).deco.length).toBe(3);
+  await page.locator("#out").focus();
+  await page.keyboard.press("Escape");
+  await expect.poll(async () => (await snap(page)).decoSel).toBe(-1);
+  await expect(page.locator("#hover")).toContainText("E chooses an emoji");
+  await page.keyboard.press("e");
+  await expect(page.locator("#announce")).toHaveText("star selected, 1 of 3");
+  expect((await snap(page)).decoSel).toBe(2);
+  await page.keyboard.press("e");
+  await expect(page.locator("#announce")).toHaveText("crown selected, 2 of 3");
+  await page.keyboard.press("Shift+E");
+  await page.keyboard.press("e");
+  await expect(page.locator("#announce")).toHaveText("crown selected, 2 of 3");
+  await expect(page.locator("#hover")).toHaveText(/^Keys: arrows move the emoji/);
+  const before = (await snap(page)).deco;
+  await page.keyboard.press("ArrowLeft");
+  await expect(page.locator("#announce")).toHaveText("Emoji moved");
+  const after = (await snap(page)).deco;
+  expect(after[1].x, "the chosen emoji moved").toBeLessThan(before[1].x);
+  expect([after[0], after[2]], "the others stayed").toEqual([before[0], before[2]]);
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#announce")).toHaveText("crown deselected");
+  expect((await snap(page)).group, "with no emoji chosen, arrows go back to the people").toEqual({ dx: 0, dy: 0, s: 1 });
+  await page.keyboard.press("ArrowLeft");
+  await expect.poll(async () => (await snap(page)).group.dx).toBeLessThan(0);
 });
 
 test("Remove all clears every emoji", async ({ page }) => {
