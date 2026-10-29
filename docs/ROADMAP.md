@@ -43,6 +43,7 @@ Status: `[ ]` open · `[~]` in progress · `[x]` done. Priority: **P0** blocks e
 
 ## Done
 
+- [x] **Kiosk idle reset (1.13.1):** after 90 s with no tap or key, saved or not, the kiosk returns to the start screen and forgets the photo (a privacy fix: before, only a save started the reset).
 - [x] **Choose an emoji from the keyboard (1.13.0):** E and Shift+E cycle through the emoji on the picture, front first (`pickDeco` in `082`), announced with their place; the emoji keys then act on the chosen one.
 - [x] **Brush ring (1.12.0):** Erase and Restore show a ring the size of the stroke (`brushShow` in `080`; red and dashed for Erase, green and solid for Restore) in place of the crosshair. Mouse and pen show it while hovering, touch while painting. The Brush slider previews the size in the middle of the picture.
 - [x] **Bricks style (1.11.0):** one new `STYLES` entry, with generic color names. The brick list (CSV) has each color's studs, RGB and 1 × n bricks (`brickRuns()`, a unit-tested pure function), and the baseplates (`pegboards()`). A new optional `material` field names what the people are made of when that isn't the unit counted.

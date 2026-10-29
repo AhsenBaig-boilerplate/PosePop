@@ -179,6 +179,8 @@ Use the event tablet, and set up Guided Access (iPad) or App pinning (Android) f
    *Expect:* the PNG saves, and "Starting over for the next guest in 60 s" appears. Tap the picture: the count goes back to 60.
 6. Leave it alone.
    *Expect:* after 60 s it returns to the start screen and the guest's photo is gone.
+6a. Take another photo and **don't** save it. Leave it alone.
+   *Expect:* after 75 s, "Starting over for the next guest in 15 s" appears. Tap the picture: it goes away. Leave it again: 90 s after the last tap, it returns to the start screen and the photo is gone.
 7. Long-press the PosePop title for 1.5 s.
    *Expect:* all settings appear. Long-press again to hide them.
 8. Leave the tablet for 10 minutes.
