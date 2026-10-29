@@ -1,8 +1,13 @@
 name: Build and deploy
 
+# The browser tests (e2e) gate pull requests. The ruleset on main requires them to pass on a branch that is up to
+# date with main, so the code that merges is the code that was tested: pushes to main then build and deploy without
+# running them again. A v* tag push deploys main again so the new release appears at /v/<version>/. A manual run
+# (workflow_dispatch) runs everything, browser tests included, before it deploys.
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   pull_request:
   workflow_dispatch:
 
@@ -10,8 +15,11 @@ on:
 permissions:
   contents: read
 
+# Pull requests: one run per branch, a new push cancels the old run. Deploys (main, tags, manual): one queue, never
+# cancelled mid-run; a newer waiting run replaces an older waiting one, which is safe because each builds main with
+# every tag, so the last run to deploy always carries every release.
 concurrency:
-  group: pages-${{ github.ref }}
+  group: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.ref) || 'pages-main' }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -23,6 +31,8 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0 # release tags (v*) are rebuilt into dist/v/<version>/
+          # a tag push deploys main (with the new tag among the releases), never the tag's own commit as the latest app
+          ref: ${{ startsWith(github.ref, 'refs/tags/') && 'main' || '' }}
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
@@ -44,6 +54,7 @@ jobs:
           path: dist
 
   e2e:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -73,7 +84,13 @@ jobs:
           retention-days: 14
 
   deploy:
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    # build must pass; e2e must pass when it ran (manual runs) and is skipped only for pushes to main and v* tags.
+    # Any other result (failed, cancelled) stops the deploy.
+    if: >-
+      always() && github.event_name != 'pull_request' &&
+      (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) &&
+      needs.build.result == 'success' &&
+      (needs.e2e.result == 'success' || (needs.e2e.result == 'skipped' && github.event_name == 'push'))
     needs: [build, e2e]
     runs-on: ubuntu-24.04
     timeout-minutes: 10

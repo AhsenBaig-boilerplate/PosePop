@@ -23,7 +23,7 @@ tests/
   e2e/                Playwright against dist/ (npm run test:e2e)
   fixtures/           NASA test photos and where they came from (README.md)
 playwright.config.mjs
-.github/workflows/pages.yml   CI: build + verify + unit and e2e tests on PRs, deploy on main once both pass
+.github/workflows/pages.yml   CI: build + verify + unit and e2e tests on PRs; main and v* tags build and deploy (the ruleset requires both on PRs)
 docs/                 this file, ROADMAP.md, DEVICE-TEST.md (real-device and test-print script)
 ```
 
@@ -147,7 +147,8 @@ To add a style, add an entry to `STYLES`. The picker above the worlds lists ever
 - **Release notes:** `scripts/changelog.mjs` reads `CHANGELOG.md` (`## <version> (<date>)` headings with bullet or paragraph notes) and puts each version's `headline` (the first bold phrase) and `notes` into `releases.json`, for Latest and every release. Notes always come from the current changelog, so corrections reach older releases too. The picker shows "<version> · <date> — <headline>", and **What's new** lists every version's notes, with the current one highlighted. Notes are drawn as text with `**bold**` and `` `code` `` only (`richText`), never as HTML.
 - **Version picker:** the footer's **Version** select (operator view in kiosk mode) reads `releases.json` from the site root and moves to the chosen version, keeping the query (`?kiosk=1`, `?debug=1`). It stays hidden when the list can't load (offline, local builds). A release built before 1.1.0, such as 1.0.0, has no picker; open the site root to go back to Latest.
 - **Offline per version:** each folder registers its own `sw.js`, and the more specific scope wins for its pages. Since 1.1.0, cache names are `posepop|<folder>|<build>`, and a worker deletes only its own folder's old caches. Caches named in the older `posepop-<build>` form (1.0.0) are removed by Latest only when `releases.json` loads and doesn't list that build, so a pinned 1.0.0 keeps its offline copy.
-- **Deploys:** Pages only accepts deploys from `main`, so releases go out on the next deploy from `main` (`gh workflow run … --ref main`). Deploys are queued one at a time (`concurrency: pages-deploy`).
+- **Deploys:** the `github-pages` environment accepts `main` and `v*` tags. A tag push builds and deploys `main`, never the tag's own commit, so the latest app can't roll back to the tag. The new tag is among the releases it builds. Pushes to `main`, tag pushes and manual runs share one queue (`concurrency: pages-main`). A newer waiting run replaces an older waiting one, which is safe because each run builds `main` with every tag. The deploy job runs one at a time (`pages-deploy`). Its condition checks that `build` passed, and that `e2e` either passed or was skipped on a push. A failed or cancelled job never deploys.
+- **Why pushes don't rerun the e2e tests:** the ruleset on `main` requires `build` and `e2e` to pass on each PR, with the branch up to date with `main` ("strict"). So the merged tree is the tested tree. Repo admins can bypass the ruleset to push a revert straight to `main` in an emergency (see the event runbook); that deploy runs the build and unit tests but not e2e.
 
 ## Backdrop key (green or blue screen)
 
@@ -211,7 +212,7 @@ Tested on a NASA green-screen photo (public domain, an unusual suspended pose): 
 - **Unit (`tests/unit/`, `node --test`):** run by `npm test`, so before every commit and in both CI jobs.
   - **The app's pure functions:** colour conversion and difference, k-means, dithering, screen-colour detection and world-render sizing live in `src/app/007-pure-functions.js` (with `005-random-noise.js`). `tests/unit/pure.mjs` loads just those two files in a bare `vm` context, with no `window`, no `document` and no app state, so a DOM reference in them fails the tests. Results are passed back through `structuredClone`, so they compare as ordinary arrays. Reference values: `toLab` on sRGB primaries, and `deltaE00` on Sharma, Wu & Dalal's published test pairs.
   - **The release-notes parser:** also checks that `CHANGELOG.md` has a dated entry for `package.json`'s version.
-- **End-to-end (`tests/e2e/`, Playwright):** run against the built `dist/`, served by `scripts/serve.mjs` with production caching, in their own CI job; deploys wait for it. `tests/e2e/fixtures.mjs` fails any test that sees a page error, a console error or a CSP violation.
+- **End-to-end (`tests/e2e/`, Playwright):** run against the built `dist/`, served by `scripts/serve.mjs` with production caching, in their own CI job on every PR (required to merge) and on manual runs. `tests/e2e/fixtures.mjs` fails any test that sees a page error, a console error or a CSP violation.
 - **Reading state:** `app.js` is one closed scope, so with `?debug=1` only, `112-test-snapshot.js` adds `window.posepopState()`. It returns a plain-data copy: people found, filled cells, each person's centre on the preview, the group's move and size, and edit counts. Without `?debug=1` it doesn't exist, and nothing in it can change the app. Tests drive the app only through the UI.
 - **Waiting:** the CSP blocks string eval, so `page.waitForFunction` fails. Use `expect.poll` and locator assertions (polling from the test side). `page.evaluate` works, because it runs over the DevTools protocol.
 - **Updates and the picker:** these tests block the service worker (`serviceWorkers: "block"`) so that `page.route` can answer `version.json` and `releases.json`. The offline test keeps it.

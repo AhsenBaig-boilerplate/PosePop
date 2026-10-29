@@ -66,7 +66,7 @@ Warm the offline cache for the version you'll use: open its URL on good Wi-Fi un
 GitHub Pages always serves `main`.
 
 1. Find the merge commit that caused the problem: `git log --oneline main`.
-2. Run `git revert -m 1 <merge commit>`, then push to `main`. Use a signed commit, as usual.
+2. Run `git revert -m 1 <merge commit>`, then push to `main`. Use a signed commit, as usual. Repo admins can push it straight to `main`, which bypasses the ruleset; it builds and runs the unit tests, but not the end-to-end tests.
 3. CI deploys in about 2 minutes. Devices pick up the fixed build by themselves: at once if no one is editing, otherwise through the update bar.
 
 A device that is offline keeps running the build it has cached.
