@@ -57,7 +57,7 @@ photo ──► decodeFile ──► findPeople ──► segment ──► work
 
 **Model files** (`src/models/`): each is one JSON and one `.bin` (the build needs a single weights shard). BodyPix comes from `https://storage.googleapis.com/tfjs-models/savedmodel/bodypix/mobilenet/quant2/100/model-stride16.json` and its two shards, joined in order into `bodypix.bin`, with the JSON's path changed to match. SHA-256 of the downloads: `model-stride16.json` `fb1511de9fb366564255bc53402a01d2584d1ae1abb791ca4507fb909f099db2`, `group1-shard1of2.bin` `bf3b48ff701a81ff5694680b28980ce54d5061df98bf51e8a84bfa41653ca48d`, `group1-shard2of2.bin` `7c794a7950dfa085bd13c3907e6925e37e8502bdec9a157da13f062e60f47687`.
 
-State lives in one object, `S`. Undo/redo snapshots `S.fixes`, `S.place`, `S.gplace`, `S.edges` and `S.sel` as JSON. `S.moveMode` (`group` by default, `each`, `boxes`) decides what move, resize, pinch, scroll and the Size slider act on, through `cur()`.
+State lives in one object, `S`. Undo/redo snapshots `S.fixes`, `S.place`, `S.gplace`, `S.edges` and `S.sel` as JSON. Edit geometry is stored as fractions of the whole photo, not of the zoomed work image or the grid: stroke points and Erase area points, the stroke radius (a fraction of the photo's width) and adjusted boxes. `toWork`/`toPhoto`/`boxToWork` (`050`) convert, so changing Detail or Zoom keeps every edit where it was, and switching Zoom no longer clears edits, emoji, placement or undo (before 1.13.3 a radius was in cells, so a stroke made at Detail 64 covered a third as much of the person at 128). `S.moveMode` (`group` by default, `each`, `boxes`) decides what move, resize, pinch, scroll and the Size slider act on, through `cur()`.
 
 ## Build and delivery
 

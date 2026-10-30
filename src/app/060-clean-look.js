@@ -47,7 +47,7 @@ function convert(){
   S.result={w,h,grid,lab,alpha,hasAlpha:!!Wk.alpha};drawOrig();
 }
 
-const effBoxes=()=>(S.boxes||[]).map((b,k)=>S.edges[k]||b); // detector boxes with the user's edge adjustments
+const effBoxes=()=>(S.boxes||[]).map((b,k)=>S.edges[k]?boxToWork(S.edges[k]):b); // detector boxes with the user's edge adjustments
 const N4=(i,w,h)=>{const x=i%w,y=(i/w)|0;return[x>0?i-1:-1,x<w-1?i+1:-1,y>0?i-w:-1,y<h-1?i+w:-1]};
 function personMask(){
   const{w,h,lab,alpha,hasAlpha}=S.result,keep=new Uint8Array(w*h);
@@ -89,11 +89,12 @@ function personMask(){
   // restored: cells brought back by Restore strokes, which the Photo style draws even where the detector's mask is empty
   const de=(a,b)=>Math.hypot(lab[a*3]-lab[b*3],lab[a*3+1]-lab[b*3+1],lab[a*3+2]-lab[b*3+2]),restored=new Uint8Array(w*h);
   for(const f of S.fixes){
-    if(f.t==="area"){const sx=Math.floor(f.x*w),sy=Math.floor(f.y*h),s0=sy*w+sx;if(sx<0||sy<0||sx>=w||sy>=h||!keep[s0])continue;
+    if(f.t==="area"){const[u,v]=toWork(f.x,f.y),sx=Math.floor(u*w),sy=Math.floor(v*h),s0=sy*w+sx;if(sx<0||sy<0||sx>=w||sy>=h||!keep[s0])continue;
       const L=layer[s0],st3=[s0],seen=new Uint8Array(w*h);seen[s0]=1;
       while(st3.length){const i=st3.pop();keep[i]=0;layer[i]=-1;restored[i]=0;for(const m of N4(i,w,h))if(m>=0&&!seen[m]&&keep[m]&&layer[m]===L&&de(m,s0)<26){seen[m]=1;st3.push(m)}}
       continue}
-    for(const pt of f.pts){const cx=pt[0]*w,cy=pt[1]*h,rr=f.r;
+    const rr=f.r/workScale()*w; // f.r and the points are fractions of the photo (see toWork)
+    for(const pt of f.pts){const[u,v]=toWork(pt[0],pt[1]),cx=u*w,cy=v*h;
       for(let y=Math.floor(cy-rr);y<=Math.ceil(cy+rr);y++)for(let x=Math.floor(cx-rr);x<=Math.ceil(cx+rr);x++){
         if(x<0||y<0||x>=w||y>=h)continue;if(Math.hypot(x+.5-cx,y+.5-cy)>rr)continue;const i=y*w+x;
         // Restore also marks cells that were kept but that the detector's mask left faint (often legs), so the photo shows there in full

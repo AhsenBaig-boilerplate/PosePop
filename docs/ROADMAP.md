@@ -43,6 +43,7 @@ Status: `[ ]` open · `[~]` in progress · `[x]` done. Priority: **P0** blocks e
 
 ## Done
 
+- [x] **Edits across Detail and Zoom (1.13.3):** strokes, Erase area points and adjusted boxes are stored as fractions of the whole photo, the stroke radius as a fraction of its width (`toWork`/`toPhoto`/`boxToWork` in `050`). Detail no longer changes what an old stroke covers (on `group7.jpg` a stroke made at 64 covered 0.46× as much at 128; now 1.1×), and the Zoom toggle no longer calls `resetEdits()`.
 - [x] **Faster Photo brush (1.13.2):** `photoLayer` (`065`) caches each person's cut-out by what it's made of (its box, and which cells are drawn or restored) instead of by the view, so a stroke redraws only the people it touches. Layers are made at the drawn size (the photo scaled by 1, ½, ¼ …, never below the target), and the white border is one cached ring per person (`borderRing`) instead of 16 draws a frame. A 30-move stroke on `group7.jpg`: long tasks 7.5 s → 2.5 s (longest 249 → 124 ms); a 4000 px copy with Zoom off: 14.4 s → 2.1 s (609 → 90 ms). Output matches the old drawing except for anti-aliasing at the edges.
 - [x] **Kiosk idle reset (1.13.1):** after 90 s with no tap or key, saved or not, the kiosk returns to the start screen and forgets the photo (a privacy fix: before, only a save started the reset).
 - [x] **Choose an emoji from the keyboard (1.13.0):** E and Shift+E cycle through the emoji on the picture, front first (`pickDeco` in `082`), announced with their place; the emoji keys then act on the chosen one.
