@@ -2,6 +2,10 @@
 
 Versions follow [semantic versioning](https://semver.org): **major** for changes that break saved settings or the print workflow, **minor** for new features, **patch** for fixes. Each release is a signed `v<version>` tag and stays published at `/PosePop/v/<version>/`. See "Releasing" in the README.
 
+## 1.13.3 (30 October 2026)
+
+- **Edits survive Detail and Zoom:** an Erase or Restore stroke now covers the same part of the person when you change Detail. Before, its size was counted in blocks, so at a higher Detail an old stroke shrank to about half or a third. Switching **Zoom in on the people** no longer clears your erasing, box adjustments, emoji, placement and undo history; they stay where they were.
+
 ## 1.13.2 (30 October 2026)
 
 - **Faster Photo brush:** Erase and Restore in the Photo style no longer stutter, most of all on groups. Each person's cut-out is now redrawn only when a stroke changes it, and at the size it's shown, so a stroke on a group of 7 takes about a third of the time it did (and about a seventh with Zoom off on a large photo). Prints are unchanged: a save still gets at least its own resolution.

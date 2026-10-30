@@ -44,7 +44,7 @@ function toGrid(X,Y,Lr){const L=S.layout,P=L.pl(Lr.L);return{gx:Lr.ax+((X-L.ox-P
 function hitLayer(X,Y){const L=S.layout;if(!L||!S.view)return null;const{w,h,lay}=S.view;
   for(let k=L.order.length-1;k>=0;k--){const Lr=L.order[k],g=toGrid(X,Y,Lr),x=Math.floor(g.gx),y=Math.floor(g.gy);if(x>=0&&y>=0&&x<w&&y<h&&lay[y*w+x]===Lr.L)return Lr}
   return null}
-function strokePt(X,Y,Lr){const g=toGrid(X,Y,Lr),pad=S.view.pad,{w,h}=S.result;return[(g.gx-pad+S.crop.x0)/w,(g.gy-pad+S.crop.y0)/h]}
+function strokePt(X,Y,Lr){const g=toGrid(X,Y,Lr),pad=S.view.pad,{w,h}=S.result;return toPhoto((g.gx-pad+S.crop.x0)/w,(g.gy-pad+S.crop.y0)/h)}
 function boxHit(X,Y,touch){ // a box edge near the pointer (the selected box wins ties), else the smallest box under it
   const B=S.layout&&S.layout.boxes;if(!B)return null;const tol=(touch?24:12)*out.width/out.getBoundingClientRect().width;let best=null;
   B.forEach(([x0,y0,x1,y1],k)=>{const inY=Y>=y0-tol&&Y<=y1+tol,inX=X>=x0-tol&&X<=x1+tol;
@@ -57,7 +57,7 @@ function dragEdge(X,Y,k,ed){ // move one edge of box k to the pointer, keeping t
   const L=S.layout,R=S.result,C=S.crop,p=S.view.pad,gx=((X-L.ox)/L.cell-p+C.x0)/R.w,gy=((Y-L.oy)/L.cell-p+C.y0)/R.h;
   const b=effBoxes()[k],mx=2/R.w,my=2/R.h,cl=(v,a,z)=>Math.max(a,Math.min(z,v));let x0=b.x,y0=b.y,x1=b.x+b.w,y1=b.y+b.h;
   if(ed==="l")x0=cl(gx,0,x1-mx);else if(ed==="r")x1=cl(gx,x0+mx,1);else if(ed==="t")y0=cl(gy,0,y1-my);else y1=cl(gy,y0+my,1);
-  S.edges[k]={x:x0,y:y0,w:x1-x0,h:y1-y0}}
+  S.edges[k]=boxToPhoto({x:x0,y:y0,w:x1-x0,h:y1-y0})}
 
 let quickPending=0;
 function quick(){cancelAnimationFrame(quickPending);quickPending=requestAnimationFrame(()=>{if(!S.view)return;const P=frameSize();compose(out,...previewSize(P),true)})}
@@ -82,7 +82,8 @@ out.addEventListener("pointerdown",e=>{
   const Lr=hitLayer(pt.X,pt.Y)||S.layout.order.find(l=>l.L===S.sel)||S.layout.order[0];if(!Lr)return;
   pushHist();
   if(S.tool==="area"){const q=strokePt(pt.X,pt.Y,Lr);S.fixes.push({t:"area",x:q[0],y:q[1]});restyle();return}
-  drag={stroke:{t:S.tool,L:Lr.L,r:S.brushSize*.75,pts:[strokePt(pt.X,pt.Y,Lr)]},Lr};S.fixes.push(drag.stroke);rebuildQuick();
+  // the radius is kept as a fraction of the photo's width (like the points), so Detail and Zoom don't change what it covers
+  drag={stroke:{t:S.tool,L:Lr.L,r:S.brushSize*.75/S.result.w*workScale(),pts:[strokePt(pt.X,pt.Y,Lr)]},Lr};S.fixes.push(drag.stroke);rebuildQuick();
 });
 out.addEventListener("pointermove",e=>{
   const pt=canvasPt(e);

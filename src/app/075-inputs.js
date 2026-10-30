@@ -50,7 +50,8 @@ $("dither").addEventListener("change",e=>{S.dither=e.target.checked;run()});
 // Clean starts without dithering, Detailed with it (the original behaviour); the checkbox can still change either
 seg("look",v=>{S.look=v;S.dither=v==="detailed";$("dither").checked=S.dither;
   $("lookHint").textContent=v==="clean"?"A short palette chosen for this photo, without speckle. Best for phone photos.":"Every color in the palette and dithering, as before. Needs more detail for photos.";run()});
-$("zoom").addEventListener("change",e=>{S.zoom=e.target.checked;resetEdits();run()});
+// edits are kept in photo coordinates (toWork in 050), so switching Zoom keeps strokes, boxes, emoji, placement and undo
+$("zoom").addEventListener("change",e=>{S.zoom=e.target.checked;run()});
 for(const k of["bevel","shadow","grid"])$(k).addEventListener("change",e=>{S[k]=e.target.checked;restyle()});
 $("inches").addEventListener("input",e=>{S.inches=+e.target.value;restyle()});
 [1,2,3,4,6,8,10,12,"Custom"].forEach(v=>{const b=document.createElement("button");b.className="chip";b.textContent=v;b.setAttribute("aria-pressed",String(v===S.count));

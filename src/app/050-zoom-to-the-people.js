@@ -1,7 +1,16 @@
 // ================= Zoom to the people =================
 let workCache=null;
+// the part of the photo that is turned into blocks (null: all of it)
+const workFocus=()=>S.zoom&&S.focus&&(S.focus.w<.92||S.focus.h<.92)?S.focus:null;
+// Edits (strokes, Erase area, box edges) are stored as fractions of the whole photo, so they stay put when Zoom or
+// Detail changes; these convert to and from fractions of the work image.
+function toWork(x,y){const f=workFocus();return f?[(x-f.x)/f.w,(y-f.y)/f.h]:[x,y]}
+function toPhoto(u,v){const f=workFocus();return f?[f.x+u*f.w,f.y+v*f.h]:[u,v]}
+const workScale=()=>{const f=workFocus();return f?f.w:1}; // the work image's width as a fraction of the photo's
+function boxToWork(b){const f=workFocus(),[x,y]=toWork(b.x,b.y);return f?{x,y,w:b.w/f.w,h:b.h/f.h}:b}
+function boxToPhoto(b){const f=workFocus(),[x,y]=toPhoto(b.x,b.y);return f?{x,y,w:b.w*f.w,h:b.h*f.h}:b}
 function work(){ // the source and alpha actually turned into blocks
-  const f=S.zoom&&S.focus&&(S.focus.w<.92||S.focus.h<.92)?S.focus:null,k=S.src&&(f?JSON.stringify(f):"full");
+  const f=workFocus(),k=S.src&&(f?JSON.stringify(f):"full");
   if(workCache&&workCache.src===S.src&&workCache.k===k&&workCache.bf===S.boxesFull)return workCache;
   const bx=S.boxesFull||[];
   if(!f){S.boxes=bx;workCache={src:S.src,k,img:S.src,alpha:S.alpha,bf:S.boxesFull};return workCache}
