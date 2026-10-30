@@ -21,8 +21,9 @@ Add `?kiosk=1` to the URL for events: a start screen, a live camera with a 3-2-1
 ## Releasing
 
 1. In a PR, bump `version` in `package.json` and add a `## <version> (<date>)` section to `CHANGELOG.md`. Start each bullet with a **bold headline:**; the first one becomes the version's headline in the app's picker, and all of them appear under **What's new**. Merge it.
-2. Tag that commit with a signed tag and push the tag: `git tag -s v1.2.0 -m "PosePop 1.2.0"`, then `git push origin v1.2.0`. The tag push deploys `main` again, which publishes the new release. It doesn't rerun the browser tests; the PR already passed them. Every deploy rebuilds all `v*` tags.
-3. The release is now at `/PosePop/v/1.2.0/` and in the Version picker. Optionally, add release notes with `gh release create v1.2.0 --notes-file …`.
+2. Tag that commit with a signed tag and push the tag: `git tag -s v1.2.0 -m "PosePop 1.2.0"`, then `git push origin v1.2.0`.
+3. Deploy `main` again so the new tag is published: `gh workflow run "Build and deploy" --ref main`. It takes about 2 minutes and doesn't rerun the browser tests, because the PR already passed them. Every deploy rebuilds all `v*` tags. (A tag push alone doesn't deploy: GitHub Pages accepts a deployment from a tag but keeps serving the last one from `main`.)
+4. The release is now at `/PosePop/v/1.2.0/` and in the Version picker. Optionally, add release notes with `gh release create v1.2.0 --notes-file …`.
 
 To use a release at an event, pick it in the footer's **Version** picker, or open `/PosePop/v/<version>/?kiosk=1`. It won't change until you pick another version.
 
@@ -43,8 +44,8 @@ Edit the app in `src/app/*.js`, one file per section, joined in file-name order 
 `.github/workflows/pages.yml` installs from the lockfile, audits, builds, verifies and runs the unit tests on every run.
 - **Pull requests** also run the Playwright end-to-end tests in a second job, and never deploy.
 - **Merging:** the ruleset on `main` requires both jobs to pass, on a branch that is up to date with `main`. So the code that merges is the code that was tested.
-- **Pushes to `main` and `v*` tags** therefore build and deploy straight away, in about 2 minutes, without rerunning the end-to-end tests.
-- **A manual run** (`gh workflow run "Build and deploy" --ref main`) runs everything, end-to-end tests included, before it deploys.
+- **Pushes to `main`** therefore build and deploy straight away, in about 2 minutes, without rerunning the end-to-end tests.
+- **A manual run on `main`** (`gh workflow run "Build and deploy" --ref main`) does the same; it's how a new tag gets published. Add `-f e2e=true` to run the end-to-end tests first; the deploy then waits for them to pass.
 
 Deploys use the official Pages actions.
 
