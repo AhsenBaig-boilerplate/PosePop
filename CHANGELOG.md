@@ -2,6 +2,10 @@
 
 Versions follow [semantic versioning](https://semver.org): **major** for changes that break saved settings or the print workflow, **minor** for new features, **patch** for fixes. Each release is a signed `v<version>` tag and stays published at `/PosePop/v/<version>/`. See "Releasing" in the README.
 
+## 1.13.2 (30 October 2026)
+
+- **Faster Photo brush:** Erase and Restore in the Photo style no longer stutter, most of all on groups. Each person's cut-out is now redrawn only when a stroke changes it, and at the size it's shown, so a stroke on a group of 7 takes about a third of the time it did (and about a seventh with Zoom off on a large photo). Prints are unchanged: a save still gets at least its own resolution.
+
 ## 1.13.1 (29 October 2026)
 
 - **Fix, kiosk privacy:** a guest who takes a photo and walks away without saving no longer leaves it on screen for the next person. After 90 seconds with nobody touching the screen, the kiosk now goes back to the start screen and forgets the photo, whether it was saved or not. The same goes for a live camera left open. "Starting over for the next guest" shows for the last 15 seconds, and any tap keeps the guest going. Before, the reset only started after a save.

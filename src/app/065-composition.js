@@ -48,28 +48,46 @@ let photoCache=null;
 // One person as the real photo: the photo × the detector's soft mask × this person's cells. The cells are grown by
 // one into empty space, so the photo's own soft edge decides the outline, while splits between people and erasing
 // follow the cells. Kept to the person's own box so a group stays light on memory.
-function photoLayer(Lr){
-  if(!photoCache||photoCache.view!==S.view)photoCache={view:S.view,m:new Map()};
-  if(photoCache.m.has(Lr.L))return photoCache.m.get(Lr.L);
-  const Wk=work(),im=Wk.img,iw=im.naturalWidth||im.width,ih=im.naturalHeight||im.height,R=S.result,C=S.crop,{w:vw,h:vh,cells,lay,pad:p}=S.view,e=Lr.e;
+// Cached per person by what the layer is made of (its box and, per cell, drawn or restored), not by the view: a brush
+// stroke rebuilds the view on every move, but only the people it touches change, so only they are redrawn.
+// z is the size of a cell where the layer is drawn, in canvas pixels. The layer is made at the photo's resolution
+// scaled by f (1, 1/2, 1/4 …), the smallest that is still at least z per cell: the preview gets a small, quick layer,
+// and a save at print size never gets less than its own resolution.
+function photoLayer(Lr,z){
+  const Wk=work(),R=S.result,im=Wk.img,iw=im.naturalWidth||im.width,ih=im.naturalHeight||im.height;
+  const f=Math.min(1,2**Math.ceil(Math.log2(Math.max(1e-6,z*R.w/iw))));
+  if(!photoCache||photoCache.wk!==Wk||photoCache.R!==R)photoCache={wk:Wk,R,m:new Map()};
+  const old=photoCache.m.get(Lr.L);if(old&&old.view===S.view&&old.f===f)return old;
+  const C=S.crop,{w:vw,h:vh,cells,lay,pad:p,restored}=S.view,e=Lr.e;
   const x0=Math.max(0,e.x0-1),y0=Math.max(0,e.y0-1),x1=Math.min(vw-1,e.x1+1),y1=Math.min(vh-1,e.y1+1),mw=x1-x0+1,mh=y1-y0+1;
-  const own=i=>cells[i]>=0&&lay[i]===Lr.L,mc=document.createElement("canvas");mc.width=mw;mc.height=mh;const mx=mc.getContext("2d"),md=mx.createImageData(mw,mh);
+  const sx=(x0-p+C.x0)/R.w*iw,sy=(y0-p+C.y0)/R.h*ih,sw=mw/R.w*iw,sh=mh/R.h*ih,ow=Math.max(1,Math.round(sw*f)),oh=Math.max(1,Math.round(sh*f));
+  // k per cell: 1 drawn, 2 drawn and restored
+  const own=i=>cells[i]>=0&&lay[i]===Lr.L,k=new Uint8Array(mw*mh);
   for(let y=0;y<mh;y++)for(let x=0;x<mw;x++){const vx=x0+x,vy=y0+y,i=vy*vw+vx;
-    const on=own(i)||(cells[i]<0&&((vx>0&&own(i-1))||(vx<vw-1&&own(i+1))||(vy>0&&own(i-vw))||(vy<vh-1&&own(i+vw))));md.data[(y*mw+x)*4+3]=on?255:0}
+    k[y*mw+x]=own(i)?(restored[i]?2:1):cells[i]<0&&((vx>0&&own(i-1))||(vx<vw-1&&own(i+1))||(vy>0&&own(i-vw))||(vy<vh-1&&own(i+vw)))?1:0}
+  if(old&&old.x0===x0&&old.y0===y0&&old.mw===mw&&old.mh===mh&&old.sx===sx&&old.sy===sy&&old.f===f&&old.k.every((v,j)=>v===k[j])){old.view=S.view;return old}
+  const mc=document.createElement("canvas");mc.width=mw;mc.height=mh;const mx=mc.getContext("2d"),md=mx.createImageData(mw,mh);
+  for(let j=0;j<mw*mh;j++)md.data[j*4+3]=k[j]?255:0;
   mx.putImageData(md,0,0);
-  const sx=(x0-p+C.x0)/R.w*iw,sy=(y0-p+C.y0)/R.h*ih,sw=mw/R.w*iw,sh=mh/R.h*ih,ow=Math.max(1,Math.round(sw)),oh=Math.max(1,Math.round(sh));
   const c=document.createElement("canvas");c.width=ow;c.height=oh;const x=c.getContext("2d");x.imageSmoothingQuality="high";
   x.drawImage(im,sx,sy,sw,sh,0,0,ow,oh);x.globalCompositeOperation="destination-in";x.imageSmoothingEnabled=true;x.drawImage(mc,0,0,ow,oh);
   const A=alphaMask(Wk);if(A){const k=A.width/iw;x.drawImage(A,sx*k,sy*k,sw*k,sh*k,0,0,ow,oh)}
   // cells brought back with Restore show the photo whatever the detector thought, or only their shadow would appear
   const rd=mx.createImageData(mw,mh);let any=false;
-  for(let y=0;y<mh;y++)for(let x2=0;x2<mw;x2++){const i=(y0+y)*vw+x0+x2;if(own(i)&&S.view.restored[i]){rd.data[(y*mw+x2)*4+3]=255;any=true}}
+  for(let j=0;j<mw*mh;j++)if(k[j]===2){rd.data[j*4+3]=255;any=true}
   if(any){const rm=document.createElement("canvas");rm.width=mw;rm.height=mh;rm.getContext("2d").putImageData(rd,0,0);
     const r=document.createElement("canvas");r.width=ow;r.height=oh;const rx=r.getContext("2d");rx.imageSmoothingQuality="high";
     rx.drawImage(im,sx,sy,sw,sh,0,0,ow,oh);rx.globalCompositeOperation="destination-in";rx.imageSmoothingEnabled=true;rx.drawImage(rm,0,0,ow,oh);
     x.globalCompositeOperation="source-over";x.drawImage(r,0,0)}
-  const sil=document.createElement("canvas");sil.width=ow;sil.height=oh;const sx2=sil.getContext("2d");sx2.drawImage(c,0,0);sx2.globalCompositeOperation="source-in";sx2.fillStyle="#fff";sx2.fillRect(0,0,ow,oh);
-  const L={c,sil,x0,y0,mw,mh};photoCache.m.set(Lr.L,L);return L}
+  const L={c,x0,y0,mw,mh,sx,sy,f,k,view:S.view};photoCache.m.set(Lr.L,L);return L}
+// The white cut-out border around one person: the layer stamped in 16 directions, rx × ry layer pixels out, then
+// painted white. Kept with the layer, so an untouched person costs one draw per frame instead of 16.
+function borderRing(L,rx,ry){
+  const key=rx.toFixed(2)+","+ry.toFixed(2);if(L.ring&&L.ring.key===key)return L.ring;
+  const R=Math.ceil(Math.max(rx,ry))+1,w=L.c.width,h=L.c.height,c=document.createElement("canvas");c.width=w+2*R;c.height=h+2*R;
+  const x=c.getContext("2d");x.imageSmoothingEnabled=true;
+  for(let k=0;k<16;k++){const t=k/16*2*Math.PI;x.drawImage(L.c,R+Math.cos(t)*rx,R+Math.sin(t)*ry)}
+  x.globalCompositeOperation="source-in";x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);return L.ring={key,R,c}}
 function compose(canvas,Wpx,Hpx,preview){
   canvas.width=Wpx;canvas.height=Hpx;const ctx=canvas.getContext("2d");ctx.clearRect(0,0,Wpx,Hpx);
   const{w,h,cells}=S.view,world=isWorld(S.scene)&&THREE_OK,hasScene=world||!!BACKDROPS[S.scene],st=ST();
@@ -100,10 +118,10 @@ function compose(canvas,Wpx,Hpx,preview){
   }
   ctx.imageSmoothingEnabled=false;
   if(st.photo){ // cut-out border traced around the photo's own outline instead of whole cells
-    if(border.length){const r=S.border*cell;for(const Lr of order){const L=photoLayer(Lr),a=rect(L.x0,L.y0,Lr),c=cell*pl(Lr.L).s;ctx.imageSmoothingEnabled=true;
-      for(let k=0;k<16;k++){const t=k/16*2*Math.PI;ctx.drawImage(L.sil,a[0]+Math.cos(t)*r,a[1]+Math.sin(t)*r,L.mw*c,L.mh*c)}}}}
+    if(border.length){const r=S.border*cell;for(const Lr of order){const c=cell*pl(Lr.L).s,L=photoLayer(Lr,c),a=rect(L.x0,L.y0,Lr);ctx.imageSmoothingEnabled=true;
+      const zx=L.mw*c/L.c.width,zy=L.mh*c/L.c.height,g=borderRing(L,r/zx,r/zy);ctx.drawImage(g.c,a[0]-g.R*zx,a[1]-g.R*zy,g.c.width*zx,g.c.height*zy)}}}
   else for(const i of border){ctx.fillStyle="#ffffff";const x=i%w,y=i/w|0;ctx.fillRect(Math.round(ox+x*cell),Math.round(oy+y*cell),Math.round(ox+(x+1)*cell)-Math.round(ox+x*cell),Math.round(oy+(y+1)*cell)-Math.round(oy+y*cell))}
-  if(st.photo)for(const Lr of order){const L=photoLayer(Lr),a=rect(L.x0,L.y0,Lr),c=cell*pl(Lr.L).s;ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality="high";
+  if(st.photo)for(const Lr of order){const c=cell*pl(Lr.L).s,L=photoLayer(Lr,c),a=rect(L.x0,L.y0,Lr);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality="high";
     ctx.drawImage(L.c,a[0],a[1],L.mw*c,L.mh*c);
     if(boxing){ctx.fillStyle=BOXC[Lr.L%BOXC.length]+"55";for(const i of byLayer.get(Lr.L)){const r2=rect(i%w,i/w|0,Lr);ctx.fillRect(r2[0],r2[1],r2[2],r2[3])}}}
   else for(const Lr of order){const P=pl(Lr.L),c=cell*P.s,bevel=st.textured&&S.bevel&&c>=4&&!boxing,t=Math.max(1,Math.round(c/11));
