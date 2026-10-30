@@ -2,6 +2,10 @@
 
 Versions follow [semantic versioning](https://semver.org): **major** for changes that break saved settings or the print workflow, **minor** for new features, **patch** for fixes. Each release is a signed `v<version>` tag and stays published at `/PosePop/v/<version>/`. See "Releasing" in the README.
 
+## 1.13.1 (29 October 2026)
+
+- **Fix, kiosk privacy:** a guest who takes a photo and walks away without saving no longer leaves it on screen for the next person. After 90 seconds with nobody touching the screen, the kiosk now goes back to the start screen and forgets the photo, whether it was saved or not. The same goes for a live camera left open. "Starting over for the next guest" shows for the last 15 seconds, and any tap keeps the guest going. Before, the reset only started after a save.
+
 ## 1.13.0 (29 October 2026)
 
 - **Choose an emoji from the keyboard:** with the picture focused, press **E** to choose an emoji already on the picture: the frontmost first, then each one behind it (**Shift+E** goes the other way). Screen readers hear which one, for example "crown selected, 2 of 3". The arrows, + and −, [ and ] and Delete then act on it, and Escape goes back to the people. Before, the keyboard could only reach the emoji just added.

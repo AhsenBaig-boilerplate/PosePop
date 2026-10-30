@@ -16,7 +16,7 @@ Photos never leave the device: detection, cut-out and rendering all run locally.
 
 ## Kiosk mode
 
-Add `?kiosk=1` to the URL for events: a start screen, a live camera with a 3-2-1 countdown, big Retake and Save buttons, and a reset for the next guest 60 s after a save. Long-press the PosePop title for 1.5 s to show the settings. Lock the device to the browser with Guided Access (iOS) or App pinning (Android). See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#kiosk-mode-kiosk1).
+Add `?kiosk=1` to the URL for events: a start screen, a live camera with a 3-2-1 countdown, big Retake and Save buttons, and a reset for the next guest 60 s after a save, or after 90 s with nobody touching it, so an unsaved photo never stays on screen. Long-press the PosePop title for 1.5 s to show the settings. Lock the device to the browser with Guided Access (iOS) or App pinning (Android). See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#kiosk-mode-kiosk1).
 
 ## Releasing
 
